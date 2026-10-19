@@ -7,6 +7,27 @@ Powiązane pliki:
 - [CONTRIBUTING.md](CONTRIBUTING.md): zasady Git, commity, styl kodu
 - [README.md](README.md): opis projektu i uruchomienie lokalne
 
+## Szybka ściągawka
+```bash
+# start
+git checkout main && git pull
+git checkout -b feature/krotki-opis
+
+# praca
+git add .
+git commit -m "feat: krótki opis"
+
+# przed PR
+php artisan test && ./vendor/bin/pint
+npm run lint && npm run test
+
+# wysyłka
+git push -u origin feature/krotki-opis
+# → otwórz Pull Request do main
+
+Sposób 1: Przez interfejs GitHub (najpopularniejszy)
+Sposób 2: Przez GitHub CLI (gh) – prosto z terminala
+```
 ---
 
 ## Zasady ogólne
@@ -196,27 +217,6 @@ git branch -d feature/tworzenie-podrozy
 **Nie siedź na problemie dłużej niż 1–2 godziny.** Poproś o pomoc w zespole.
 
 ---
-
-## Szybka ściągawka
-
-```bash
-# start
-git checkout main && git pull
-git checkout -b feature/krotki-opis
-
-# praca
-git add .
-git commit -m "feat: krótki opis"
-
-# przed PR
-php artisan test && ./vendor/bin/pint
-npm run lint && npm run test
-
-# wysyłka
-git push -u origin feature/krotki-opis
-# → otwórz Pull Request do main
-```
-
 ## Najczęstsze błędy (unikaj)
 
 - Praca bezpośrednio na `main`.
