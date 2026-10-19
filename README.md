@@ -134,7 +134,7 @@ npm run lint
 npm run test
 ```
 
-winget install Composer.Composer --accept-source-agreements --accept-package-agreements## Współpraca
+## Współpraca
 
 Zasady pracy, branche i Pull Requesty opisuje [CONTRIBUTING.md](CONTRIBUTING.md).
 
