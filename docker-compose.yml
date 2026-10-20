@@ -1,0 +1,86 @@
+services:
+  # =========================================================================
+  # Baza danych PostgreSQL
+  # =========================================================================
+  postgres:
+    image: postgres:16-alpine
+    container_name: dziennik_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_DATABASE:-dziennik}
+      POSTGRES_USER: ${DB_USERNAME:-dziennik_user}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-secret}
+    ports:
+      - "${FORWARD_DB_PORT:-5432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - dziennik_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-dziennik_user} -d ${DB_DATABASE:-dziennik}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # =========================================================================
+  # Backend: PHP 8.3-FPM (Laravel)
+  # =========================================================================
+  backend:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+    container_name: dziennik_backend
+    restart: unless-stopped
+    working_dir: /var/www/backend
+    volumes:
+      - ./backend:/var/www/backend
+    networks:
+      - dziennik_network
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # =========================================================================
+  # Webserver Nginx (dla backendu)
+  # =========================================================================
+  nginx:
+    image: nginx:alpine
+    container_name: dziennik_nginx
+    restart: unless-stopped
+    ports:
+      - "${FORWARD_BACKEND_PORT:-8000}:80"
+    volumes:
+      - ./backend:/var/www/backend
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    networks:
+      - dziennik_network
+    depends_on:
+      - backend
+
+  # =========================================================================
+  # Frontend: Node.js 20 (Vue 3 + Vite)
+  # =========================================================================
+  frontend:
+    build:
+      context: .
+      dockerfile: docker/frontend/Dockerfile
+    container_name: dziennik_frontend
+    restart: unless-stopped
+    working_dir: /var/www/frontend
+    ports:
+      - "${FORWARD_FRONTEND_PORT:-5173}:5173"
+    volumes:
+      - ./frontend:/var/www/frontend
+      # Izolacja node_modules kontenera od lokalnego systemu hosta:
+      - /var/www/frontend/node_modules
+    networks:
+      - dziennik_network
+    command: sh -c "npm install && npm run dev -- --host 0.0.0.0"
+
+networks:
+  dziennik_network:
+    driver: bridge
+
+volumes:
+  pgdata:
+    driver: local

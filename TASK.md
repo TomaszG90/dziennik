@@ -22,13 +22,13 @@ Szablon zadania: [TASK.md](TASK.md). Jak wykonać zadanie: [TASK_ins.md](TASK_in
 
 | ID | Zadanie | Obszar | Zależy od | Rozmiar |
 |---|---|---|---|---|
-| **PR-1** | Pliki repozytorium: `.gitignore` (backend, frontend), `LICENSE` (MIT), szablony Issue i Pull Requesta w `.github/` | docs | - | S |
-| **PR-2** | Inicjalizacja backendu: Laravel 12, Sanctum, Pint, Pest/PHPUnit, konfiguracja PostgreSQL w `.env.example` | backend | PR-1 | M |
-| **PR-3** | Inicjalizacja frontendu: Vue 3, Vite, TypeScript, Vue Router, Pinia, ESLint, Prettier, Vitest, `.env.example` | frontend | PR-1 | M |
+| **PR-1** | Pliki repozytorium i środowisko Docker: `.gitignore`, konteneryzacja (`docker-compose.yml`, Dockerfile PHP 8.3-FPM, Nginx, Node 20, PostgreSQL 16), `LICENSE` (MIT), szablony Issue i PR w `.github/` | devops / docs | - | M |
+| **PR-2** | Inicjalizacja backendu w Dockerze: Laravel 12, Sanctum, Pint, Pest/PHPUnit, konfiguracja bazy PostgreSQL w `.env.example` | backend | PR-1 | M |
+| **PR-3** | Inicjalizacja frontendu w Dockerze: Vue 3, Vite, TypeScript, Vue Router, Pinia, ESLint, Prettier, Vitest, HMR w kontenerze, `.env.example` | frontend | PR-1 | M |
 | PR-4 | Prefiks `/api/v1`, endpoint zdrowia `GET /api/v1/health`, jednolity format błędów JSON (handler wyjątków) | backend | PR-2 | S |
 | PR-5 | CI backend (GitHub Actions): `composer install`, Pint, testy | backend | PR-2 | M |
 | PR-6 | CI frontend (GitHub Actions): `npm ci`, lint, testy, build | frontend | PR-3 | S |
-| PR-7 | Dokumentacja decyzji w `docs/`: wybór bazy, biblioteki map, API tras i geokodowania (krótka notatka z uzasadnieniem) | docs | - | M |
+| PR-7 | Dokumentacja decyzji w `docs/`: wybór biblioteki map, API tras i geokodowania (PostgreSQL został wybrany) | docs | - | M |
 | PR-8 | Szkielet dokumentacji API w `docs/` (plik OpenAPI lub opis w Markdown) wraz z regułami jej aktualizacji | docs | PR-4 | S |
 
 ---
@@ -128,7 +128,7 @@ Szablon zadania: [TASK.md](TASK.md). Jak wykonać zadanie: [TASK_ins.md](TASK_in
 
 Gdy zespół zaczyna pracę, od razu mogą ruszyć (przy braku zależności):
 
-- **PR-1** (repo), a zaraz po nim **PR-2** (backend) i **PR-3** (frontend) w dwóch osobach,
+- **PR-1** (repo + docker), a zaraz po nim **PR-2** (backend) i **PR-3** (frontend) w dwóch osobach,
 - **PR-7** (decyzje o technologiach), niezależnie od reszty,
 - **PR-28** (serwis dystansu), gdy backend jest już zainicjalizowany.
 
