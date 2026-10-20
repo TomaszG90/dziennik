@@ -1,14 +1,44 @@
-# TASKS.md: lista zadań projektu (PR-1, PR-2, ...)
+# TASK.md: lista zadań projektu (PR-1, PR-2, ...)
 
 Lista małych, osobnych zadań. Każde to **jeden branch = jeden Pull Request**. Numer `PR-X` to identyfikator zadania, więc używaj go w nazwie brancha, tytule Issue i opisie PR.
 
-Szablon zadania: [TASK.md](TASK.md). Jak wykonać zadanie: [TASK_ins.md](TASK_ins.md).
+Jak wykonać zadanie krok po kroku: [TASK_ins.md](TASK_ins.md).
+
+## Definicje Ready i Done
+
+### Definition of Ready (Kiedy można zacząć zadanie)
+- [ ] Zadanie ma jasny tytuł z identyfikatorem `PR-X` i jednoznaczny opis.
+- [ ] Zadania z kolumny **Zależy od** są już zmergowane do `main`.
+- [ ] Zdefiniowano kryteria akceptacji (wiadomo dokładnie, co oznacza sukces).
+- [ ] Oszacowano rozmiar zadania (S / M / L).
+
+### Definition of Done (Kiedy zadanie jest zakończone)
+- [ ] Kod działa poprawnie w środowisku kontenerowym Docker.
+- [ ] Testy przechodzą w kontenerze (`docker compose exec backend php artisan test`, `docker compose exec frontend npm run test`).
+- [ ] Lintery i formatowanie nie zgłaszają uwag (`pint`, `eslint`).
+- [ ] Pull Request z szablonem z [TASK_ins.md](TASK_ins.md) został zrecenzowany i zaakceptowany przez min. 1 osobę.
+- [ ] Kod został zmergowany metodą **squash** do `main`, a gałąź została usunięta.
+
+## Szablon zgłoszenia zadania (Issue Template)
+
+```markdown
+### Kontekst i cel
+[Krótki opis, dlaczego to zadanie jest potrzebne i co ma realizować]
+
+### Wymagania techniczne
+- [ ] Wymaganie 1
+- [ ] Wymaganie 2
+
+### Kryteria akceptacji
+- [ ] Rezultat 1 (np. endpoint zwraca 200 z poprawną strukturą JSON)
+- [ ] Rezultat 2 (np. testy jednostkowe pokrywają logikę biznesową)
+```
 
 ## Jak korzystać z listy
 
 1. Wybierz zadanie, którego kolumna **Zależy od** jest już zmergowana (lub jest `-`).
-2. Przypisz je do siebie w Issue (utwórz Issue z szablonu TASK.md, w tytule dopisz `PR-X`).
-3. Nazwa brancha: `feature/pr-8-rejestracja-api`, commity bez zmian: `feat: dodaj endpoint rejestracji`.
+2. Przypisz je do siebie w Issue (utwórz Issue z powyższego szablonu, w tytule dopisz `PR-X`).
+3. Nazwa brancha: `feature/pr-8-rejestracja-api`, commity: `feat: dodaj endpoint rejestracji`.
 4. Jedna osoba może wziąć kilka zadań, ale **po jednym naraz**.
 5. Zadania z tej samej fazy bez wzajemnych zależności można robić **równolegle**.
 
