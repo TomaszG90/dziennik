@@ -1,4 +1,4 @@
-# Nazwa projektu (Dziennik)
+# Dziennik Podróży
 
 Aplikacja turystyczna będąca osobistym dziennikiem podróży. Użytkownik dokumentuje odbyte podróże, widzi je na interaktywnej mapie i przegląda statystyki podróżnicze z całej historii lub z wybranego roku.
 
@@ -57,16 +57,19 @@ Aplikacja składa się z REST API i osobnej aplikacji SPA. Frontend komunikuje s
 ```
 backend/    # Laravel: REST API
 frontend/   # Vue 3 SPA
-docs/       # dokumentacja
+mobile/     # Aplikacja mobilna (w planach)
+docker/     # Konfiguracja środowiska kontenerowego (Nginx, PHP, Node)
+docs/       # Dokumentacja projektu
 ```
 
 ## Stack technologiczny
 
 | Warstwa | Technologia |
 |---|---|
-| Backend (API) | PHP 8.x, Laravel 12, Laravel Sanctum |
+| Backend (API) | PHP 8.3+, Laravel 12, Laravel Sanctum |
 | Frontend (SPA) | Vue 3, Vite, Vue Router, Pinia, TypeScript |
-| Baza danych | PostgreSQL (do ustalenia: MySQL) |
+| Baza danych | PostgreSQL 16 |
+| Konteneryzacja | Docker, Docker Compose |
 | Mapa | Leaflet lub MapLibre GL (do ustalenia) |
 | Wyznaczanie tras | OpenRouteService lub OSRM (do ustalenia) |
 | Geokodowanie | Nominatim / Photon lub inne (do ustalenia) |
@@ -79,59 +82,95 @@ Zewnętrzne API i gotowe biblioteki są wykorzystywane do obsługi map, geokodow
 
 ## Wymagania
 
-- PHP >= 8.2 i Composer
-- Node.js >= 20 i npm
-- PostgreSQL (lub MySQL)
-- Klucze do zewnętrznych API (patrz sekcja Konfiguracja)
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/) (z obsługą Docker Compose v2)
+- Git
 
-## Uruchomienie lokalne
+*(Opcjonalnie do pracy bez kontenerów: PHP >= 8.3 i Composer, Node.js >= 20 i npm, PostgreSQL 16).*
+
+## Uruchomienie lokalne (Docker)
+
+1. Sklonuj repozytorium:
+   ```bash
+   git clone <url-repo>
+   cd dziennik
+   ```
+
+2. Skonfiguruj zmienne środowiskowe:
+   ```bash
+   cp backend/.env.example backend/.env
+   cp frontend/.env.example frontend/.env
+   ```
+
+3. Zbuduj i uruchom kontenery w tle:
+   ```bash
+   docker compose up -d --build
+   ```
+
+4. Zainicjalizuj backend wewnątrz kontenera:
+   ```bash
+   # Generowanie klucza aplikacji
+   docker compose exec backend php artisan key:generate
+
+   # Wykonanie migracji bazy i seedera
+   docker compose exec backend php artisan migrate --seed
+   ```
+
+### Dostęp do aplikacji
+
+- **Frontend (Vue/Vite):** [http://localhost:5173](http://localhost:5173) (z hot-reloadem Vite)
+- **Backend (API / Nginx):** [http://localhost:8000](http://localhost:8000)
+- **Baza danych (PostgreSQL):** `localhost:5432` (baza: `dziennik`, użytkownik: `dziennik_user`, hasło: `secret`)
+
+## Przydatne polecenia Docker
 
 ```bash
-git clone <url-repo>
-cd <nazwa-repo>
-```
+# Zatrzymanie kontenerów
+docker compose down
 
-**Backend**
+# Podgląd logów wszystkich usług
+docker compose logs -f
 
-```bash
-cd backend
-composer install
-cp .env.example .env
-php artisan key:generate
-php artisan migrate --seed
-php artisan serve
-```
+# Wejście do powłoki kontenera backendu
+docker compose exec backend sh
 
-**Frontend** (w drugim terminalu)
-
-```bash
-cd frontend
-npm install
-cp .env.example .env
-npm run dev
+# Uruchamianie komend Artisan
+docker compose exec backend php artisan <komenda>
 ```
 
 ## Konfiguracja
 
-Zmienne środowiskowe ustawiasz w plikach `.env` (nie commituj ich do repo).
+Zmienne środowiskowe ustawiasz w plikach `.env` (nie commituj ich do repozytorium).
+
+W pliku `backend/.env` dla środowiska Docker hostem bazy danych jest nazwa kontenera `postgres`:
+
+```env
+DB_CONNECTION=pgsql
+DB_HOST=postgres
+DB_PORT=5432
+DB_DATABASE=dziennik
+DB_USERNAME=dziennik_user
+DB_PASSWORD=secret
+```
 
 | Zmienna | Opis |
 |---|---|
 | `DB_*` | Dane połączenia z bazą (backend) |
 | `ROUTING_API_KEY` | Klucz do API wyznaczania tras (backend) |
 | `GEOCODING_API_KEY` | Klucz do API geokodowania (backend) |
-| `VITE_API_URL` | Adres API (frontend) |
+| `VITE_API_URL` | Adres API (frontend, np. `http://localhost:8000`) |
 
 ## Testy i jakość kodu
 
-```bash
-# backend
-php artisan test
-./vendor/bin/pint
+Wszystkie narzędzia uruchamiamy przez dockera:
 
-# frontend
-npm run lint
-npm run test
+```bash
+# Backend
+docker compose exec backend php artisan test
+docker compose exec backend ./vendor/bin/pint
+
+# Frontend
+docker compose exec frontend npm run lint
+docker compose exec frontend npm run test
 ```
 
 ## Współpraca

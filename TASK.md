@@ -1,14 +1,44 @@
-# TASKS.md: lista zadań projektu (PR-1, PR-2, ...)
+# TASK.md: lista zadań projektu (PR-1, PR-2, ...)
 
 Lista małych, osobnych zadań. Każde to **jeden branch = jeden Pull Request**. Numer `PR-X` to identyfikator zadania, więc używaj go w nazwie brancha, tytule Issue i opisie PR.
 
-Szablon zadania: [TASK.md](TASK.md). Jak wykonać zadanie: [TASK_ins.md](TASK_ins.md).
+Jak wykonać zadanie krok po kroku: [TASK_ins.md](TASK_ins.md).
+
+## Definicje Ready i Done
+
+### Definition of Ready (Kiedy można zacząć zadanie)
+- [ ] Zadanie ma jasny tytuł z identyfikatorem `PR-X` i jednoznaczny opis.
+- [ ] Zadania z kolumny **Zależy od** są już zmergowane do `main`.
+- [ ] Zdefiniowano kryteria akceptacji (wiadomo dokładnie, co oznacza sukces).
+- [ ] Oszacowano rozmiar zadania (S / M / L).
+
+### Definition of Done (Kiedy zadanie jest zakończone)
+- [ ] Kod działa poprawnie w środowisku kontenerowym Docker.
+- [ ] Testy przechodzą w kontenerze (`docker compose exec backend php artisan test`, `docker compose exec frontend npm run test`).
+- [ ] Lintery i formatowanie nie zgłaszają uwag (`pint`, `eslint`).
+- [ ] Pull Request z szablonem z [TASK_ins.md](TASK_ins.md) został zrecenzowany i zaakceptowany przez min. 1 osobę.
+- [ ] Kod został zmergowany metodą **squash** do `main`, a gałąź została usunięta.
+
+## Szablon zgłoszenia zadania (Issue Template)
+
+```markdown
+### Kontekst i cel
+[Krótki opis, dlaczego to zadanie jest potrzebne i co ma realizować]
+
+### Wymagania techniczne
+- [ ] Wymaganie 1
+- [ ] Wymaganie 2
+
+### Kryteria akceptacji
+- [ ] Rezultat 1 (np. endpoint zwraca 200 z poprawną strukturą JSON)
+- [ ] Rezultat 2 (np. testy jednostkowe pokrywają logikę biznesową)
+```
 
 ## Jak korzystać z listy
 
 1. Wybierz zadanie, którego kolumna **Zależy od** jest już zmergowana (lub jest `-`).
-2. Przypisz je do siebie w Issue (utwórz Issue z szablonu TASK.md, w tytule dopisz `PR-X`).
-3. Nazwa brancha: `feature/pr-8-rejestracja-api`, commity bez zmian: `feat: dodaj endpoint rejestracji`.
+2. Przypisz je do siebie w Issue (utwórz Issue z powyższego szablonu, w tytule dopisz `PR-X`).
+3. Nazwa brancha: `feature/pr-8-rejestracja-api`, commity: `feat: dodaj endpoint rejestracji`.
 4. Jedna osoba może wziąć kilka zadań, ale **po jednym naraz**.
 5. Zadania z tej samej fazy bez wzajemnych zależności można robić **równolegle**.
 
@@ -22,13 +52,13 @@ Szablon zadania: [TASK.md](TASK.md). Jak wykonać zadanie: [TASK_ins.md](TASK_in
 
 | ID | Zadanie | Obszar | Zależy od | Rozmiar |
 |---|---|---|---|---|
-| **PR-1** | Pliki repozytorium: `.gitignore` (backend, frontend), `LICENSE` (MIT), szablony Issue i Pull Requesta w `.github/` | docs | - | S |
-| **PR-2** | Inicjalizacja backendu: Laravel 12, Sanctum, Pint, Pest/PHPUnit, konfiguracja PostgreSQL w `.env.example` | backend | PR-1 | M |
-| **PR-3** | Inicjalizacja frontendu: Vue 3, Vite, TypeScript, Vue Router, Pinia, ESLint, Prettier, Vitest, `.env.example` | frontend | PR-1 | M |
+| **PR-1** | Pliki repozytorium i środowisko Docker: `.gitignore`, konteneryzacja (`docker-compose.yml`, Dockerfile PHP 8.3-FPM, Nginx, Node 20, PostgreSQL 16), `LICENSE` (MIT), szablony Issue i PR w `.github/` | devops / docs | - | M |
+| **PR-2** | Inicjalizacja backendu w Dockerze: Laravel 12, Sanctum, Pint, Pest/PHPUnit, konfiguracja bazy PostgreSQL w `.env.example` | backend | PR-1 | M |
+| **PR-3** | Inicjalizacja frontendu w Dockerze: Vue 3, Vite, TypeScript, Vue Router, Pinia, ESLint, Prettier, Vitest, HMR w kontenerze, `.env.example` | frontend | PR-1 | M |
 | PR-4 | Prefiks `/api/v1`, endpoint zdrowia `GET /api/v1/health`, jednolity format błędów JSON (handler wyjątków) | backend | PR-2 | S |
 | PR-5 | CI backend (GitHub Actions): `composer install`, Pint, testy | backend | PR-2 | M |
 | PR-6 | CI frontend (GitHub Actions): `npm ci`, lint, testy, build | frontend | PR-3 | S |
-| PR-7 | Dokumentacja decyzji w `docs/`: wybór bazy, biblioteki map, API tras i geokodowania (krótka notatka z uzasadnieniem) | docs | - | M |
+| PR-7 | Dokumentacja decyzji w `docs/`: wybór biblioteki map, API tras i geokodowania (PostgreSQL został wybrany) | docs | - | M |
 | PR-8 | Szkielet dokumentacji API w `docs/` (plik OpenAPI lub opis w Markdown) wraz z regułami jej aktualizacji | docs | PR-4 | S |
 
 ---
@@ -128,7 +158,7 @@ Szablon zadania: [TASK.md](TASK.md). Jak wykonać zadanie: [TASK_ins.md](TASK_in
 
 Gdy zespół zaczyna pracę, od razu mogą ruszyć (przy braku zależności):
 
-- **PR-1** (repo), a zaraz po nim **PR-2** (backend) i **PR-3** (frontend) w dwóch osobach,
+- **PR-1** (repo + docker), a zaraz po nim **PR-2** (backend) i **PR-3** (frontend) w dwóch osobach,
 - **PR-7** (decyzje o technologiach), niezależnie od reszty,
 - **PR-28** (serwis dystansu), gdy backend jest już zainicjalizowany.
 

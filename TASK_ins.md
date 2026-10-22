@@ -3,26 +3,28 @@
 Ta instrukcja opisuje, **jak krok po kroku wykonać zadanie** od wybrania go z listy do zamknięcia. Jeśli będziesz się jej trzymać, nikt w zespole nie będzie miał wątpliwości, co robić i w jakiej kolejności.
 
 Powiązane pliki:
-- [TASK.md](TASK.md): szablon zadania i definicje Ready / Done
+- [TASK.md](TASK.md): lista zadań, szablon Issue oraz definicje Ready / Done
 - [CONTRIBUTING.md](CONTRIBUTING.md): zasady Git, commity, styl kodu
-- [README.md](README.md): opis projektu i uruchomienie lokalne
+- [README.md](README.md): opis projektu i uruchomienie w Dockerze
 
 ## Szybka ściągawka
 ```bash
 # start
 git checkout main && git pull
-git checkout -b feature/krotki-opis
+git checkout -b feature/pr-x-krotki-opis
 
 # praca
 git add .
 git commit -m "feat: krótki opis"
 
-# przed PR
-php artisan test && ./vendor/bin/pint
-npm run lint && npm run test
+# przed PR (sprawdzenie w kontenerach)
+docker compose exec backend php artisan test
+docker compose exec backend ./vendor/bin/pint
+docker compose exec frontend npm run lint
+docker compose exec frontend npm run test
 
 # wysyłka
-git push -u origin feature/krotki-opis
+git push -u origin feature/pr-x-krotki-opis
 # → otwórz Pull Request do main
 
 Sposób 1: Przez interfejs GitHub (najpopularniejszy)
@@ -50,7 +52,7 @@ Backlog → Do zrobienia → W trakcie → Review → Gotowe
 | Status | Znaczenie |
 |---|---|
 | Backlog | Pomysł lub zadanie jeszcze nieprecyzyjne |
-| Do zrobienia | Spełnia Definition of Ready, czeka na osobę |
+| Do zrobienia | Spełnia Definition of Ready (z [TASK.md](TASK.md)), czeka na osobę |
 | W trakcie | Ktoś jest przypisany i pracuje na branchu |
 | Review | Otwarty Pull Request czeka na recenzję |
 | Gotowe | Zmergowane do `main`, Issue zamknięte |
@@ -65,7 +67,7 @@ Przesuwaj kartę zadania na bieżąco, żeby wszyscy widzieli stan prac.
 
 - Wybierz zadanie ze statusu "Do zrobienia" i **przypisz je do siebie**.
 - Przeczytaj cały Issue: kontekst, zakres, wymagania techniczne, kryteria akceptacji.
-- Sprawdź sekcję **Zależności**. Jeśli zadanie od czegoś zależy, a tamto nie jest zmergowane, **nie zaczynaj**.
+- Sprawdź sekcję **Zależności** w [TASK.md](TASK.md). Jeśli zadanie od czegoś zależy, a tamto nie jest zmergowane, **nie zaczynaj**.
 - Upewnij się, że rozumiesz, co znaczy "skończone" (kryteria akceptacji).
 
 ### 2. Przygotuj środowisko
@@ -75,14 +77,14 @@ git checkout main
 git pull
 ```
 
-Jeśli to pierwszy raz, uruchom projekt według [README.md](README.md) (sekcja "Uruchomienie lokalne").
+Upewnij się, że kontenery działają (`docker compose up -d`). Jeśli to pierwszy raz, postępuj zgodnie z [README.md](README.md) (sekcja "Uruchomienie lokalne").
 
 ### 3. Utwórz branch
 
-Nazwa: `typ/krotki-opis` (małe litery, myślniki, bez polskich znaków).
+Nazwa: `typ/pr-x-krotki-opis` (małe litery, myślniki, bez dwukropków i polskich znaków).
 
 ```bash
-git checkout -b feature/tworzenie-podrozy
+git checkout -b feature/pr-19-tworzenie-podrozy
 ```
 
 | Prefiks | Użycie |
@@ -109,13 +111,13 @@ git checkout -b feature/tworzenie-podrozy
 - Logika biznesowa w **serwisach**, nie w kontrolerach (kontroler ma być cienki).
 - Odpowiedzi przez **API Resources**, spójny format JSON, właściwe kody HTTP.
 - Endpointy pod prefiksem **`/api/v1`**.
-- Formatowanie: `./vendor/bin/pint`
+- Formatowanie: `docker compose exec backend ./vendor/bin/pint`
 
 **Frontend (Vue)**
-- Vue 3, Composition API, `<script setup>`.
+- Vue 3, Composition API, `<script setup>`, TypeScript.
 - Komponenty w **PascalCase**.
 - Wywołania API **tylko w `src/api/`**, nigdy bezpośrednio w komponentach.
-- Formatowanie i lint: `npm run lint`
+- Formatowanie i lint: `docker compose exec frontend npm run lint`
 
 **Dla obu**
 - Do każdej nowej funkcji **dodaj testy**.
@@ -132,12 +134,12 @@ Gdy funkcja wymaga obu części:
 
 ### 7. Sprawdź przed Pull Requestem
 
-Wszystko poniżej musi przejść **lokalnie**:
+Wszystko poniżej musi przejść **w kontenerach lokalnie**:
 
-- [ ] `php artisan test`
-- [ ] `./vendor/bin/pint`
-- [ ] `npm run lint`
-- [ ] `npm run test`
+- [ ] `docker compose exec backend php artisan test`
+- [ ] `docker compose exec backend ./vendor/bin/pint --test`
+- [ ] `docker compose exec frontend npm run lint`
+- [ ] `docker compose exec frontend npm run test`
 - [ ] Zmiany działają lokalnie (sprawdź ręcznie kryteria akceptacji)
 - [ ] Dokumentacja API zaktualizowana (jeśli zmieniły się endpointy)
 - [ ] Brak sekretów i plików `.env` w commitach
@@ -145,7 +147,7 @@ Wszystko poniżej musi przejść **lokalnie**:
 ### 8. Wypchnij branch i otwórz Pull Request
 
 ```bash
-git push -u origin feature/tworzenie-podrozy
+git push -u origin feature/pr-x-krotki-opis
 ```
 
 Otwórz PR do `main`. W opisie użyj tego układu:
@@ -194,7 +196,7 @@ Po akceptacji i zielonych testach (CI):
 ```bash
 git checkout main
 git pull
-git branch -d feature/tworzenie-podrozy
+git branch -d feature/pr-x-krotki-opis
 ```
 
 3. Sprawdź, że Issue jest zamknięte, a karta w statusie "Gotowe".
