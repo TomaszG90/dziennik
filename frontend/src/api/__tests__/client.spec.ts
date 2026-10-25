@@ -37,6 +37,14 @@ function mockHttpError(status: number, data: unknown) {
   }
 }
 
+/** Adapter symulujący błąd sieciowy (brak odpowiedzi z serwera). */
+function mockNetworkError() {
+  apiClient.defaults.adapter = async (config) => {
+    lastConfig = config
+    throw new AxiosError('Network Error', AxiosError.ERR_NETWORK, config)
+  }
+}
+
 // ── testy ─────────────────────────────────────────────────────
 describe('apiClient', () => {
   beforeEach(() => {
@@ -48,6 +56,15 @@ describe('apiClient', () => {
   afterEach(() => {
     apiClient.defaults.adapter = originalAdapter
     vi.restoreAllMocks()
+  })
+
+  it('zwraca dane przy pomyślnej odpowiedzi 200', async () => {
+    mockSuccess({ user: { id: 1, name: 'Jan' } })
+
+    const response = await apiClient.get('/me')
+
+    expect(response.status).toBe(200)
+    expect(response.data).toEqual({ user: { id: 1, name: 'Jan' } })
   })
 
   it('dodaje nagłówek Authorization: Bearer <token>, gdy token istnieje w storage', async () => {
@@ -77,6 +94,8 @@ describe('apiClient', () => {
 
     expect(error).toBeInstanceOf(ApiError)
     expect((error as ApiError).status).toBe(401)
+    expect((error as ApiError).isUnauthorized).toBe(true)
+    expect((error as ApiError).isValidationError).toBe(false)
     expect(clearAuthToken).toHaveBeenCalledTimes(1)
 
     // dodatkowo: event dla reszty aplikacji
@@ -96,8 +115,33 @@ describe('apiClient', () => {
 
     expect(error).toBeInstanceOf(ApiError)
     expect((error as ApiError).status).toBe(422)
+    expect((error as ApiError).isValidationError).toBe(true)
+    expect((error as ApiError).isUnauthorized).toBe(false)
     expect((error as ApiError).message).toBe('The given data was invalid.')
     expect((error as ApiError).validationErrors).toEqual(errors)
+    expect(clearAuthToken).not.toHaveBeenCalled()
+  })
+
+  it('odpowiedź 500 zachowuje status i nie usuwa tokena', async () => {
+    vi.mocked(getAuthToken).mockReturnValue('valid-token')
+    mockHttpError(500, { message: 'Błąd serwera' })
+
+    const error = await apiClient.get('/trips').catch((e: unknown) => e)
+
+    expect(error).toBeInstanceOf(ApiError)
+    expect((error as ApiError).status).toBe(500)
+    expect((error as ApiError).message).toBe('Błąd serwera')
+    expect(clearAuthToken).not.toHaveBeenCalled()
+  })
+
+  it('błąd sieciowy (brak odpowiedzi z serwera) rzuca ApiError bez statusu', async () => {
+    mockNetworkError()
+
+    const error = await apiClient.get('/trips').catch((e: unknown) => e)
+
+    expect(error).toBeInstanceOf(ApiError)
+    expect((error as ApiError).status).toBeUndefined()
+    expect((error as ApiError).message).toBe('Network Error')
     expect(clearAuthToken).not.toHaveBeenCalled()
   })
 })
