@@ -7,9 +7,9 @@ services:
     container_name: dziennik_postgres
     restart: unless-stopped
     environment:
-      POSTGRES_DB: ${DB_DATABASE:-dziennik}
-      POSTGRES_USER: ${DB_USERNAME:-dziennik_user}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-secret}
+      POSTGRES_DB: '${DB_DATABASE}'
+      POSTGRES_USER: '${DB_USERNAME}'
+      POSTGRES_PASSWORD: '${DB_PASSWORD}'
     ports:
       - "${FORWARD_DB_PORT:-5432}:5432"
     volumes:
@@ -17,7 +17,7 @@ services:
     networks:
       - dziennik_network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-dziennik_user} -d ${DB_DATABASE:-dziennik}"]
+      test: [ "CMD-SHELL", "pg_isready -U ${DB_USERNAME} -d ${DB_DATABASE}" ]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -26,6 +26,8 @@ services:
   # Backend: PHP 8.3-FPM (Laravel)
   # =========================================================================
   backend:
+    env_file:
+      - ./.env
     build:
       context: .
       dockerfile: docker/php/Dockerfile
@@ -34,6 +36,7 @@ services:
     working_dir: /var/www/backend
     volumes:
       - ./backend:/var/www/backend
+      - ./.env:/var/www/backend/.env
     networks:
       - dziennik_network
     depends_on:
