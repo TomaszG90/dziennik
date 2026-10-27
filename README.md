@@ -115,8 +115,14 @@ Zewnętrzne API i biblioteki mapowe zostaną wybrane i skonfigurowane w ramach z
 
 5. Zainicjalizuj backend wewnątrz kontenera:
    ```bash
-   # Generowanie klucza aplikacji
-   docker compose exec backend php artisan key:generate
+   # Sprawdź, czy backend/.env zawiera klucz; wygeneruj go tylko, jeśli jest pusty
+   docker compose exec backend sh -c 'if grep -q "^APP_KEY=." .env; then echo "APP_KEY jest ustawiony"; else echo "APP_KEY jest pusty — generuję klucz"; php artisan key:generate; fi'
+
+   # Odtwórz backend, aby kontener wczytał APP_KEY z pliku backend/.env
+   docker compose up -d --force-recreate backend
+
+   # Sprawdź, czy klucz jest dostępny w środowisku kontenera (bez wypisywania wartości)
+   docker compose exec backend php -r "echo getenv('APP_KEY') ? 'APP_KEY jest ustawiony' : 'APP_KEY jest pusty';"
 
    # Wykonanie migracji bazy i seedera
    docker compose exec backend php artisan migrate --seed
