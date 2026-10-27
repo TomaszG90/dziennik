@@ -1,18 +1,18 @@
 # Dziennik Podróży
 
-Aplikacja turystyczna będąca osobistym dziennikiem podróży. Użytkownik dokumentuje odbyte podróże, widzi je na interaktywnej mapie i przegląda statystyki podróżnicze z całej historii lub z wybranego roku.
+Projekt aplikacji turystycznej będącej osobistym dziennikiem podróży. Docelowo użytkownik będzie dokumentować odbyte podróże, oglądać je na interaktywnej mapie i przeglądać statystyki z całej historii lub wybranego roku.
 
 Po kilku latach korzystania z aplikacji można otworzyć mapę i zobaczyć wszystkie podróże, odwiedzone kraje oraz statystyki pokazujące, jak podróżowaliśmy na przestrzeni lat.
 
 ## Funkcjonalności
 
-### Konta użytkowników
+### Konta użytkowników (planowane)
 - Rejestracja, logowanie i wylogowywanie
 - Edycja podstawowych danych profilu
 - Profil publiczny lub prywatny
 - Przeglądanie podróży innych użytkowników (tylko profile publiczne)
 
-### Zarządzanie podróżami
+### Zarządzanie podróżami (planowane)
 - Dodawanie, edycja i usuwanie podróży
 - Nazwa, data lub zakres dat, opcjonalny opis
 - Dowolna liczba punktów i odcinków w podróży
@@ -26,7 +26,7 @@ Przykład podróży:
 4. Majorka → Berlin (samolot)
 5. Berlin → Legnica (samochód)
 
-### Środki transportu
+### Środki transportu (planowane)
 
 | Transport | Prezentacja na mapie | Obliczanie dystansu |
 |---|---|---|
@@ -35,14 +35,14 @@ Przykład podróży:
 | Pociąg | Linia prosta | Odległość w linii prostej |
 | Inne | Uproszczone połączenie | Odległość w linii prostej |
 
-### Interaktywna mapa
+### Interaktywna mapa (planowana)
 - Pojedyncza podróż z punktami i odcinkami
 - Rozróżnienie transportu kolorami, ikonami lub stylem linii
 - Wszystkie podróże użytkownika na jednej mapie
 - Automatyczne oznaczanie odwiedzonych państw na podstawie zapisanych podróży
 - Przybliżanie mapy i podgląd szczegółów tras
 
-### Statystyki
+### Statystyki (planowane)
 Dla całej historii oraz dla wybranego roku kalendarzowego:
 - liczba odbytych podróży
 - liczba i lista odwiedzonych państw (wyróżnione na mapie)
@@ -52,7 +52,7 @@ Dla całej historii oraz dla wybranego roku kalendarzowego:
 
 ## Architektura
 
-Aplikacja składa się z REST API i osobnej aplikacji SPA. Frontend komunikuje się z backendem wyłącznie przez API, dzięki czemu w przyszłości można dodać aplikację mobilną korzystającą z tych samych endpointów.
+Aplikacja składa się z backendu Laravel i osobnej aplikacji SPA. Docelowo frontend i aplikacja mobilna będą korzystać ze wspólnego REST API (`/api/v1`). Repozytorium zawiera obecnie szkielet aplikacji; funkcje podróży, mapy i statystyk są planowane.
 
 ```
 backend/    # Laravel: REST API
@@ -74,18 +74,18 @@ docs/       # Dokumentacja projektu
 | Wyznaczanie tras | OpenRouteService lub OSRM (do ustalenia) |
 | Geokodowanie | Nominatim / Photon lub inne (do ustalenia) |
 | Granice państw | GeoJSON (np. Natural Earth) |
-| Testy | Pest/PHPUnit, Vitest |
+| Testy | PHPUnit, Vitest |
 | Jakość kodu | Laravel Pint, ESLint, Prettier |
 | CI/CD | GitHub Actions |
 
-Zewnętrzne API i gotowe biblioteki są wykorzystywane do obsługi map, geokodowania i wyznaczania tras.
+Zewnętrzne API i biblioteki mapowe zostaną wybrane i skonfigurowane w ramach zadań opisanych w backlogu.
 
 ## Wymagania
 
 - [Docker Desktop](https://www.docker.com/products/docker-desktop/) (z obsługą Docker Compose v2)
 - Git
 
-*(Opcjonalnie do pracy bez kontenerów: PHP >= 8.3 i Composer, Node.js >= 20 i npm, PostgreSQL 16).*
+*(Opcjonalnie do pracy bez kontenerów: PHP >= 8.3 i Composer, Node.js 22.18+ (lub 24.12+) i npm, PostgreSQL 16).*
 
 ## Uruchomienie lokalne (Docker)
 
@@ -97,16 +97,23 @@ Zewnętrzne API i gotowe biblioteki są wykorzystywane do obsługi map, geokodow
 
 2. Skonfiguruj zmienne środowiskowe:
    ```bash
-   cp backend/.env.example backend/.env
+   cp .env.example .env
+   cp .env backend/.env
    cp frontend/.env.example frontend/.env
    ```
+   Główny `.env` dostarcza zmienne dla Docker Compose, a `backend/.env` jest używany przez Laravel. Oba pliki muszą mieć zgodne wartości `DB_*`. Ustaw niepuste lokalne `DB_PASSWORD` w głównym `.env` przed uruchomieniem bazy.
 
 3. Zbuduj i uruchom kontenery w tle:
    ```bash
    docker compose up -d --build
    ```
 
-4. Zainicjalizuj backend wewnątrz kontenera:
+4. Zainstaluj zależności backendu:
+   ```bash
+   docker compose exec backend composer install
+   ```
+
+5. Zainicjalizuj backend wewnątrz kontenera:
    ```bash
    # Generowanie klucza aplikacji
    docker compose exec backend php artisan key:generate
@@ -119,7 +126,7 @@ Zewnętrzne API i gotowe biblioteki są wykorzystywane do obsługi map, geokodow
 
 - **Frontend (Vue/Vite):** [http://localhost:5173](http://localhost:5173) (z hot-reloadem Vite)
 - **Backend (API / Nginx):** [http://localhost:8000](http://localhost:8000)
-- **Baza danych (PostgreSQL):** `localhost:5432` (baza: `dziennik`, użytkownik: `dziennik_user`, hasło: `secret`)
+- **Baza danych (PostgreSQL):** `localhost:5432` (baza, użytkownik i hasło zgodne z głównym `.env`)
 
 ## Przydatne polecenia Docker
 
@@ -139,7 +146,7 @@ docker compose exec backend php artisan <komenda>
 
 ## Konfiguracja
 
-Zmienne środowiskowe ustawiasz w plikach `.env` (nie commituj ich do repozytorium).
+Zmienne środowiskowe ustawiasz w plikach `.env` (nie commituj ich do repozytorium). Wartości w głównym `.env` i `backend/.env` muszą być zgodne. Lokalnego hasła do bazy nie używaj na środowisku produkcyjnym.
 
 W pliku `backend/.env` dla środowiska Docker hostem bazy danych jest nazwa kontenera `postgres`:
 
@@ -149,33 +156,36 @@ DB_HOST=postgres
 DB_PORT=5432
 DB_DATABASE=dziennik
 DB_USERNAME=dziennik_user
-DB_PASSWORD=secret
+DB_PASSWORD=local_dev_password
 ```
 
 | Zmienna | Opis |
 |---|---|
 | `DB_*` | Dane połączenia z bazą (backend) |
-| `ROUTING_API_KEY` | Klucz do API wyznaczania tras (backend) |
-| `GEOCODING_API_KEY` | Klucz do API geokodowania (backend) |
-| `VITE_API_URL` | Adres API (frontend, np. `http://localhost:8000`) |
+| `ROUTING_API_KEY` | Klucz do API wyznaczania tras (do skonfigurowania, gdy funkcja zostanie wdrożona) |
+| `GEOCODING_API_KEY` | Klucz do API geokodowania (do skonfigurowania, gdy funkcja zostanie wdrożona) |
+| `VITE_API_BASE_URL` | Bazowy adres API frontendu (domyślnie `http://localhost:8000/api/v1`) |
 
 ## Testy i jakość kodu
 
-Wszystkie narzędzia uruchamiamy przez dockera:
+Polecenia lokalne uruchamiamy w kontenerach:
 
 ```bash
 # Backend
 docker compose exec backend php artisan test
-docker compose exec backend ./vendor/bin/pint
+docker compose exec backend ./vendor/bin/pint --test
 
 # Frontend
 docker compose exec frontend npm run lint
 docker compose exec frontend npm run test
+docker compose exec frontend npm run build
 ```
+
+GitHub Actions uruchamia testy backendu i build frontendu dla PR. Zmiany w `frontend/` uruchamiają dodatkowo workflow lint/test/build frontendu; osobny workflow sprawdza formatowanie backendu. Mimo to przed wysłaniem PR uruchom lokalnie wszystkie kontrole z powyższej listy.
 
 ## Współpraca
 
-Zasady pracy, branche i Pull Requesty opisuje [CONTRIBUTING.md](CONTRIBUTING.md).
+Zasady współpracy opisuje [CONTRIBUTING.md](CONTRIBUTING.md), procedura realizacji zadań jest w [TASK_ins.md](TASK_ins.md), a backlog w [TASK.md](TASK.md).
 
 ## Licencja
 

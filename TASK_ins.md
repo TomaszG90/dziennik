@@ -3,7 +3,7 @@
 Ta instrukcja opisuje, **jak krok po kroku wykonać zadanie** od wybrania go z listy do zamknięcia. Jeśli będziesz się jej trzymać, nikt w zespole nie będzie miał wątpliwości, co robić i w jakiej kolejności.
 
 Powiązane pliki:
-- [TASK.md](TASK.md): lista zadań, szablon Issue oraz definicje Ready / Done
+- [TASK.md](TASK.md): lista zadań oraz definicje Ready / Done
 - [CONTRIBUTING.md](CONTRIBUTING.md): zasady Git, commity, styl kodu
 - [README.md](README.md): opis projektu i uruchomienie w Dockerze
 
@@ -19,9 +19,10 @@ git commit -m "feat: krótki opis"
 
 # przed PR (sprawdzenie w kontenerach)
 docker compose exec backend php artisan test
-docker compose exec backend ./vendor/bin/pint
+docker compose exec backend ./vendor/bin/pint --test
 docker compose exec frontend npm run lint
 docker compose exec frontend npm run test
+docker compose exec frontend npm run build
 
 # wysyłka
 git push -u origin feature/pr-x-krotki-opis
@@ -134,12 +135,13 @@ Gdy funkcja wymaga obu części:
 
 ### 7. Sprawdź przed Pull Requestem
 
-Wszystko poniżej musi przejść **w kontenerach lokalnie**:
+Uruchom odpowiednie kontrole **w kontenerach lokalnie**:
 
 - [ ] `docker compose exec backend php artisan test`
 - [ ] `docker compose exec backend ./vendor/bin/pint --test`
 - [ ] `docker compose exec frontend npm run lint`
 - [ ] `docker compose exec frontend npm run test`
+- [ ] `docker compose exec frontend npm run build`
 - [ ] Zmiany działają lokalnie (sprawdź ręcznie kryteria akceptacji)
 - [ ] Dokumentacja API zaktualizowana (jeśli zmieniły się endpointy)
 - [ ] Brak sekretów i plików `.env` w commitach
@@ -150,24 +152,22 @@ Wszystko poniżej musi przejść **w kontenerach lokalnie**:
 git push -u origin feature/pr-x-krotki-opis
 ```
 
-Otwórz PR do `main`. W opisie użyj tego układu:
+Otwórz PR do `main`, korzystając z `.github/PULL_REQUEST_TEMPLATE.md`:
 
 ```markdown
-## Co zmieniłem
-Krótki opis zmian.
+## Co zostało zmienione?
+- Krótki opis zmian.
 
-## Dlaczego
-Powiązanie z zadaniem: Closes #numer-issue
+## Dlaczego?
+- Powiązanie z zadaniem: Closes #numer-issue
 
-## Jak to sprawdzić
-1. Krok 1
-2. Krok 2
-3. Oczekiwany rezultat
+## Testy
+- [ ] testy przechodzą
+- [ ] build działa
+- [ ] manual QA wykonane
 
-## Checklista
-- [ ] Testy dodane i przechodzą
-- [ ] Lint przechodzi
-- [ ] Dokumentacja zaktualizowana
+## Zmiany techniczne
+- ...
 ```
 
 Zapis `Closes #numer` automatycznie zamknie Issue po merge.
@@ -219,6 +219,11 @@ git branch -d feature/pr-x-krotki-opis
 **Nie siedź na problemie dłużej niż 1–2 godziny.** Poproś o pomoc w zespole.
 
 ---
+
+## Kontrole automatyczne
+
+Pull Request uruchamia workflow GitHub Actions: testy backendu i build frontendu (`ci.yml`) oraz kontrolę formatowania backendu (`lint.yml`). Zmiany w `frontend/` uruchamiają dodatkowo lint, testy i build (`frontend-ci.yml`). Workflow bezpieczeństwa wykonuje audyt zależności, CodeQL analizuje PHP i JavaScript, a Dependabot sprawdza aktualizacje co tydzień. Uruchom lokalnie wszystkie kontrole przed wysłaniem PR.
+
 ## Najczęstsze błędy (unikaj)
 
 - Praca bezpośrednio na `main`.
