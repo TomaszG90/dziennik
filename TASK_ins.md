@@ -222,7 +222,7 @@ git branch -d feature/pr-x-krotki-opis
 
 ## Kontrole automatyczne
 
-Pull Request uruchamia workflow GitHub Actions: testy backendu i build frontendu (`ci.yml`) oraz kontrolę formatowania backendu (`lint.yml`). Zmiany w `frontend/` uruchamiają dodatkowo lint, testy i build (`frontend-ci.yml`). Workflow bezpieczeństwa wykonuje audyt zależności, CodeQL analizuje PHP i JavaScript, a Dependabot sprawdza aktualizacje co tydzień. Uruchom lokalnie wszystkie kontrole przed wysłaniem PR.
+Pull Request uruchamia workflow GitHub Actions: testy backendu i build frontendu (`ci.yml`) oraz kontrolę formatowania backendu (`lint.yml`). Zmiany w `frontend/` uruchamiają dodatkowo lint, testy i build (`frontend-ci.yml`). Workflow bezpieczeństwa audytuje zależności Composera, CodeQL analizuje JavaScript/TypeScript, a Dependabot sprawdza aktualizacje co tydzień. Uruchom lokalnie wszystkie kontrole przed wysłaniem PR.
 
 ## Najczęstsze błędy (unikaj)
 
