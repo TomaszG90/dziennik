@@ -17,6 +17,17 @@ class UserFactoryTest extends TestCase
         $this->assertContains($user->profile_visibility, ['public', 'private']);
     }
 
+    public function test_profile_visibility_defaults_to_private(): void
+    {
+        $attributes = User::factory()->raw();
+        unset($attributes['profile_visibility']);
+
+        $user = User::create($attributes);
+        $user->refresh();
+
+        $this->assertEquals('private', $user->profile_visibility);
+    }
+
     public function test_public_profile_state_sets_public_visibility(): void
     {
         $user = User::factory()->publicProfile()->create();
