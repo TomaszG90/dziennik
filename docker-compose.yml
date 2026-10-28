@@ -27,7 +27,7 @@ services:
   # =========================================================================
   backend:
     env_file:
-      - ./.env
+      - ./backend/.env
     build:
       context: .
       dockerfile: docker/php/Dockerfile
@@ -36,7 +36,7 @@ services:
     working_dir: /var/www/backend
     volumes:
       - ./backend:/var/www/backend
-      - ./.env:/var/www/backend/.env
+      - ./backend/.env:/var/www/backend/.env
     networks:
       - dziennik_network
     depends_on:

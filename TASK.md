@@ -1,8 +1,12 @@
 # TASK.md: lista zadań projektu (PR-1, PR-2, ...)
 
-Lista małych, osobnych zadań. Każde to **jeden branch = jeden Pull Request**. Numer `PR-X` to identyfikator zadania, więc używaj go w nazwie brancha, tytule Issue i opisie PR.
+Lista zadań rozwojowych. Każde zadanie to **jeden branch = jeden Pull Request**. Numer `PR-X` jest identyfikatorem zadania; używaj go w nazwie brancha, tytule Issue i opisie PR.
 
 Jak wykonać zadanie krok po kroku: [TASK_ins.md](TASK_ins.md).
+
+## Aktualny stan
+
+Repozytorium zawiera podstawowy szkielet Laravel 12 z Sanctum, PostgreSQL i testami PHPUnit oraz aplikację Vue 3/Vite. W backendzie jest obecnie przykładowa chroniona trasa `/api/user`; wersjonowane API `/api/v1` i funkcje dziennika podróży są celem kolejnych zadań, a nie ukończonymi funkcjami. Przed rozpoczęciem zadania sprawdź zależności i kryteria akceptacji z Issue.
 
 ## Definicje Ready i Done
 
@@ -14,30 +18,18 @@ Jak wykonać zadanie krok po kroku: [TASK_ins.md](TASK_ins.md).
 
 ### Definition of Done (Kiedy zadanie jest zakończone)
 - [ ] Kod działa poprawnie w środowisku kontenerowym Docker.
-- [ ] Testy przechodzą w kontenerze (`docker compose exec backend php artisan test`, `docker compose exec frontend npm run test`).
-- [ ] Lintery i formatowanie nie zgłaszają uwag (`pint`, `eslint`).
-- [ ] Pull Request z szablonem z [TASK_ins.md](TASK_ins.md) został zrecenzowany i zaakceptowany przez min. 1 osobę.
+- [ ] Testy i kontrole jakości właściwe dla zmiany przechodzą (`php artisan test`, Pint; dla frontendu także lint, testy i build).
+- [ ] Pull Request używa szablonu `.github/PULL_REQUEST_TEMPLATE.md` i został zaakceptowany przez min. 1 osobę.
 - [ ] Kod został zmergowany metodą **squash** do `main`, a gałąź została usunięta.
 
-## Szablon zgłoszenia zadania (Issue Template)
+## Zgłaszanie zadania
 
-```markdown
-### Kontekst i cel
-[Krótki opis, dlaczego to zadanie jest potrzebne i co ma realizować]
-
-### Wymagania techniczne
-- [ ] Wymaganie 1
-- [ ] Wymaganie 2
-
-### Kryteria akceptacji
-- [ ] Rezultat 1 (np. endpoint zwraca 200 z poprawną strukturą JSON)
-- [ ] Rezultat 2 (np. testy jednostkowe pokrywają logikę biznesową)
-```
+Utwórz Issue, korzystając z szablonu funkcji w `.github/ISSUE_TEMPLATE/feature_request.md`. W tytule umieść identyfikator `PR-X`, a w treści uzupełnij kontekst, wymagania techniczne i mierzalne kryteria akceptacji. Błędy zgłaszaj przez `.github/ISSUE_TEMPLATE/bug_report.md`.
 
 ## Jak korzystać z listy
 
 1. Wybierz zadanie, którego kolumna **Zależy od** jest już zmergowana (lub jest `-`).
-2. Przypisz je do siebie w Issue (utwórz Issue z powyższego szablonu, w tytule dopisz `PR-X`).
+2. Przypisz je do siebie w Issue z szablonu i dopisz `PR-X` do tytułu.
 3. Nazwa brancha: `feature/pr-8-rejestracja-api`, commity: `feat: dodaj endpoint rejestracji`.
 4. Jedna osoba może wziąć kilka zadań, ale **po jednym naraz**.
 5. Zadania z tej samej fazy bez wzajemnych zależności można robić **równolegle**.
