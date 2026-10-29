@@ -1,4 +1,4 @@
-﻿# API — szkic dokumentacji
+# API — szkic dokumentacji
 
 ## Zakres i wersjonowanie
 
@@ -15,11 +15,60 @@ Przykładowa odpowiedź `200 OK`:
 ```json
 {
   "status": "ok",
-  "timestamp": "2026-10-28T12:00:00+00:00"
+  "timestamp": "2026-10-29T17:00:00+00:00"
 }
 ```
 
 `timestamp` jest czasem wygenerowania odpowiedzi w formacie ISO 8601.
+
+### `POST /api/v1/auth/register`
+
+Rejestracja nowego użytkownika. Nie wymaga uwierzytelnienia.
+
+**Żądanie:**
+
+```json
+{
+  "name": "John Doe",
+  "email": "john@example.com",
+  "password": "Password123!",
+  "password_confirmation": "Password123!",
+  "profile_visibility": "public"
+}
+```
+
+Pola:
+- `name` (string, required): imię i nazwisko użytkownika, max 255 znaków
+- `email` (string, required): adres e-mail, musi być unikalny w systemie, max 255 znaków
+- `password` (string, required): hasło, musi być potwierdzone w `password_confirmation`
+- `password_confirmation` (string, required): potwierdzenie hasła
+- `profile_visibility` (string, required): widoczność profilu, wartości: `public` lub `private`
+
+**Odpowiedź sukcesu `201 Created`:**
+
+```json
+{
+  "data": {
+    "id": 1,
+    "name": "John Doe",
+    "email": "john@example.com",
+    "profile_visibility": "public",
+    "created_at": "2026-10-29T17:00:00+00:00",
+    "updated_at": "2026-10-29T17:00:00+00:00"
+  }
+}
+```
+
+**Odpowiedź błędu walidacji `422 Unprocessable Entity`:**
+
+```json
+{
+  "message": "The name field is required.",
+  "errors": {
+    "name": ["The name field is required."]
+  }
+}
+```
 
 ## Błędy
 
