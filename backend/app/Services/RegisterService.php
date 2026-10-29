@@ -8,9 +8,6 @@ class RegisterService
 {
     /**
      * Register a new user.
-     *
-     * @param array $data
-     * @return User
      */
     public function register(array $data): User
     {

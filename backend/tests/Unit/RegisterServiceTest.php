@@ -13,7 +13,7 @@ class RegisterServiceTest extends TestCase
 
     public function test_register_creates_user(): void
     {
-        $service = new RegisterService();
+        $service = new RegisterService;
         $data = [
             'name' => 'John Doe',
             'email' => 'john@example.com',
@@ -34,7 +34,7 @@ class RegisterServiceTest extends TestCase
 
     public function test_register_hashes_password(): void
     {
-        $service = new RegisterService();
+        $service = new RegisterService;
         $data = [
             'name' => 'Jane Doe',
             'email' => 'jane@example.com',
@@ -50,7 +50,7 @@ class RegisterServiceTest extends TestCase
 
     public function test_register_with_private_visibility(): void
     {
-        $service = new RegisterService();
+        $service = new RegisterService;
         $data = [
             'name' => 'Test User',
             'email' => 'test@example.com',
