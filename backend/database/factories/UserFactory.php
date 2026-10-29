@@ -30,6 +30,7 @@ class UserFactory extends Factory
             'email_verified_at' => now(),
             'password' => static::$password ??= Hash::make('password'),
             'remember_token' => Str::random(10),
+            'profile_visibility' => fake()->randomElement(['public', 'private']),
         ];
     }
 
@@ -40,6 +41,26 @@ class UserFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'email_verified_at' => null,
+        ]);
+    }
+
+    /**
+     * Indicate that the user's profile is public.
+     */
+    public function publicProfile(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'profile_visibility' => 'public',
+        ]);
+    }
+
+    /**
+     * Indicate that the user's profile is private.
+     */
+    public function privateProfile(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'profile_visibility' => 'private',
         ]);
     }
 }

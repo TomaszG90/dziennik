@@ -20,6 +20,12 @@ class DatabaseSeeder extends Seeder
         User::factory()->create([
             'name' => 'Test User',
             'email' => 'test@example.com',
+            'profile_visibility' => 'private',
+        ]);
+
+        User::factory()->publicProfile()->create([
+            'name' => 'Public User',
+            'email' => 'public@example.com',
         ]);
     }
 }
