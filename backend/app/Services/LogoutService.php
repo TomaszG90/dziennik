@@ -8,8 +8,6 @@ class LogoutService
 {
     /**
      * Logout the current user and revoke the current token.
-     *
-     * @return void
      */
     public function logout(): void
     {

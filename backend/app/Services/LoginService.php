@@ -10,13 +10,11 @@ class LoginService
     /**
      * Login a user and create a Sanctum token.
      *
-     * @param array $credentials
-     * @return array
      * @throws ValidationException
      */
     public function login(array $credentials): array
     {
-        if (!Auth::attempt($credentials)) {
+        if (! Auth::attempt($credentials)) {
             throw ValidationException::withMessages([
                 'email' => __('The provided credentials are incorrect.'),
             ]);

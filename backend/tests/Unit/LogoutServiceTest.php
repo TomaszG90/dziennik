@@ -12,7 +12,7 @@ class LogoutServiceTest extends TestCase
 
     public function test_logout_works_without_authenticated_user(): void
     {
-        $service = new LogoutService();
+        $service = new LogoutService;
 
         $this->expectNotToPerformAssertions();
 
