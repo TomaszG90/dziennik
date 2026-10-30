@@ -5,6 +5,7 @@ namespace Tests\Unit;
 use App\Models\User;
 use App\Services\LoginService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
 use Tests\TestCase;
 
@@ -19,7 +20,7 @@ class LoginServiceTest extends TestCase
             'password' => bcrypt('password123'),
         ]);
 
-        $service = new LoginService;
+        $service = new LoginService(Auth::getFacadeRoot());
         $result = $service->login([
             'email' => 'test@example.com',
             'password' => 'password123',
@@ -38,7 +39,7 @@ class LoginServiceTest extends TestCase
             'password' => bcrypt('password123'),
         ]);
 
-        $service = new LoginService;
+        $service = new LoginService(Auth::getFacadeRoot());
 
         $this->expectException(ValidationException::class);
 
@@ -50,7 +51,7 @@ class LoginServiceTest extends TestCase
 
     public function test_login_throws_exception_on_nonexistent_user(): void
     {
-        $service = new LoginService;
+        $service = new LoginService(Auth::getFacadeRoot());
 
         $this->expectException(ValidationException::class);
 

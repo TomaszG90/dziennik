@@ -103,7 +103,7 @@ class AuthenticationTest extends TestCase
     public function test_logout_deletes_token(): void
     {
         $user = User::factory()->create();
-        $token = $user->createToken('auth-token')->plainTextToken;
+        $token = $user->createToken('api-token')->plainTextToken;
 
         $response = $this->withToken($token)
             ->postJson('/api/v1/auth/logout');
@@ -122,7 +122,7 @@ class AuthenticationTest extends TestCase
     public function test_logout_fails_with_revoked_token(): void
     {
         $user = User::factory()->create();
-        $token = $user->createToken('auth-token')->plainTextToken;
+        $token = $user->createToken('api-token')->plainTextToken;
 
         $user->tokens()->delete();
 
