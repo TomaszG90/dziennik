@@ -56,7 +56,7 @@ const auth = useAuthStore()
 }
 
 .hero {
-  max-width: 720px;
+  max-width: none;
   padding: clamp(2rem, 7vw, 5rem);
   border-radius: 1.5rem;
   background: linear-gradient(135deg, #e9f5ef, #f5f2e9);
