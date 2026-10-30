@@ -2,16 +2,11 @@
 
 namespace App\Services;
 
-use App\Models\User;
-use Illuminate\Auth\AuthManager;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
 
 class LoginService
 {
-    public function __construct(
-        private AuthManager $auth
-    ) {}
-
     /**
      * Login a user and create a Sanctum token.
      *
@@ -21,13 +16,13 @@ class LoginService
      */
     public function login(array $credentials): array
     {
-        if (!$this->auth->attempt($credentials)) {
+        if (!Auth::attempt($credentials)) {
             throw ValidationException::withMessages([
                 'email' => __('The provided credentials are incorrect.'),
             ]);
         }
 
-        $user = $this->auth->user();
+        $user = Auth::user();
         $token = $user->createToken('auth-token')->plainTextToken;
 
         return [

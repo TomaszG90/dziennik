@@ -2,14 +2,10 @@
 
 namespace App\Services;
 
-use Illuminate\Auth\AuthManager;
+use Illuminate\Support\Facades\Auth;
 
 class LogoutService
 {
-    public function __construct(
-        private AuthManager $auth
-    ) {}
-
     /**
      * Logout the current user and revoke the current token.
      *
@@ -17,12 +13,12 @@ class LogoutService
      */
     public function logout(): void
     {
-        $user = $this->auth->user();
+        $user = Auth::user();
 
         if ($user) {
             $user->currentAccessToken()->delete();
         }
 
-        $this->auth->guard('web')->logout();
+        Auth::guard('web')->logout();
     }
 }
