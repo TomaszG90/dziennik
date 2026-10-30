@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Auth;
 use Tests\TestCase;
 
 class AuthenticationTest extends TestCase
@@ -45,6 +46,23 @@ class AuthenticationTest extends TestCase
             ]);
 
         $this->assertArrayHasKey('token', $response->json('data'));
+        $this->assertStringContainsString('|', $response->json('data.token'));
+        $this->assertDatabaseHas('personal_access_tokens', [
+            'tokenable_id' => $user->id,
+            'token' => hash('sha256', explode('|', $response->json('data.token'))[1]),
+        ]);
+
+        $this->assertDatabaseHas('personal_access_tokens', [
+            'tokenable_id' => $user->id,
+            'name' => 'api-token',
+        ]);
+        $this->assertArrayNotHasKey('password', $response->json('data.user'));
+        $this->assertArrayNotHasKey('remember_token', $response->json('data.user'));
+
+        $this->withToken($response->json('data.token'))
+            ->getJson('/api/user')
+            ->assertOk()
+            ->assertJsonPath('email', 'test@example.com');
     }
 
     public function test_login_requires_email(): void
@@ -93,6 +111,19 @@ class AuthenticationTest extends TestCase
         $response->assertStatus(422);
     }
 
+    public function test_login_fails_with_nonexistent_user(): void
+    {
+        $response = $this->postJson('/api/v1/auth/login', [
+            'email' => 'missing@example.com',
+            'password' => 'password123',
+        ]);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['email']);
+
+        $this->assertDatabaseCount('personal_access_tokens', 0);
+    }
+
     public function test_logout_requires_authentication(): void
     {
         $response = $this->postJson('/api/v1/auth/logout');
@@ -117,6 +148,34 @@ class AuthenticationTest extends TestCase
             'tokenable_id' => $user->id,
             'token' => hash('sha256', explode('|', $token)[1]),
         ]);
+
+        Auth::forgetGuards();
+
+        $this->withToken($token)
+            ->getJson('/api/user')
+            ->assertUnauthorized();
+    }
+
+    public function test_logout_revokes_only_the_current_token(): void
+    {
+        $user = User::factory()->create();
+        $currentToken = $user->createToken('current-token')->plainTextToken;
+        $otherToken = $user->createToken('other-token')->plainTextToken;
+
+        $this->withToken($currentToken)
+            ->postJson('/api/v1/auth/logout')
+            ->assertOk();
+
+        Auth::forgetGuards();
+
+        $this->withToken($currentToken)
+            ->getJson('/api/user')
+            ->assertUnauthorized();
+
+        $this->withToken($otherToken)
+            ->getJson('/api/user')
+            ->assertOk()
+            ->assertJsonPath('email', $user->email);
     }
 
     public function test_logout_fails_with_revoked_token(): void
