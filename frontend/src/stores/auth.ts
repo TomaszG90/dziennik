@@ -2,7 +2,6 @@
 import { computed, ref } from 'vue'
 import { ApiError, apiClient, clearAuthToken, getAuthToken, setAuthToken } from '@/api'
 
-// ZAĹOĹ»ENIE: dopasuj do realnego modelu uĹĽytkownika z backendu.
 export interface AuthUser {
   id: number | string
   name: string
@@ -14,13 +13,15 @@ export interface LoginCredentials {
   password: string
 }
 
-interface LoginResponse {
+export interface LoginPayload {
   token: string
   user: AuthUser
 }
 
-// ZAĹOĹ»ENIE: endpointy wzglÄ™dem baseURL (/api/v1) â€“ dopasuj do backendu.
-// JeĹ›li backend opakowuje dane w { data: ... }, popraw odczyt w login/restoreSession.
+export interface LoginResponse {
+  data: LoginPayload
+}
+
 const ENDPOINTS = {
   login: '/auth/login',
   logout: '/auth/logout',
@@ -31,8 +32,8 @@ export const useAuthStore = defineStore('auth', () => {
   const user = ref<AuthUser | null>(null)
   const token = ref<string | null>(getAuthToken())
   const isLoading = ref(false)
-  // true, gdy prĂłba odtworzenia sesji zostaĹ‚a zakoĹ„czona (sukcesem lub nie).
-  // Przydatne w guardzie routera, ĹĽeby nie przekierowywaÄ‡ przed sprawdzeniem tokenu.
+  // true, gdy próba odtworzenia sesji została zakończona (sukcesem lub nie).
+  // Przydatne w guardzie routera, żeby nie przekierowywać przed sprawdzeniem tokenu.
   const isInitialized = ref(false)
 
   let restorePromise: Promise<void> | null = null
@@ -51,9 +52,9 @@ export const useAuthStore = defineStore('auth', () => {
     clearAuthToken()
   }
 
-  // Interceptor w client.ts przy 401 czyĹ›ci token w localStorage i emituje
-  // to zdarzenie â€“ synchronizujemy z nim stan store'a (np. wygaĹ›niÄ™cie sesji
-  // w trakcie dziaĹ‚ania aplikacji). Router moĹĽe zareagowaÄ‡ na zmianÄ™ isAuthenticated.
+  // Interceptor w client.ts przy 401 czyści token w localStorage i emituje
+  // to zdarzenie – synchronizujemy z nim stan store'a (np. wygaśnięcie sesji
+  // w trakcie działania aplikacji). Router może zareagować na zmianę isAuthenticated.
   if (typeof window !== 'undefined') {
     window.addEventListener('auth:unauthorized', () => {
       token.value = null
@@ -64,13 +65,12 @@ export const useAuthStore = defineStore('auth', () => {
   async function login(credentials: LoginCredentials): Promise<void> {
     isLoading.value = true
     try {
-      const { data } = await apiClient.post<LoginResponse>(ENDPOINTS.login, credentials)
-      setSession(data.token, data.user)
+      const { data } = await apiClient.post<LoginResponse | LoginPayload>(ENDPOINTS.login, credentials)
+      const payload = 'data' in data && data.data ? data.data : (data as LoginPayload)
+      setSession(payload.token, payload.user)
     } finally {
       isLoading.value = false
     }
-    // BĹ‚Ä™dy to ApiError (422 -> validationErrors, 401 -> isUnauthorized)
-    // i lecÄ… dalej do formularza logowania.
   }
 
   async function logout(): Promise<void> {
@@ -79,16 +79,16 @@ export const useAuthStore = defineStore('auth', () => {
         await apiClient.post(ENDPOINTS.logout)
       }
     } catch {
-      // Wylogowanie lokalne ma siÄ™ udaÄ‡ takĹĽe przy braku sieci lub wygasĹ‚ym tokenie.
+      // Wylogowanie lokalne ma się udać także przy braku sieci lub wygasłym tokenie.
     } finally {
       clearSession()
     }
   }
 
   /**
-   * Odtwarza sesjÄ™ po odĹ›wieĹĽeniu strony: jeĹ›li w localStorage jest token,
-   * pobiera aktualnego uĹĽytkownika. WywoĹ‚ania sÄ… deduplikowane, wiÄ™c moĹĽna jÄ…
-   * bezpiecznie woĹ‚aÄ‡ z guarda routera.
+   * Odtwarza sesję po odświeżeniu strony: jeśli w localStorage jest token,
+   * pobiera aktualnego użytkownika. Wywołania są deduplikowane, więc można ją
+   * bezpiecznie wołać z guarda routera.
    */
   function restoreSession(): Promise<void> {
     if (isInitialized.value) return Promise.resolve()
@@ -106,14 +106,14 @@ export const useAuthStore = defineStore('auth', () => {
       token.value = storedToken
       isLoading.value = true
       try {
-        const { data } = await apiClient.get<AuthUser>(ENDPOINTS.me)
-        user.value = data
+        const { data } = await apiClient.get<{ data: AuthUser } | AuthUser>(ENDPOINTS.me)
+        user.value = 'data' in data && data.data ? data.data : (data as AuthUser)
       } catch (error) {
         if (error instanceof ApiError && error.isUnauthorized) {
           clearSession()
         } else {
-          // BĹ‚Ä…d sieci / 5xx: token zostaje w storage (moĹĽna sprĂłbowaÄ‡ ponownie),
-          // ale uĹĽytkownik nie jest uznany za zalogowanego.
+          // Błąd sieci / 5xx: token zostaje w storage (można spróbować ponownie),
+          // ale użytkownik nie jest uznany za zalogowanego.
           user.value = null
         }
       } finally {
@@ -137,4 +137,3 @@ export const useAuthStore = defineStore('auth', () => {
     restoreSession,
   }
 })
-

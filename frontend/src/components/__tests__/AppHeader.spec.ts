@@ -1,8 +1,8 @@
-import { mount } from '@vue/test-utils'
+import { flushPromises, mount } from '@vue/test-utils'
 import { createPinia } from 'pinia'
 import { defineComponent } from 'vue'
 import { createMemoryHistory, createRouter } from 'vue-router'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { useAuthStore } from '@/stores/auth'
 import AppHeader from '../AppHeader.vue'
 
@@ -32,12 +32,12 @@ async function mountHeader(authenticated = false) {
   })
 
   await router.isReady()
-  return wrapper
+  return { wrapper, router, pinia }
 }
 
 describe('AppHeader', () => {
   it('shows login and registration links to a guest', async () => {
-    const wrapper = await mountHeader()
+    const { wrapper } = await mountHeader()
 
     expect(wrapper.text()).toContain('Zaloguj')
     expect(wrapper.text()).toContain('Zarejestruj się')
@@ -46,11 +46,26 @@ describe('AppHeader', () => {
   })
 
   it('shows the user name and logout button when authenticated', async () => {
-    const wrapper = await mountHeader(true)
+    const { wrapper } = await mountHeader(true)
 
     expect(wrapper.text()).toContain('Ala Kowalska')
     expect(wrapper.find('button').text()).toBe('Wyloguj')
     expect(wrapper.text()).not.toContain('Zarejestruj się')
     expect(wrapper.get('a[href="/dashboard"]').text()).toBe('Mój dziennik')
+  })
+
+  it('logs out and redirects to home on logout button click', async () => {
+    const { wrapper, router, pinia } = await mountHeader(true)
+    const auth = useAuthStore(pinia)
+    const logoutSpy = vi.spyOn(auth, 'logout').mockResolvedValue()
+
+    await router.push('/dashboard')
+    await router.isReady()
+
+    await wrapper.get('button').trigger('click')
+    await flushPromises()
+
+    expect(logoutSpy).toHaveBeenCalledOnce()
+    expect(router.currentRoute.value.path).toBe('/')
   })
 })

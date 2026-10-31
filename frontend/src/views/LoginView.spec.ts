@@ -20,6 +20,7 @@ async function mountLoginView(path = '/login') {
     history: createMemoryHistory(),
     routes: [
       { path: '/login', name: 'login', component: Placeholder },
+      { path: '/register', name: 'register', component: Placeholder },
       { path: '/dashboard', name: 'dashboard', component: Placeholder },
       { path: '/trips', name: 'trips', component: Placeholder },
     ],
