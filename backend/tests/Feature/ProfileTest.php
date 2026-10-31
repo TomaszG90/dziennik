@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
 
 class ProfileTest extends TestCase
@@ -147,7 +148,7 @@ class ProfileTest extends TestCase
         $response->assertStatus(200);
 
         $user->refresh();
-        $this->assertTrue(\Illuminate\Support\Facades\Hash::check('NewPassword123!', $user->password));
+        $this->assertTrue(Hash::check('NewPassword123!', $user->password));
     }
 
     public function test_update_profile_can_update_visibility(): void

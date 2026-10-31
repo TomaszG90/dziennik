@@ -25,7 +25,7 @@ class UpdateProfileRequest extends FormRequest
     {
         return [
             'name' => ['sometimes', 'string', 'max:255'],
-            'email' => ['sometimes', 'string', 'email', 'max:255', 'unique:users,email,' . $this->user()->id],
+            'email' => ['sometimes', 'string', 'email', 'max:255', 'unique:users,email,'.$this->user()->id],
             'password' => ['sometimes', 'confirmed', Password::defaults()],
             'profile_visibility' => ['sometimes', 'in:public,private'],
         ];
