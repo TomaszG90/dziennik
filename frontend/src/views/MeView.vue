@@ -108,147 +108,147 @@ function toggleFieldVisibility(field: VisibilityKey) {
 <template>
   <main class="profile-page">
     <div class="profile-layout">
-    <section class="profile-card" aria-labelledby="profile-title">
-      <header class="profile-header">
-        <div>
-          <h1 id="profile-title">Edytuj profil</h1>
-        </div>
+      <section class="profile-card" aria-labelledby="profile-title">
+        <header class="profile-header">
+          <div>
+            <h1 id="profile-title">Edytuj profil</h1>
+          </div>
 
-        <button
-          class="visibility-button master-visibility"
-          type="button"
-          :aria-pressed="profileVisibility === 'public'"
-          @click="toggleProfileVisibility"
-        >
-          <svg
-            :class="{ 'eye-closed': profileVisibility === 'private' }"
-            aria-hidden="true"
-            viewBox="0 0 24 24"
+          <button
+            class="visibility-button master-visibility"
+            type="button"
+            :aria-pressed="profileVisibility === 'public'"
+            @click="toggleProfileVisibility"
           >
-            <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z" />
-            <circle cx="12" cy="12" r="3" />
-            <path
-              v-if="profileVisibility === 'private'"
-              d="M3 3l18 18"
-            />
-          </svg>
+            <svg
+              :class="{ 'eye-closed': profileVisibility === 'private' }"
+              aria-hidden="true"
+              viewBox="0 0 24 24"
+            >
+              <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z" />
+              <circle cx="12" cy="12" r="3" />
+              <path
+                v-if="profileVisibility === 'private'"
+                d="M3 3l18 18"
+              />
+            </svg>
 
-          {{ profileVisibility === 'public' ? 'Profil publiczny' : 'Profil prywatny' }}
-        </button>
-      </header>
+            {{ profileVisibility === 'public' ? 'Profil publiczny' : 'Profil prywatny' }}
+          </button>
+        </header>
 
-      <div class="avatar-row">
-        <div class="avatar-placeholder" role="img" aria-label="Zdjęcie profilowe">
-          <span>Zdjęcie<br />profilowe</span>
-        </div>
-
-        <button
-          class="visibility-button"
-          type="button"
-          :disabled="profileVisibility === 'private'"
-          :aria-pressed="fieldVisibility.avatar"
-          :aria-label="
-            fieldVisibility.avatar
-              ? 'Ukryj zdjęcie profilowe'
-              : 'Pokaż zdjęcie profilowe'
-          "
-          @click="toggleFieldVisibility('avatar')"
-        >
-          <svg aria-hidden="true" viewBox="0 0 24 24">
-            <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z" />
-            <circle cx="12" cy="12" r="3" />
-            <path v-if="!fieldVisibility.avatar" d="M3 3l18 18" />
-          </svg>
-          {{ fieldVisibility.avatar ? 'Publiczne' : 'Prywatne' }}
-        </button>
-      </div>
-
-      <form class="profile-form" @submit.prevent>
-        <div
-          v-for="field in profileFields"
-          :key="field.key"
-          class="info-row"
-        >
-          <div class="field">
-            <label :for="field.key">{{ field.label }}</label>
-            <input
-              :id="field.key"
-              v-model="field.value"
-              :type="field.inputType"
-              :autocomplete="field.autocomplete"
-              :readonly="!field.editable"
-            />
+        <div class="avatar-row">
+          <div class="avatar-placeholder" role="img" aria-label="Zdjęcie profilowe">
+            <span>Zdjęcie<br />profilowe</span>
           </div>
 
           <button
             class="visibility-button"
             type="button"
             :disabled="profileVisibility === 'private'"
-            :aria-pressed="fieldVisibility[field.key]"
+            :aria-pressed="fieldVisibility.avatar"
             :aria-label="
-              fieldVisibility[field.key]
-                ? `Ukryj: ${field.label}`
-                : `Pokaż: ${field.label}`
+              fieldVisibility.avatar
+                ? 'Ukryj zdjęcie profilowe'
+                : 'Pokaż zdjęcie profilowe'
             "
-            @click="toggleFieldVisibility(field.key)"
+            @click="toggleFieldVisibility('avatar')"
           >
             <svg aria-hidden="true" viewBox="0 0 24 24">
               <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z" />
               <circle cx="12" cy="12" r="3" />
-              <path v-if="!fieldVisibility[field.key]" d="M3 3l18 18" />
+              <path v-if="!fieldVisibility.avatar" d="M3 3l18 18" />
             </svg>
-            {{ fieldVisibility[field.key] ? 'Publiczne' : 'Prywatne' }}
+            <span v-if="fieldVisibility.avatar">Publiczne</span>
           </button>
         </div>
 
-        <button class="save-button" type="button" disabled>
-          Zapisz zmiany
-        </button>
-      </form>
+        <form class="profile-form" @submit.prevent>
+          <div
+            v-for="field in profileFields"
+            :key="field.key"
+            class="info-row"
+          >
+            <div class="field">
+              <label :for="field.key">{{ field.label }}</label>
+              <input
+                :id="field.key"
+                v-model="field.value"
+                :type="field.inputType"
+                :autocomplete="field.autocomplete"
+                :readonly="!field.editable"
+              />
+            </div>
+
+            <button
+              class="visibility-button"
+              type="button"
+              :disabled="profileVisibility === 'private'"
+              :aria-pressed="fieldVisibility[field.key]"
+              :aria-label="
+                fieldVisibility[field.key]
+                  ? `Ukryj: ${field.label}`
+                  : `Pokaż: ${field.label}`
+              "
+              @click="toggleFieldVisibility(field.key)"
+            >
+              <svg aria-hidden="true" viewBox="0 0 24 24">
+                <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z" />
+                <circle cx="12" cy="12" r="3" />
+                <path v-if="!fieldVisibility[field.key]" d="M3 3l18 18" />
+              </svg>
+              <span v-if="fieldVisibility[field.key]">Publiczne</span>
+            </button>
+          </div>
+
+          <button class="save-button" type="button" disabled>
+            Zapisz zmiany
+          </button>
+        </form>
       </section>
 
       <section class="profile-card activity-card" aria-labelledby="activity-title">
-          <h2 id="activity-title">Aktywność</h2>
+        <h2 id="activity-title">Aktywność</h2>
 
-          <div class="tabs" role="tablist" aria-label="Sekcje profilu">
-            <button
-              id="tab-trips"
-              type="button"
-              role="tab"
-              :aria-selected="activeTab === 'trips'"
-              @click="activeTab = 'trips'"
-            >
-              Wycieczki
-            </button>
-            <button
-              id="tab-friends"
-              type="button"
-              role="tab"
-              :aria-selected="activeTab === 'friends'"
-              @click="activeTab = 'friends'"
-            >
-              Znajomi
-            </button>
-            <button
-              id="tab-stats"
-              type="button"
-              role="tab"
-              :aria-selected="activeTab === 'stats'"
-              @click="activeTab = 'stats'"
-            >
-              Statystyki
-            </button>
-          </div>
+        <div class="tabs" role="tablist" aria-label="Sekcje profilu">
+          <button
+            id="tab-trips"
+            type="button"
+            role="tab"
+            :aria-selected="activeTab === 'trips'"
+            @click="activeTab = 'trips'"
+          >
+            Wycieczki
+          </button>
+          <button
+            id="tab-friends"
+            type="button"
+            role="tab"
+            :aria-selected="activeTab === 'friends'"
+            @click="activeTab = 'friends'"
+          >
+            Znajomi
+          </button>
+          <button
+            id="tab-stats"
+            type="button"
+            role="tab"
+            :aria-selected="activeTab === 'stats'"
+            @click="activeTab = 'stats'"
+          >
+            Statystyki
+          </button>
+        </div>
 
-          <div class="tab-panel" role="tabpanel" :aria-labelledby="`tab-${activeTab}`">
-            <p v-if="activeTab === 'trips'">Lista wycieczek pojawi się tutaj.</p>
-            <p v-else-if="activeTab === 'friends'">Lista znajomych pojawi się tutaj.</p>
-            <p v-else>Statystyki pojawią się tutaj.</p>
-          </div>
-        </section>
+        <div class="tab-panel" role="tabpanel" :aria-labelledby="`tab-${activeTab}`">
+          <p v-if="activeTab === 'trips'">Lista wycieczek pojawi się tutaj.</p>
+          <p v-else-if="activeTab === 'friends'">Lista znajomych pojawi się tutaj.</p>
+          <p v-else>Statystyki pojawią się tutaj.</p>
+        </div>
+      </section>
     </div>
   </main>
-  </template>
+</template>
 
 <style scoped>
 .profile-page {
@@ -274,6 +274,7 @@ function toggleFieldVisibility(field: VisibilityKey) {
   padding: clamp(1.5rem, 6vw, 3rem);
   border-radius: 1.5rem;
   background: linear-gradient(135deg, #e9f5ef, #f5f2e9);
+  color: #111827;
 }
 
 .profile-header {
@@ -286,6 +287,16 @@ function toggleFieldVisibility(field: VisibilityKey) {
 h1 {
   margin-bottom: 0.5rem;
   font-size: 2rem;
+  color: inherit;
+}
+
+h2 {
+  font-size: 1.5rem;
+  color: inherit;
+}
+
+label {
+  color: inherit;
 }
 
 .intro {
@@ -335,11 +346,14 @@ input {
   border: 1px solid #9ca3af;
   border-radius: 0.5rem;
   font: inherit;
+  color: #111827;
+  background: #ffffff;
 }
 
 input[readonly] {
   color: #4b5563;
   background: #f3f4f6;
+  border-color: #d1d5db;
 }
 
 .visibility-button,
@@ -434,6 +448,61 @@ input[readonly] {
 @media (max-width: 850px) {
   .profile-layout {
     grid-template-columns: 1fr;
+  }
+}
+
+/* ── Dark mode ── */
+@media (prefers-color-scheme: dark) {
+  .profile-card {
+    background: linear-gradient(135deg, #1a2e24, #2a2618);
+    color: #f3f4f6;
+  }
+
+  .intro {
+    color: #9ca3af;
+  }
+
+  .avatar-placeholder {
+    border-color: #6ee7b7;
+    color: #6ee7b7;
+    background: rgb(0 0 0 / 25%);
+  }
+
+  input {
+    color: #f3f4f6;
+    background: #1f2937;
+    border-color: #4b5563;
+  }
+
+  input[readonly] {
+    color: #9ca3af;
+    background: #111827;
+    border-color: #374151;
+  }
+
+  input::placeholder {
+    color: #6b7280;
+  }
+
+  .tabs {
+    border-bottom-color: #374151;
+  }
+
+  .tabs button {
+    color: #9ca3af;
+  }
+
+  .tabs button:hover {
+    color: #f3f4f6;
+  }
+
+  .tabs button[aria-selected='true'] {
+    color: #6ee7b7;
+    border-bottom-color: #6ee7b7;
+  }
+
+  .tab-panel p {
+    color: #9ca3af;
   }
 }
 </style>
