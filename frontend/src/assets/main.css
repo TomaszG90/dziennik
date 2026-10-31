@@ -5,7 +5,8 @@
 }
 
 .app-shell {
-  width: min(100% - 2rem, 1100px);
+  width: calc(100% - 2rem);
+  max-width: none;
   margin: 0 auto;
 }
 
