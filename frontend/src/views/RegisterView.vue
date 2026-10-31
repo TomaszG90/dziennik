@@ -164,11 +164,17 @@ async function submitRegister() {
   padding: clamp(2rem, 7vw, 5rem);
   border-radius: 1.5rem;
   background: linear-gradient(135deg, #e9f5ef, #f5f2e9);
+  color: #111827;
 }
 
 h1 {
   margin-bottom: 0.5rem;
   font-size: 2rem;
+  color: inherit;
+}
+
+label {
+  color: inherit;
 }
 
 .intro {
@@ -193,6 +199,8 @@ input:not([type='radio']) {
   border: 1px solid #9ca3af;
   border-radius: 0.5rem;
   font: inherit;
+  color: #111827;
+  background: #ffffff;
 }
 
 .visibility-field {
@@ -235,5 +243,37 @@ button:disabled {
 
 .login-link {
   margin-top: 1.5rem;
+  color: inherit;
+}
+
+/* ── Dark mode ── */
+@media (prefers-color-scheme: dark) {
+  .register-card {
+    background: linear-gradient(135deg, #1a2e24, #2a2618);
+    color: #f3f4f6;
+  }
+
+  .intro {
+    color: #9ca3af;
+  }
+
+  input:not([type='radio']) {
+    color: #f3f4f6;
+    background: #1f2937;
+    border-color: #4b5563;
+  }
+
+  input::placeholder {
+    color: #6b7280;
+  }
+
+  .field-error,
+  .form-error {
+    color: #fca5a5;
+  }
+
+  .login-link a {
+    color: #6ee7b7;
+  }
 }
 </style>

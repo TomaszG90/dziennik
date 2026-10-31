@@ -60,6 +60,7 @@ const auth = useAuthStore()
   padding: clamp(2rem, 7vw, 5rem);
   border-radius: 1.5rem;
   background: linear-gradient(135deg, #e9f5ef, #f5f2e9);
+  color: #111827;
 }
 
 .eyebrow {
@@ -75,6 +76,7 @@ h1 {
   max-width: 15ch;
   font-size: clamp(2.25rem, 6vw, 4rem);
   line-height: 1.1;
+  color: inherit;
 }
 
 .intro {
@@ -127,9 +129,39 @@ h1 {
   margin-bottom: 0.5rem;
   font-size: 1.125rem;
   font-weight: 700;
+  color: inherit;
 }
 
 .feature-card p {
   color: #4b5563;
+}
+
+/* ── Dark mode ── */
+@media (prefers-color-scheme: dark) {
+  .hero {
+    background: linear-gradient(135deg, #1a2e24, #2a2618);
+    color: #f3f4f6;
+  }
+
+  .eyebrow {
+    color: #6ee7b7;
+  }
+
+  .intro {
+    color: #9ca3af;
+  }
+
+  .button-secondary {
+    color: #6ee7b7;
+    border-color: #6ee7b7;
+  }
+
+  .feature-card {
+    color: #f3f4f6;
+  }
+
+  .feature-card p {
+    color: #9ca3af;
+  }
 }
 </style>
