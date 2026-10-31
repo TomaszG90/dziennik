@@ -3,10 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\Trip;
-use Illuminate\Support\Facades\Gate;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Gate;
 
 class TripController extends Controller
 {
