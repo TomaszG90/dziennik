@@ -19,7 +19,7 @@ class ProfileController extends Controller
      */
     public function show(): JsonResponse
     {
-        $user = $this->profileService->getProfile(auth()->user());
+        $user = auth()->user();
 
         return (new UserResource($user))
             ->response()
