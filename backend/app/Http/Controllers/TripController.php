@@ -2,6 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\StoreTripRequest;
+use App\Http\Requests\UpdateTripRequest;
+use App\Http\Resources\TripResource;
 use App\Models\Trip;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -22,26 +25,25 @@ class TripController extends Controller
             ->orderBy('start_date')
             ->get();
 
-        return response()->json($trips, Response::HTTP_OK);
+        return TripResource::collection($trips)
+            ->response()
+            ->setStatusCode(Response::HTTP_OK);
     }
 
     /**
      * Create a trip for the authenticated user.
      */
-    public function store(Request $request): JsonResponse
+    public function store(StoreTripRequest $request): JsonResponse
     {
         Gate::authorize('create', Trip::class);
 
-        $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'start_date' => ['required', 'date'],
-            'end_date' => ['nullable', 'date', 'after_or_equal:start_date'],
-            'description' => ['nullable', 'string'],
-        ]);
+        $trip = $request->user()
+            ->trips()
+            ->create($request->validated());
 
-        $trip = $request->user()->trips()->create($validated);
-
-        return response()->json($trip, Response::HTTP_CREATED);
+        return (new TripResource($trip))
+            ->response()
+            ->setStatusCode(Response::HTTP_CREATED);
     }
 
     /**
@@ -51,26 +53,23 @@ class TripController extends Controller
     {
         Gate::authorize('view', $trip);
 
-        return response()->json($trip, Response::HTTP_OK);
+        return (new TripResource($trip))
+            ->response()
+            ->setStatusCode(Response::HTTP_OK);
     }
 
     /**
      * Update a trip.
      */
-    public function update(Request $request, Trip $trip): JsonResponse
+    public function update(UpdateTripRequest $request, Trip $trip): JsonResponse
     {
         Gate::authorize('update', $trip);
 
-        $validated = $request->validate([
-            'name' => ['sometimes', 'required', 'string', 'max:255'],
-            'start_date' => ['sometimes', 'required', 'date'],
-            'end_date' => ['sometimes', 'nullable', 'date'],
-            'description' => ['sometimes', 'nullable', 'string'],
-        ]);
+        $trip->update($request->validated());
 
-        $trip->update($validated);
-
-        return response()->json($trip->fresh(), Response::HTTP_OK);
+        return (new TripResource($trip))
+            ->response()
+            ->setStatusCode(Response::HTTP_OK);
     }
 
     /**
