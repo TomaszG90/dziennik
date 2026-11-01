@@ -10,6 +10,7 @@ const router = useRouter()
 
 const email = ref('')
 const password = ref('')
+const emailInput = ref<HTMLInputElement | null>(null)
 const formError = ref('')
 const emailErrors = ref<string[]>([])
 const passwordErrors = ref<string[]>([])
@@ -19,11 +20,25 @@ async function submitLogin() {
   emailErrors.value = []
   passwordErrors.value = []
 
+  if (!emailInput.value?.validity.valid) {
+    emailErrors.value = [
+      emailInput.value?.validity.valueMissing
+        ? 'Podaj adres e-mail.'
+        : 'Podaj prawidłowy adres e-mail.',
+    ]
+    return
+  }
+
+  if (!password.value) {
+    passwordErrors.value = ['Podaj hasło.']
+    return
+  }
+
   try {
     await auth.login({ email: email.value, password: password.value })
 
     const redirect = route.query.redirect
-    await router.replace(typeof redirect === 'string' ? redirect : '/dashboard')
+    await router.replace(typeof redirect === 'string' ? redirect : '/')
   } catch (error) {
     if (error instanceof ApiError) {
       emailErrors.value = error.validationErrors?.email ?? []
@@ -52,6 +67,7 @@ async function submitLogin() {
           <label for="email">E-mail</label>
           <input
             id="email"
+            ref="emailInput"
             v-model.trim="email"
             type="email"
             autocomplete="email"

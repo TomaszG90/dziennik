@@ -19,6 +19,7 @@ async function mountLoginView(path = '/login') {
   const router = createRouter({
     history: createMemoryHistory(),
     routes: [
+      { path: '/', name: 'home', component: Placeholder },
       { path: '/login', name: 'login', component: Placeholder },
       { path: '/register', name: 'register', component: Placeholder },
       { path: '/dashboard', name: 'dashboard', component: Placeholder },
@@ -53,6 +54,39 @@ describe('LoginView', () => {
     expect(router.currentRoute.value.fullPath).toBe('/trips')
   })
 
+  it('redirects to the home page after login when no destination was requested', async () => {
+    authMock.login.mockResolvedValue(undefined)
+    const { wrapper, router } = await mountLoginView()
+
+    await wrapper.get('#email').setValue('ala@example.com')
+    await wrapper.get('#password').setValue('Secret123!')
+    await wrapper.get('form').trigger('submit')
+    await flushPromises()
+
+    expect(router.currentRoute.value.name).toBe('home')
+  })
+
+  it('rejects invalid email before submitting', async () => {
+    const { wrapper } = await mountLoginView()
+
+    await wrapper.get('#email').setValue('not-an-email')
+    await wrapper.get('#password').setValue('Secret123!')
+    await wrapper.get('form').trigger('submit')
+
+    expect(authMock.login).not.toHaveBeenCalled()
+    expect(wrapper.text()).toContain('Podaj prawidłowy adres e-mail.')
+  })
+
+  it('rejects a missing password before submitting', async () => {
+    const { wrapper } = await mountLoginView()
+
+    await wrapper.get('#email').setValue('ala@example.com')
+    await wrapper.get('form').trigger('submit')
+
+    expect(authMock.login).not.toHaveBeenCalled()
+    expect(wrapper.text()).toContain('Podaj hasło.')
+  })
+
   it('shows API validation errors on the matching field', async () => {
     authMock.login.mockRejectedValue(
       new ApiError('Validation failed', 422, {
@@ -61,7 +95,7 @@ describe('LoginView', () => {
     )
     const { wrapper } = await mountLoginView()
 
-    await wrapper.get('#email').setValue('invalid')
+    await wrapper.get('#email').setValue('ala@example.com')
     await wrapper.get('#password').setValue('Secret123!')
     await wrapper.get('form').trigger('submit')
     await flushPromises()

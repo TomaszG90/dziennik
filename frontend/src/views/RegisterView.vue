@@ -10,6 +10,7 @@ const router = useRouter()
 const isSubmitting = ref(false)
 const formError = ref('')
 const fieldErrors = ref<Partial<Record<RegisterField, string[]>>>({})
+const emailInput = ref<HTMLInputElement | null>(null)
 
 const form = reactive<RegisterPayload>({
   name: '',
@@ -22,6 +23,24 @@ const form = reactive<RegisterPayload>({
 async function submitRegister() {
   formError.value = ''
   fieldErrors.value = {}
+
+  if (!emailInput.value?.validity.valid) {
+    fieldErrors.value = {
+      email: [
+        emailInput.value?.validity.valueMissing
+          ? 'Podaj adres e-mail.'
+          : 'Podaj prawidłowy adres e-mail.',
+      ],
+    }
+    return
+  }
+
+  if (form.password.length < 8) {
+    fieldErrors.value = {
+      password: ['Hasło musi mieć co najmniej 8 znaków.'],
+    }
+    return
+  }
 
   if (form.password !== form.password_confirmation) {
     fieldErrors.value = {
@@ -78,6 +97,7 @@ async function submitRegister() {
           <label for="email">E-mail</label>
           <input
             id="email"
+            ref="emailInput"
             v-model.trim="form.email"
             type="email"
             autocomplete="email"
@@ -99,6 +119,7 @@ async function submitRegister() {
             type="password"
             autocomplete="new-password"
             required
+            minlength="8"
             :aria-invalid="Boolean(fieldErrors.password?.length)"
             :aria-describedby="fieldErrors.password?.length ? 'password-error' : undefined"
           />

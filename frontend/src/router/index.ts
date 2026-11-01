@@ -41,6 +41,7 @@ const router = createRouter({
       path: '/me',
       name: 'me',
       component: MeView,
+      meta: { requiresAuth: true },
     },
   ],
 })

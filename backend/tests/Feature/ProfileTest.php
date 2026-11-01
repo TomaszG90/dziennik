@@ -187,6 +187,40 @@ class ProfileTest extends TestCase
             ->assertJsonValidationErrors(['password']);
     }
 
+    public function test_update_profile_rejects_mismatched_password_confirmation(): void
+    {
+        $user = User::factory()->create(['password' => bcrypt('OldPassword123!')]);
+        $token = $user->createToken('api-token')->plainTextToken;
+
+        $response = $this->withToken($token)
+            ->patchJson('/api/v1/me', [
+                'password' => 'NewPassword123!',
+                'password_confirmation' => 'Different123!',
+            ]);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['password']);
+
+        $this->assertTrue(Hash::check('OldPassword123!', $user->fresh()->password));
+    }
+
+    public function test_update_profile_rejects_weak_password(): void
+    {
+        $user = User::factory()->create(['password' => bcrypt('OldPassword123!')]);
+        $token = $user->createToken('api-token')->plainTextToken;
+
+        $response = $this->withToken($token)
+            ->patchJson('/api/v1/me', [
+                'password' => 'short',
+                'password_confirmation' => 'short',
+            ]);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['password']);
+
+        $this->assertTrue(Hash::check('OldPassword123!', $user->fresh()->password));
+    }
+
     public function test_update_profile_rejects_invalid_email(): void
     {
         $user = User::factory()->create();

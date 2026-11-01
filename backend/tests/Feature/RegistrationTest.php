@@ -98,6 +98,8 @@ class RegistrationTest extends TestCase
 
         $response->assertStatus(422)
             ->assertJsonValidationErrors(['email']);
+
+        $this->assertDatabaseCount('users', 1);
     }
 
     public function test_registration_requires_password(): void
@@ -124,6 +126,38 @@ class RegistrationTest extends TestCase
 
         $response->assertStatus(422)
             ->assertJsonValidationErrors(['password']);
+    }
+
+    public function test_registration_rejects_mismatched_password_confirmation(): void
+    {
+        $response = $this->postJson('/api/v1/auth/register', [
+            'name' => 'John Doe',
+            'email' => 'john@example.com',
+            'password' => 'Password123!',
+            'password_confirmation' => 'Different123!',
+            'profile_visibility' => 'public',
+        ]);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['password']);
+
+        $this->assertDatabaseMissing('users', ['email' => 'john@example.com']);
+    }
+
+    public function test_registration_rejects_weak_password(): void
+    {
+        $response = $this->postJson('/api/v1/auth/register', [
+            'name' => 'John Doe',
+            'email' => 'john@example.com',
+            'password' => 'short',
+            'password_confirmation' => 'short',
+            'profile_visibility' => 'public',
+        ]);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['password']);
+
+        $this->assertDatabaseMissing('users', ['email' => 'john@example.com']);
     }
 
     public function test_registration_requires_profile_visibility(): void
