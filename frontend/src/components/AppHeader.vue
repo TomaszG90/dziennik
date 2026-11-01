@@ -17,9 +17,11 @@ async function handleLogout() {
 
     <nav aria-label="Nawigacja główna">
       <RouterLink to="/">Strona główna</RouterLink>
+      <RouterLink to="/me">Profil</RouterLink>
 
       <template v-if="auth.isAuthenticated">
         <RouterLink to="/dashboard">Mój dziennik</RouterLink>
+
         <span>{{ auth.user?.name }}</span>
         <button type="button" @click="handleLogout">Wyloguj</button>
       </template>
