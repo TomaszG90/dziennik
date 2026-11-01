@@ -1,11 +1,13 @@
 <script setup lang="ts">
-import { RouterLink } from 'vue-router'
+import { RouterLink, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 
 const auth = useAuthStore()
+const router = useRouter()
 
 async function handleLogout() {
   await auth.logout()
+  await router.push('/')
 }
 </script>
 

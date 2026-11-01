@@ -4,6 +4,8 @@ import { useAuthStore } from '../stores/auth'
 import { createAuthGuard } from './authGuard'
 import RoutePlaceholderView from '../views/RoutePlaceholderView.vue'
 import MeView from '../views/MeView.vue'
+import LoginView from '../views/LoginView.vue'
+import RegisterView from '../views/RegisterView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -16,21 +18,13 @@ const router = createRouter({
     {
       path: '/login',
       name: 'login',
-      component: RoutePlaceholderView,
-      props: {
-        title: 'Logowanie',
-        message: 'Formularz logowania pojawi się w kolejnym zadaniu.',
-      },
+      component: LoginView,
       meta: { guestOnly: true },
     },
     {
       path: '/register',
       name: 'register',
-      component: RoutePlaceholderView,
-      props: {
-        title: 'Rejestracja',
-        message: 'Formularz rejestracji pojawi się w kolejnym zadaniu.',
-      },
+      component: RegisterView,
       meta: { guestOnly: true },
     },
     {
