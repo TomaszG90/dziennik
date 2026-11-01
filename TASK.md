@@ -44,14 +44,14 @@ Utwórz Issue, korzystając z szablonu funkcji w `.github/ISSUE_TEMPLATE/feature
 
 | ID | Zadanie | Obszar | Zależy od | Rozmiar |
 |---|---|---|---|---|
-| **PR-1** | Pliki repozytorium i środowisko Docker: `.gitignore`, konteneryzacja (`docker-compose.yml`, Dockerfile PHP 8.3-FPM, Nginx, Node 20, PostgreSQL 16), `LICENSE` (MIT), szablony Issue i PR w `.github/` | devops / docs | - | M |
-| **PR-2** | Inicjalizacja backendu w Dockerze: Laravel 12, Sanctum, Pint, Pest/PHPUnit, konfiguracja bazy PostgreSQL w `.env.example` | backend | PR-1 | M |
-| **PR-3** | Inicjalizacja frontendu w Dockerze: Vue 3, Vite, TypeScript, Vue Router, Pinia, ESLint, Prettier, Vitest, HMR w kontenerze, `.env.example` | frontend | PR-1 | M |
-| PR-4 | Prefiks `/api/v1`, endpoint zdrowia `GET /api/v1/health`, jednolity format błędów JSON (handler wyjątków) | backend | PR-2 | S |
-| PR-5 | CI backend (GitHub Actions): `composer install`, Pint, testy | backend | PR-2 | M |
-| PR-6 | CI frontend (GitHub Actions): `npm ci`, lint, testy, build | frontend | PR-3 | S |
-| PR-7 | Dokumentacja decyzji w `docs/`: wybór biblioteki map, API tras i geokodowania (PostgreSQL został wybrany) | docs | - | M |
-| PR-8 | Szkielet dokumentacji API w `docs/` (plik OpenAPI lub opis w Markdown) wraz z regułami jej aktualizacji | docs | PR-4 | S |
+| ~~**PR-1**~~ | Pliki repozytorium i środowisko Docker: `.gitignore`, konteneryzacja (`docker-compose.yml`, Dockerfile PHP 8.3-FPM, Nginx, Node 20, PostgreSQL 16), `LICENSE` (MIT), szablony Issue i PR w `.github/` | devops / docs | - | M |
+| ~~**PR-2**~~ | Inicjalizacja backendu w Dockerze: Laravel 12, Sanctum, Pint, Pest/PHPUnit, konfiguracja bazy PostgreSQL w `.env.example` | backend | PR-1 | M |
+| ~~**PR-3**~~ | Inicjalizacja frontendu w Dockerze: Vue 3, Vite, TypeScript, Vue Router, Pinia, ESLint, Prettier, Vitest, HMR w kontenerze, `.env.example` | frontend | PR-1 | M |
+| ~~PR-4~~ | Prefiks `/api/v1`, endpoint zdrowia `GET /api/v1/health`, jednolity format błędów JSON (handler wyjątków) | backend | PR-2 | S |
+| ~~PR-5~~ | CI backend (GitHub Actions): `composer install`, Pint, testy | backend | PR-2 | M |
+| ~~PR-6~~ | CI frontend (GitHub Actions): `npm ci`, lint, testy, build | frontend | PR-3 | S |
+| ~~PR-7~~ | Dokumentacja decyzji w `docs/`: wybór biblioteki map, API tras i geokodowania (PostgreSQL został wybrany) | docs | - | M |
+| ~~PR-8~~ | Szkielet dokumentacji API w `docs/` (plik OpenAPI lub opis w Markdown) wraz z regułami jej aktualizacji | docs | PR-4 | S |
 
 ---
 
@@ -59,15 +59,20 @@ Utwórz Issue, korzystając z szablonu funkcji w `.github/ISSUE_TEMPLATE/feature
 
 | ID | Zadanie | Obszar | Zależy od | Rozmiar |
 |---|---|---|---|---|
-| **PR-9** | Migracja i model użytkownika: dodać pole widoczności profilu (publiczny/prywatny), fabryka i seeder | backend | PR-2 | S |
-| PR-10 | `POST /api/v1/auth/register` (Form Request, serwis, API Resource) + testy | backend | PR-9, PR-4 | M |
-| PR-11 | `POST /api/v1/auth/login` i `POST /api/v1/auth/logout` (Sanctum) + testy | backend | PR-10 | M |
-| PR-12 | `GET` i `PATCH /api/v1/me`: podgląd i edycja danych profilu oraz widoczności + testy | backend | PR-11 | M |
-| **PR-13** | Klient API we frontendzie: `src/api/` (instancja axios/fetch, obsługa tokenu i błędów 401/422) | frontend | PR-3 | M |
-| PR-14 | Store auth (Pinia): stan użytkownika, login, logout, odtwarzanie sesji po odświeżeniu | frontend | PR-13 | M |
-| PR-15 | Layout aplikacji i nawigacja (nagłówek, menu, strona główna) oraz guardy routera (zalogowany / gość) | frontend | PR-14 | M |
-| PR-16 | Widoki: formularz rejestracji i logowania z wyświetlaniem błędów walidacji | frontend | PR-14, PR-10, PR-11 | M |
-| PR-17 | Widok edycji profilu (dane + przełącznik profil publiczny/prywatny) | frontend | PR-15, PR-12 | M |
+| ~~**PR-9**~~ | Migracja i model użytkownika: dodać pole widoczności profilu (publiczny/prywatny), fabryka i seeder | backend | PR-2 | S |
+| ~~PR-10~~ | `POST /api/v1/auth/register` (Form Request, serwis, API Resource) + testy | backend | PR-9, PR-4 | M |
+| ~~PR-11~~ | `POST /api/v1/auth/login` i `POST /api/v1/auth/logout` (Sanctum) + testy | backend | PR-10 | M |
+| ~~PR-12~~ | `GET` i `PATCH /api/v1/me`: podgląd i edycja danych profilu oraz widoczności + testy | backend | PR-11 | M |
+| ~~**PR-13**~~ | Klient API we frontendzie: `src/api/` (instancja axios/fetch, obsługa tokenu i błędów 401/422) | frontend | PR-3 | M |
+| ~~PR-14~~ | Store auth (Pinia): stan użytkownika, login, logout, odtwarzanie sesji po odświeżeniu | frontend | PR-13 | M |
+| ~~PR-15~~ | Layout aplikacji i nawigacja (nagłówek, menu, strona główna) oraz guardy routera (zalogowany / gość) | frontend | PR-14 | M |
+| ~~PR-16~~ | Widoki: formularz rejestracji i logowania z wyświetlaniem błędów walidacji | frontend | PR-14, PR-10, PR-11 | M |
+| ~~PR-17~~ | Widok edycji profilu (dane + przełącznik profil publiczny/prywatny) | frontend | PR-15, PR-12 | M |~~
+| PR-17A | Rozszerzenie modelu `User` i seeder developerski: migracja nowych pól i ustawień prywatności zgodnych z kontraktem frontendu; seeder z 3 predefiniowanymi kontami (publiczne, prywatne i częściowo ukryte z mieszanymi ustawieniami w polu JSON) | backend | PR-11 | M |
+| PR-17B | API profilu i wybór predefiniowanego awatara: endpoint `PATCH /api/v1/me`; walidacja awatara ograniczona do nazw wcześniej wgranych plików (np. `Rule::in(['1.png', ..., '10.png'])`) | backend | PR-17A | S |
+| PR-17C | Połączony widok logowania i rejestracji: zastąpienie osobnych tras jednym widokiem `/auth` z przełączanymi formularzami oraz aktualizacja Vue Routera i linków w menu | frontend | PR-15 | M |
+| PR-17D | Interfejs edycji profilu zgodny z makietą: pola danych, ustawienia prywatności poszczególnych pól w JSON i przełącznik globalny, modal/galeria wyboru jednego z 10 awatarów oraz minimalna szerokość okna edycji profilu | frontend | PR-17B, PR-17C | M |
+| PR-17E | Reset hasła: backendowe endpointy `POST /forgot-password` i `POST /reset-password` z tokenem e-mail oraz widoki podania adresu e-mail i zmiany hasła po kliknięciu w link | backend + frontend | PR-17C | L |
 
 ---
 
@@ -75,9 +80,9 @@ Utwórz Issue, korzystając z szablonu funkcji w `.github/ISSUE_TEMPLATE/feature
 
 | ID | Zadanie | Obszar | Zależy od | Rozmiar |
 |---|---|---|---|---|
-| **PR-18** | Model `Trip` (nazwa, data lub zakres dat, opis, właściciel) + migracja + polityka dostępu (tylko właściciel) | backend | PR-9 | M |
-| PR-19 | CRUD podróży: `/api/v1/trips` (lista, szczegóły, tworzenie, edycja, usuwanie) + testy | backend | PR-18 | L |
-| **PR-20** | Model `Place` (punkt: nazwa, współrzędne, kolejność, kod kraju) i `Leg` (odcinek: z, do, transport, dystans) + migracje | backend | PR-18 | M |
+| ~~**PR-18**~~ | Model `Trip` (nazwa, data lub zakres dat, opis, właściciel) + migracja + polityka dostępu (tylko właściciel) | backend | PR-9 | M |
+| ~~PR-19~~ | CRUD podróży: `/api/v1/trips` (lista, szczegóły, tworzenie, edycja, usuwanie) + testy | backend | PR-18 | L |
+| ~~**PR-20**~~ | Model `Place` (punkt: nazwa, współrzędne, kolejność, kod kraju) i `Leg` (odcinek: z, do, transport, dystans) + migracje~~ | backend | PR-18 | M |
 | PR-21 | API punktów podróży: dodawanie, edycja, usuwanie, zmiana kolejności + testy | backend | PR-20 | L |
 | PR-22 | API odcinków: tworzenie, edycja, usuwanie, wybór środka transportu (samochód, samolot, pociąg, inne) + testy | backend | PR-20 | L |
 | PR-23 | Frontend: lista podróży użytkownika (widok + stan ładowania i pusty stan) | frontend | PR-15, PR-19 | M |

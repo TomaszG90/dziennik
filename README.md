@@ -8,8 +8,11 @@ Po kilku latach korzystania z aplikacji można otworzyć mapę i zobaczyć wszys
 
 ### Konta użytkowników (planowane)
 - Rejestracja, logowanie i wylogowywanie
-- Edycja podstawowych danych profilu
-- Profil publiczny lub prywatny
+- Połączony widok logowania i rejestracji pod adresem `/auth`
+- Reset hasła przez e-mail
+- Edycja danych profilu, w tym wybór jednego z 10 predefiniowanych awatarów
+- Publiczny lub prywatny profil oraz niezależne ustawienia widoczności poszczególnych pól
+- Developerskie konta demonstracyjne: publiczne, prywatne i częściowo ukryte
 - Przeglądanie podróży innych użytkowników (tylko profile publiczne)
 
 ### Zarządzanie podróżami (planowane)
