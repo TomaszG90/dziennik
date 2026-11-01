@@ -45,6 +45,17 @@ describe('auth store', () => {
     expect(store.isLoading).toBe(false)
   })
 
+  it('obsługuje odpowiedź logowania z Laravel Resource { data: { token, user } }', async () => {
+    vi.mocked(apiClient.post).mockResolvedValue({ data: { data: { token: 'session-token', user } } } as never)
+    const store = useAuthStore()
+
+    await store.login({ email: user.email, password: 'secret' })
+
+    expect(store.user).toEqual(user)
+    expect(store.token).toBe('session-token')
+    expect(store.isAuthenticated).toBe(true)
+  })
+
   it('przekazuje błąd logowania i nie tworzy sesji', async () => {
     const error = new ApiError('Nieprawidłowe dane logowania', 401)
     vi.mocked(apiClient.post).mockRejectedValue(error)
@@ -97,6 +108,18 @@ describe('auth store', () => {
     expect(store.token).toBe('saved-token')
     expect(store.isAuthenticated).toBe(true)
     expect(store.isInitialized).toBe(true)
+  })
+
+  it('odtwarza użytkownika z GET /me opakowanego w { data: user }', async () => {
+    vi.mocked(getAuthToken).mockReturnValue('saved-token')
+    vi.mocked(apiClient.get).mockResolvedValue({ data: { data: user } } as never)
+    const store = useAuthStore()
+
+    await store.restoreSession()
+
+    expect(store.user).toEqual(user)
+    expect(store.token).toBe('saved-token')
+    expect(store.isAuthenticated).toBe(true)
   })
 
   it('usuwa token i stan użytkownika, gdy odtwarzanie zwraca 401', async () => {
@@ -157,6 +180,3 @@ describe('auth store', () => {
     expect(store.isAuthenticated).toBe(false)
   })
 })
-
-
-
