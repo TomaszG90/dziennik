@@ -35,7 +35,7 @@ class TripApiTest extends TestCase
         $response = $this->getJson('/api/v1/trips');
 
         $response->assertOk()
-            ->assertJsonCount(1)
+            ->assertJsonCount(1, 'data')
             ->assertJsonFragment(['id' => $ownTrip->id])
             ->assertJsonMissing(['name' => 'Other user trip']);
     }
@@ -54,10 +54,9 @@ class TripApiTest extends TestCase
         ]);
 
         $response->assertCreated()
-            ->assertJsonFragment([
-                'name' => 'New trip',
-                'user_id' => $user->id,
-            ]);
+            ->assertJsonPath('data.name', 'New trip')
+            ->assertJsonPath('data.start_date', '2026-11-01')
+            ->assertJsonPath('data.end_date', '2026-11-05');
 
         $this->assertDatabaseHas('trips', [
             'user_id' => $user->id,
