@@ -58,6 +58,16 @@ describe('router auth redirects', () => {
     expect(router.currentRoute.value.query.redirect).toBe('/dashboard')
   })
 
+  it('redirects a guest from the profile to login', async () => {
+    const auth = useAuthStore()
+    auth.isInitialized = true
+
+    await router.push('/me')
+
+    expect(router.currentRoute.value.name).toBe('login')
+    expect(router.currentRoute.value.query.redirect).toBe('/me')
+  })
+
   it('redirects an authenticated user from login to home', async () => {
     const auth = useAuthStore()
     auth.isInitialized = true

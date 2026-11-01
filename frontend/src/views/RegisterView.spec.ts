@@ -85,4 +85,29 @@ describe('RegisterView', () => {
     expect(post).not.toHaveBeenCalled()
     expect(wrapper.find('.field-error').exists()).toBe(true)
   })
+
+  it('rejects invalid email before submitting', async () => {
+    const post = vi.spyOn(apiClient, 'post')
+    const { wrapper } = await mountRegisterView()
+    await fillForm(wrapper)
+    await wrapper.get('#email').setValue('not-an-email')
+
+    await wrapper.get('form').trigger('submit')
+
+    expect(post).not.toHaveBeenCalled()
+    expect(wrapper.text()).toContain('Podaj prawidłowy adres e-mail.')
+  })
+
+  it('rejects a password shorter than eight characters before submitting', async () => {
+    const post = vi.spyOn(apiClient, 'post')
+    const { wrapper } = await mountRegisterView()
+    await fillForm(wrapper)
+    await wrapper.get('#password').setValue('short')
+    await wrapper.get('#password_confirmation').setValue('short')
+
+    await wrapper.get('form').trigger('submit')
+
+    expect(post).not.toHaveBeenCalled()
+    expect(wrapper.text()).toContain('Hasło musi mieć co najmniej 8 znaków.')
+  })
 })
