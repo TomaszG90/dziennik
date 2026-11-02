@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 
 class GeocodingService
@@ -14,40 +15,44 @@ class GeocodingService
      */
     public function search(string $query): array
     {
-        $response = Http::timeout(5)
-            ->get(config('services.photon.url'), [
-                'q' => $query,
-                'limit' => 10,
-            ]);
+        $cacheKey = 'geocode:' . md5($query);
 
-        if (!$response->successful()) {
-            return [];
-        }
+        return Cache::remember($cacheKey, now()->addHours(24), function () use ($query) {
+            $response = Http::timeout(5)
+                ->get(config('services.photon.url'), [
+                    'q' => $query,
+                    'limit' => 10,
+                ]);
 
-        $data = $response->json();
+            if (!$response->successful()) {
+                return [];
+            }
 
-        if (!isset($data['features'])) {
-            return [];
-        }
+            $data = $response->json();
 
-        return collect($data['features'])
-            ->map(function ($feature) {
-                $coordinates = $feature['geometry']['coordinates'] ?? null;
-                $properties = $feature['properties'] ?? [];
+            if (!isset($data['features'])) {
+                return [];
+            }
 
-                if (!$coordinates) {
-                    return null;
-                }
+            return collect($data['features'])
+                ->map(function ($feature) {
+                    $coordinates = $feature['geometry']['coordinates'] ?? null;
+                    $properties = $feature['properties'] ?? [];
 
-                return [
-                    'name' => $properties['name'] ?? null,
-                    'latitude' => $coordinates[1] ?? null,
-                    'longitude' => $coordinates[0] ?? null,
-                    'country_code' => $properties['countrycode'] ?? null,
-                ];
-            })
-            ->filter()
-            ->values()
-            ->all();
+                    if (!$coordinates) {
+                        return null;
+                    }
+
+                    return [
+                        'name' => $properties['name'] ?? null,
+                        'latitude' => $coordinates[1] ?? null,
+                        'longitude' => $coordinates[0] ?? null,
+                        'country_code' => $properties['countrycode'] ?? null,
+                    ];
+                })
+                ->filter()
+                ->values()
+                ->all();
+        });
     }
 }
