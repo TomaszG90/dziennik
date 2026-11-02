@@ -96,7 +96,7 @@ class GeocodeApiTest extends TestCase
             ->assertExactJson(['data' => []]);
     }
 
-    public function test_geocode_endpoint_returns_empty_data_when_provider_fails(): void
+    public function test_geocode_endpoint_returns_bad_gateway_when_provider_fails(): void
     {
         Http::fake([
             'https://photon.komoot.io/api*' => Http::response(status: 503),
@@ -104,18 +104,18 @@ class GeocodeApiTest extends TestCase
 
         $response = $this->getJson('/api/v1/geocode?q=Wien');
 
-        $response->assertStatus(200)
-            ->assertExactJson(['data' => []]);
+        $response->assertStatus(502)
+            ->assertExactJson(['message' => 'Usługa geokodowania jest chwilowo niedostępna.']);
     }
 
-    public function test_geocode_endpoint_returns_empty_data_on_connection_error(): void
+    public function test_geocode_endpoint_returns_bad_gateway_on_connection_error(): void
     {
         Http::fake(fn () => throw new ConnectionException('Operation timed out'));
 
         $response = $this->getJson('/api/v1/geocode?q=Wien');
 
-        $response->assertStatus(200)
-            ->assertExactJson(['data' => []]);
+        $response->assertStatus(502)
+            ->assertExactJson(['message' => 'Usługa geokodowania jest chwilowo niedostępna.']);
     }
 
     public function test_geocode_endpoint_is_rate_limited(): void

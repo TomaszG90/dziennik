@@ -262,7 +262,7 @@ Pola wyniku:
 - `longitude` (number|null): długość geograficzna w stopniach dziesiętnych
 - `country_code` (string|null): kod kraju w formacie ISO 3166-1 alpha-2
 
-Lista zawiera maksymalnie 10 wyników. Brak wyników oraz niedostępność dostawcy kończą się odpowiedzią `200 OK` z pustą tablicą (`{"data": []}`), więc klient odróżnia brak trafień od błędu walidacji. Wyniki trafiają do cache na 24 godziny, natomiast błędy dostawcy nie są w cache zapisywane.
+Lista zawiera maksymalnie 10 wyników. Brak trafień kończy się odpowiedzią `200 OK` z pustą tablicą (`{"data": []}`), co pozwala klientowi odróżnić brak wyników od błędu. Wyniki trafiają do cache na 24 godziny, natomiast błędów dostawcy nie zapisujemy w cache.
 
 **Odpowiedź błędu walidacji `422 Unprocessable Entity`:**
 
@@ -282,6 +282,18 @@ Endpoint jest ograniczony do 60 zapytań na minutę z jednego adresu IP. Odpowie
 ```json
 {
   "message": "Too Many Attempts."
+}
+```
+
+**Odpowiedź błędu dostawcy `502 Bad Gateway`:**
+
+Gdy dostawca geokodowania jest niedostępny (błąd sieci, przekroczenie czasu, odpowiedź inna niż `2xx`) albo zwróci odpowiedź niezgodną z oczekiwanym formatem, endpoint zwraca `502 Bad Gateway`. Szczegóły odpowiedzi dostawcy nie są ujawniane klientowi.
+
+Klient powinien traktować ten kod jako błąd przejściowy i ponowić żądanie później, a nie jako brak wyników — pustą listę zwraca wyłącznie poprawne wyszukiwanie bez trafień.
+
+```json
+{
+  "message": "Usługa geokodowania jest chwilowo niedostępna."
 }
 ```
 

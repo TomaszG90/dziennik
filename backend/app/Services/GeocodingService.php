@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Exceptions\GeocodingProviderException;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
@@ -11,12 +12,14 @@ class GeocodingService
     /**
      * Search for places using Photon API.
      *
-     * Results of successful lookups are cached. Provider errors and network
-     * failures are not cached, so a transient outage does not hide a place
-     * for the whole cache lifetime.
+     * Successful lookups are cached. Provider errors and network failures
+     * are reported to the caller instead of being cached, so a transient
+     * outage is not presented as a search without results.
      *
      * @param  string  $query  Search query
      * @return array Array of place results
+     *
+     * @throws GeocodingProviderException When the provider cannot be used.
      */
     public function search(string $query): array
     {
@@ -30,10 +33,6 @@ class GeocodingService
 
         $results = $this->fetch($query);
 
-        if ($results === null) {
-            return [];
-        }
-
         Cache::put($cacheKey, $results, now()->addHours(24));
 
         return $results;
@@ -42,10 +41,10 @@ class GeocodingService
     /**
      * Fetch and map results from Photon.
      *
-     * @return array|null Null when the provider cannot be used, so the caller
-     *                    can distinguish a failure from an empty result set.
+     * @throws GeocodingProviderException When the provider is unreachable or
+     *                                    returns an unusable payload.
      */
-    private function fetch(string $query): ?array
+    private function fetch(string $query): array
     {
         try {
             $response = Http::timeout(5)
@@ -54,17 +53,17 @@ class GeocodingService
                     'limit' => 10,
                 ]);
         } catch (ConnectionException) {
-            return null;
+            throw GeocodingProviderException::unavailable();
         }
 
         if (! $response->successful()) {
-            return null;
+            throw GeocodingProviderException::unavailable();
         }
 
         $features = $response->json('features');
 
         if (! is_array($features)) {
-            return null;
+            throw GeocodingProviderException::unavailable();
         }
 
         return collect($features)

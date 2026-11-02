@@ -2,6 +2,7 @@
 
 namespace Tests\Unit;
 
+use App\Exceptions\GeocodingProviderException;
 use App\Services\GeocodingService;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Cache;
@@ -40,10 +41,10 @@ class GeocodingServiceTest extends TestCase
         $this->assertEquals('AT', $results[0]['country_code']);
     }
 
-    public function test_search_returns_empty_array_on_failed_request(): void
+    public function test_search_returns_empty_array_when_provider_has_no_matches(): void
     {
         Http::fake([
-            'https://photon.komoot.io/api*' => Http::response(status: 500),
+            'https://photon.komoot.io/api*' => Http::response(['features' => []]),
         ]);
 
         Cache::flush();
@@ -55,7 +56,20 @@ class GeocodingServiceTest extends TestCase
         $this->assertEmpty($results);
     }
 
-    public function test_search_returns_empty_array_on_invalid_response(): void
+    public function test_search_throws_when_provider_responds_with_error_status(): void
+    {
+        Http::fake([
+            'https://photon.komoot.io/api*' => Http::response(status: 500),
+        ]);
+
+        Cache::flush();
+
+        $this->expectException(GeocodingProviderException::class);
+
+        (new GeocodingService)->search('Wien');
+    }
+
+    public function test_search_throws_on_invalid_provider_response(): void
     {
         Http::fake([
             'https://photon.komoot.io/api*' => Http::response([
@@ -65,11 +79,9 @@ class GeocodingServiceTest extends TestCase
 
         Cache::flush();
 
-        $service = new GeocodingService;
-        $results = $service->search('Wien');
+        $this->expectException(GeocodingProviderException::class);
 
-        $this->assertIsArray($results);
-        $this->assertEmpty($results);
+        (new GeocodingService)->search('Wien');
     }
 
     public function test_search_filters_results_without_coordinates(): void
@@ -155,17 +167,15 @@ class GeocodingServiceTest extends TestCase
         });
     }
 
-    public function test_search_returns_empty_array_on_connection_error(): void
+    public function test_search_throws_on_connection_error(): void
     {
         Http::fake(fn () => throw new ConnectionException('Operation timed out'));
 
         Cache::flush();
 
-        $service = new GeocodingService;
-        $results = $service->search('Wien');
+        $this->expectException(GeocodingProviderException::class);
 
-        $this->assertIsArray($results);
-        $this->assertEmpty($results);
+        (new GeocodingService)->search('Wien');
     }
 
     public function test_search_does_not_cache_provider_failures(): void
@@ -177,8 +187,15 @@ class GeocodingServiceTest extends TestCase
         Cache::flush();
 
         $service = new GeocodingService;
-        $service->search('Wien');
-        $service->search('Wien');
+
+        foreach ([1, 2] as $_) {
+            try {
+                $service->search('Wien');
+                $this->fail('The provider failure should be reported to the caller.');
+            } catch (GeocodingProviderException) {
+                // Expected: the failure is reported, never cached.
+            }
+        }
 
         Http::assertSentCount(2);
     }
