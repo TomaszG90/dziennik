@@ -44,6 +44,33 @@ class RegistrationTest extends TestCase
         ]);
     }
 
+    public function test_registration_assigns_an_existing_random_avatar(): void
+    {
+        $avatarFiles = glob(public_path('avatars/*.png'));
+
+        $this->assertNotFalse($avatarFiles);
+        $this->assertNotEmpty($avatarFiles);
+
+        $response = $this->postJson('/api/v1/auth/register', [
+            'name' => 'Avatar User',
+            'email' => 'avatar@example.com',
+            'password' => 'Password123!',
+            'password_confirmation' => 'Password123!',
+            'profile_visibility' => 'public',
+        ]);
+
+        $response->assertCreated();
+
+        $avatarPath = $response->json('data.avatar_path');
+
+        $this->assertContains($avatarPath, array_map('basename', $avatarFiles));
+        $this->assertFileExists(public_path('avatars/'.$avatarPath));
+        $this->assertDatabaseHas('users', [
+            'email' => 'avatar@example.com',
+            'avatar_path' => $avatarPath,
+        ]);
+    }
+
     public function test_registration_requires_name(): void
     {
         $response = $this->postJson('/api/v1/auth/register', [
