@@ -21,5 +21,7 @@ return Application::configure(basePath: dirname(__DIR__))
             if ($request->is('api/*')) {
                 return response()->json(['message' => 'Zasób nie został znaleziony.'], 404);
             }
+
+            return null;
         });
     })->create();
