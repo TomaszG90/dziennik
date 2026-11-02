@@ -230,6 +230,61 @@ Pola:
 }
 ```
 
+### `GET /api/v1/geocode`
+
+Wyszukiwanie miejsc na potrzeby podpowiedzi przy dodawaniu punktu podróży. Nie wymaga uwierzytelnienia. Backend odpytuje dostawcę geokodowania (Photon) i zwraca wyniki w formacie aplikacji, niezależnym od dostawcy, dzięki czemu zmiana dostawcy nie wymaga zmian po stronie klienta.
+
+**Żądanie:**
+
+Parametry zapytania:
+- `q` (string, wymagany): szukana fraza, od 2 do 255 znaków
+
+Przykład: `GET /api/v1/geocode?q=Wien`
+
+**Odpowiedź sukcesu `200 OK`:**
+
+```json
+{
+  "data": [
+    {
+      "name": "Wien",
+      "latitude": 48.2082,
+      "longitude": 16.3725,
+      "country_code": "AT"
+    }
+  ]
+}
+```
+
+Pola wyniku:
+- `name` (string|null): nazwa miejsca zwrócona przez dostawcę
+- `latitude` (number|null): szerokość geograficzna w stopniach dziesiętnych
+- `longitude` (number|null): długość geograficzna w stopniach dziesiętnych
+- `country_code` (string|null): kod kraju w formacie ISO 3166-1 alpha-2
+
+Lista zawiera maksymalnie 10 wyników. Brak wyników oraz niedostępność dostawcy kończą się odpowiedzią `200 OK` z pustą tablicą (`{"data": []}`), więc klient odróżnia brak trafień od błędu walidacji. Wyniki trafiają do cache na 24 godziny, natomiast błędy dostawcy nie są w cache zapisywane.
+
+**Odpowiedź błędu walidacji `422 Unprocessable Entity`:**
+
+```json
+{
+  "message": "The q field must be at least 2 characters.",
+  "errors": {
+    "q": ["The q field must be at least 2 characters."]
+  }
+}
+```
+
+**Odpowiedź przekroczenia limitu `429 Too Many Requests`:**
+
+Endpoint jest ograniczony do 60 zapytań na minutę z jednego adresu IP. Odpowiedź zawiera nagłówek `Retry-After` z liczbą sekund do kolejnej próby.
+
+```json
+{
+  "message": "Too Many Attempts."
+}
+```
+
 ## Błędy
 
 Błędy tras API są zwracane jako JSON. Dla nieistniejącej trasy odpowiedź ma status `404 Not Found` i zawiera komunikat:
