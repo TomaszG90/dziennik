@@ -2,8 +2,8 @@
 
 namespace App\Http\Requests;
 
-use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
 
 class UpdateProfileRequest extends FormRequest
@@ -19,11 +19,15 @@ class UpdateProfileRequest extends FormRequest
     /**
      * Get the validation rules that apply to the request.
      *
-     * @return array<string, ValidationRule|array|string>
+     * @return array<string, array<int, mixed>|string>
      */
     public function rules(): array
     {
         return [
+            'name' => ['sometimes', 'string', 'max:255'],
+            'email' => ['sometimes', 'string', 'email', 'max:255', 'unique:users,email,'.$this->user()->id],
+            'password' => ['sometimes', 'confirmed', Password::defaults()],
+            'profile_visibility' => ['sometimes', 'in:public,private'],
             'first_name' => ['sometimes', 'nullable', 'string', 'max:255'],
             'last_name' => ['sometimes', 'nullable', 'string', 'max:255'],
             'city' => ['sometimes', 'nullable', 'string', 'max:255'],
@@ -47,6 +51,6 @@ class UpdateProfileRequest extends FormRequest
             'privacy_settings.city' => ['sometimes', 'boolean'],
             'privacy_settings.birthDate' => ['sometimes', 'boolean'],
             'privacy_settings.avatar' => ['sometimes', 'boolean'],
-            ];
+        ];
     }
 }
