@@ -12,6 +12,16 @@ use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable
 {
+    public const DEFAULT_PRIVACY_SETTINGS = [
+        'name' => false,
+        'email' => false,
+        'firstName' => false,
+        'lastName' => false,
+        'city' => false,
+        'birthDate' => false,
+        'avatar' => false,
+    ];
+
     /** @use HasFactory<UserFactory> */
     use HasApiTokens, HasFactory, Notifiable;
 
@@ -25,6 +35,12 @@ class User extends Authenticatable
         'email',
         'password',
         'profile_visibility',
+        'first_name',
+        'last_name',
+        'city',
+        'birth_date',
+        'avatar_path',
+        'privacy_settings',
     ];
 
     /**
@@ -48,6 +64,8 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'profile_visibility' => 'string',
+            'birth_date' => 'date:Y-m-d',
+            'privacy_settings' => 'array',
         ];
     }
 

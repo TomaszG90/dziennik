@@ -31,6 +31,12 @@ class UserFactory extends Factory
             'password' => static::$password ??= Hash::make('password'),
             'remember_token' => Str::random(10),
             'profile_visibility' => fake()->randomElement(['public', 'private']),
+            'first_name' => fake()->firstName(),
+            'last_name' => fake()->lastName(),
+            'city' => fake()->city(),
+            'birth_date' => fake()->date(),
+            'avatar_path' => null,
+            'privacy_settings' => User::DEFAULT_PRIVACY_SETTINGS,
         ];
     }
 
