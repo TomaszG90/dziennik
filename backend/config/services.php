@@ -35,4 +35,8 @@ return [
         ],
     ],
 
+    'photon' => [
+        'url' => env('PHOTON_API_URL', 'https://photon.komoot.io/api'),
+    ],
+
 ];
