@@ -2,7 +2,10 @@
 
 namespace Tests\Feature;
 
+use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\RateLimiter;
 use Tests\TestCase;
 
 class GeocodeApiTest extends TestCase
@@ -29,11 +32,13 @@ class GeocodeApiTest extends TestCase
 
         $response->assertStatus(200)
             ->assertJsonStructure([
-                '*' => [
-                    'name',
-                    'latitude',
-                    'longitude',
-                    'country_code',
+                'data' => [
+                    '*' => [
+                        'name',
+                        'latitude',
+                        'longitude',
+                        'country_code',
+                    ],
                 ],
             ])
             ->assertJsonFragment([
@@ -62,7 +67,7 @@ class GeocodeApiTest extends TestCase
 
     public function test_geocode_endpoint_validates_max_length(): void
     {
-        $response = $this->getJson('/api/v1/geocode?q=' . str_repeat('a', 256));
+        $response = $this->getJson('/api/v1/geocode?q='.str_repeat('a', 256));
 
         $response->assertStatus(422)
             ->assertJsonValidationErrors(['q']);
@@ -79,7 +84,7 @@ class GeocodeApiTest extends TestCase
         $response = $this->getJson('/api/v1/geocode?q=nonexistent');
 
         $response->assertStatus(200)
-            ->assertJson([]);
+            ->assertExactJson(['data' => []]);
     }
 
     public function test_geocode_endpoint_is_rate_limited(): void
@@ -88,10 +93,14 @@ class GeocodeApiTest extends TestCase
             'https://photon.komoot.io/api*' => Http::response(['features' => []]),
         ]);
 
-        for ($attempt = 0; $attempt < 60; $attempt++) {
-            $this->getJson('/api/v1/geocode?q=Wien')->assertOk();
-        }
+        $configured = (RateLimiter::limiter('geocode'))(Request::create('/api/v1/geocode', 'GET'));
+        $this->assertSame(60, $configured->maxAttempts);
 
+        $testKey = 'geocode-test-'.uniqid();
+        RateLimiter::for('geocode', fn () => Limit::perMinute(2)->by($testKey));
+
+        $this->getJson('/api/v1/geocode?q=Wien')->assertOk();
+        $this->getJson('/api/v1/geocode?q=Wien')->assertOk();
         $this->getJson('/api/v1/geocode?q=Wien')->assertStatus(429);
     }
 }

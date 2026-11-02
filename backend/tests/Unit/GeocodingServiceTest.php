@@ -29,7 +29,7 @@ class GeocodingServiceTest extends TestCase
 
         Cache::flush();
 
-        $service = new GeocodingService();
+        $service = new GeocodingService;
         $results = $service->search('Wien');
 
         $this->assertCount(1, $results);
@@ -47,7 +47,7 @@ class GeocodingServiceTest extends TestCase
 
         Cache::flush();
 
-        $service = new GeocodingService();
+        $service = new GeocodingService;
         $results = $service->search('Wien');
 
         $this->assertIsArray($results);
@@ -64,7 +64,7 @@ class GeocodingServiceTest extends TestCase
 
         Cache::flush();
 
-        $service = new GeocodingService();
+        $service = new GeocodingService;
         $results = $service->search('Wien');
 
         $this->assertIsArray($results);
@@ -97,7 +97,7 @@ class GeocodingServiceTest extends TestCase
 
         Cache::flush();
 
-        $service = new GeocodingService();
+        $service = new GeocodingService;
         $results = $service->search('Wien');
 
         $this->assertCount(1, $results);
@@ -124,7 +124,7 @@ class GeocodingServiceTest extends TestCase
 
         Cache::flush();
 
-        $service = new GeocodingService();
+        $service = new GeocodingService;
         $service->search('Wien');
 
         Http::assertSentCount(1);
