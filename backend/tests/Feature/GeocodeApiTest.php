@@ -3,13 +3,22 @@
 namespace Tests\Feature;
 
 use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\RateLimiter;
 use Tests\TestCase;
 
 class GeocodeApiTest extends TestCase
 {
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        Cache::flush();
+    }
+
     public function test_geocode_endpoint_returns_results(): void
     {
         Http::fake([
@@ -87,6 +96,28 @@ class GeocodeApiTest extends TestCase
             ->assertExactJson(['data' => []]);
     }
 
+    public function test_geocode_endpoint_returns_empty_data_when_provider_fails(): void
+    {
+        Http::fake([
+            'https://photon.komoot.io/api*' => Http::response(status: 503),
+        ]);
+
+        $response = $this->getJson('/api/v1/geocode?q=Wien');
+
+        $response->assertStatus(200)
+            ->assertExactJson(['data' => []]);
+    }
+
+    public function test_geocode_endpoint_returns_empty_data_on_connection_error(): void
+    {
+        Http::fake(fn () => throw new ConnectionException('Operation timed out'));
+
+        $response = $this->getJson('/api/v1/geocode?q=Wien');
+
+        $response->assertStatus(200)
+            ->assertExactJson(['data' => []]);
+    }
+
     public function test_geocode_endpoint_is_rate_limited(): void
     {
         Http::fake([
@@ -101,6 +132,8 @@ class GeocodeApiTest extends TestCase
 
         $this->getJson('/api/v1/geocode?q=Wien')->assertOk();
         $this->getJson('/api/v1/geocode?q=Wien')->assertOk();
-        $this->getJson('/api/v1/geocode?q=Wien')->assertStatus(429);
+        $this->getJson('/api/v1/geocode?q=Wien')
+            ->assertStatus(429)
+            ->assertHeader('Retry-After');
     }
 }

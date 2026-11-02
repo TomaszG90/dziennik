@@ -135,6 +135,26 @@ class GeocodingServiceTest extends TestCase
         Http::assertSentCount(1);
     }
 
+    public function test_search_sends_query_to_configured_photon_url(): void
+    {
+        config(['services.photon.url' => 'https://photon.example.test/api']);
+
+        Http::fake([
+            'https://photon.example.test/api*' => Http::response(['features' => []]),
+        ]);
+
+        Cache::flush();
+
+        $service = new GeocodingService();
+        $service->search('Wien');
+
+        Http::assertSent(function ($request) {
+            return str_starts_with($request->url(), 'https://photon.example.test/api')
+                && $request['q'] === 'Wien'
+                && $request['limit'] === 10;
+        });
+    }
+
     public function test_search_returns_empty_array_on_connection_error(): void
     {
         Http::fake(fn () => throw new ConnectionException('Operation timed out'));
