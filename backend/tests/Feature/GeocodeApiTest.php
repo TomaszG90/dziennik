@@ -2,7 +2,6 @@
 
 namespace Tests\Feature;
 
-use App\Services\GeocodingService;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
@@ -81,5 +80,18 @@ class GeocodeApiTest extends TestCase
 
         $response->assertStatus(200)
             ->assertJson([]);
+    }
+
+    public function test_geocode_endpoint_is_rate_limited(): void
+    {
+        Http::fake([
+            'https://photon.komoot.io/api*' => Http::response(['features' => []]),
+        ]);
+
+        for ($attempt = 0; $attempt < 60; $attempt++) {
+            $this->getJson('/api/v1/geocode?q=Wien')->assertOk();
+        }
+
+        $this->getJson('/api/v1/geocode?q=Wien')->assertStatus(429);
     }
 }

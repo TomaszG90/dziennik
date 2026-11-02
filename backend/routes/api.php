@@ -20,7 +20,7 @@ Route::prefix('v1')->group(function () {
         ]);
     });
 
-    Route::get('/geocode', GeocodeController::class);
+    Route::get('/geocode', GeocodeController::class)->middleware('throttle:geocode');
 
     Route::post('/auth/register', [AuthController::class, 'register']);
     Route::post('/auth/login', [AuthController::class, 'login']);

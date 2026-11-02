@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Http\Requests\GeocodeRequest;
 use App\Http\Resources\GeocodeResource;
 use App\Services\GeocodingService;
-use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 class GeocodeController extends Controller
