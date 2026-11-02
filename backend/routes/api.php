@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\PlaceController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\TripController;
 use Illuminate\Http\Request;
@@ -26,5 +27,13 @@ Route::prefix('v1')->group(function () {
         Route::get('/me', [ProfileController::class, 'show']);
         Route::patch('/me', [ProfileController::class, 'update']);
         Route::apiResource('trips', TripController::class);
+        Route::get('/trips/{trip}/places', [PlaceController::class, 'index']);
+        Route::post('/trips/{trip}/places', [PlaceController::class, 'store']);
+
+        Route::patch('/trips/{trip}/places/reorder', [PlaceController::class, 'reorder']);
+
+        Route::get('/trips/{trip}/places/{place}', [PlaceController::class, 'show']);
+        Route::patch('/trips/{trip}/places/{place}', [PlaceController::class, 'update']);
+        Route::delete('/trips/{trip}/places/{place}', [PlaceController::class, 'destroy']);
     });
 });
