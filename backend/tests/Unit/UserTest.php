@@ -69,6 +69,6 @@ class UserTest extends TestCase
         $user = User::factory()->create();
 
         $this->assertSame(User::DEFAULT_PRIVACY_SETTINGS, $user->privacy_settings);
-        $this->assertNull($user->avatar_path);
+        $this->assertMatchesRegularExpression('/^(?:[1-9]|10)\.png$/', $user->avatar_path);
     }
 }

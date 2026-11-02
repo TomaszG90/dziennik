@@ -15,5 +15,16 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
+        User::factory()->create([
+            'name' => 'Test User',
+            'email' => 'test@example.com',
+            'profile_visibility' => 'private',
+        ]);
+
+        User::factory()->create([
+            'name' => 'Public User',
+            'email' => 'public@example.com',
+            'profile_visibility' => 'public',
+        ]);
     }
 }
