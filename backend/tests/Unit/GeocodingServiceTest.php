@@ -3,6 +3,7 @@
 namespace Tests\Unit;
 
 use App\Services\GeocodingService;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
@@ -132,5 +133,33 @@ class GeocodingServiceTest extends TestCase
         $service->search('Wien');
 
         Http::assertSentCount(1);
+    }
+
+    public function test_search_returns_empty_array_on_connection_error(): void
+    {
+        Http::fake(fn () => throw new ConnectionException('Operation timed out'));
+
+        Cache::flush();
+
+        $service = new GeocodingService();
+        $results = $service->search('Wien');
+
+        $this->assertIsArray($results);
+        $this->assertEmpty($results);
+    }
+
+    public function test_search_does_not_cache_provider_failures(): void
+    {
+        Http::fake([
+            'https://photon.komoot.io/api*' => Http::response(status: 503),
+        ]);
+
+        Cache::flush();
+
+        $service = new GeocodingService();
+        $service->search('Wien');
+        $service->search('Wien');
+
+        Http::assertSentCount(2);
     }
 }
