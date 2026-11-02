@@ -35,7 +35,7 @@ class UserFactory extends Factory
             'last_name' => fake()->lastName(),
             'city' => fake()->city(),
             'birth_date' => fake()->date(),
-            'avatar_path' => null,
+            'avatar_path' => fake()->numberBetween(1, 10).'.png',
             'privacy_settings' => User::DEFAULT_PRIVACY_SETTINGS,
         ];
     }
