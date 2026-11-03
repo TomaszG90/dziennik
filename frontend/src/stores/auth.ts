@@ -1,8 +1,15 @@
 ﻿import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
-import { ApiError, apiClient, clearAuthToken, getAuthToken, setAuthToken } from '@/api'
+import {
+  ApiError,
+  apiClient,
+  clearAuthToken,
+  getAuthToken,
+  setAuthToken,
+  type UserProfile,
+} from '@/api'
 
-export interface AuthUser {
+export interface AuthUser extends Partial<UserProfile> {
   id: number | string
   name: string
   email: string
