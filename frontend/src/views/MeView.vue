@@ -98,6 +98,7 @@ const profileFields: ProfileField[] = [
   },
 ]
 const avatarDialog = ref<HTMLDialogElement | null>(null)
+const showVisibilityInfo = ref(false)
 const avatarFiles = Array.from({ length: 10 }, (_, index) => `${index + 1}.png`)
 const isSaving = ref(false)
 const saveError = ref('')
@@ -172,23 +173,43 @@ async function saveProfile() {
         <header class="profile-header">
           <h1 id="profile-title">Edytuj profil</h1>
 
-          <button
-            class="visibility-button master-visibility"
-            type="button"
-            :aria-pressed="profileVisibility === 'public'"
-            @click="toggleProfileVisibility"
-          >
-            <svg
-              :class="{ 'eye-closed': profileVisibility === 'private' }"
-              aria-hidden="true"
-              viewBox="0 0 24 24"
+          <div class="visibility-control">
+            <button
+              class="visibility-button master-visibility"
+              type="button"
+              :aria-pressed="profileVisibility === 'public'"
+              @click="toggleProfileVisibility"
             >
-              <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z" />
-              <circle cx="12" cy="12" r="3" />
-              <path v-if="profileVisibility === 'private'" d="M3 3l18 18" />
-            </svg>
-            {{ profileVisibility === 'public' ? 'Profil publiczny' : 'Profil prywatny' }}
-          </button>
+              <svg
+                :class="{ 'eye-closed': profileVisibility === 'private' }"
+                aria-hidden="true"
+                viewBox="0 0 24 24"
+              >
+                <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z" />
+                <circle cx="12" cy="12" r="3" />
+                <path v-if="profileVisibility === 'private'" d="M3 3l18 18" />
+              </svg>
+              {{ profileVisibility === 'public' ? 'Profil publiczny' : 'Profil prywatny' }}
+            </button>
+            <button
+              class="visibility-info-button"
+              type="button"
+              aria-label="Informacje o widoczności profilu"
+              aria-controls="visibility-info"
+              :aria-expanded="showVisibilityInfo"
+              @click="showVisibilityInfo = !showVisibilityInfo"
+            >
+              <svg aria-hidden="true" viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="9" />
+                <path d="M12 11v5m0-8h.01" />
+              </svg>
+            </button>
+            <p v-if="showVisibilityInfo" id="visibility-info" class="visibility-info" role="tooltip">
+              Profil prywatny jest ukryty dla innych. Profil publiczny udostępnia tylko pola
+              oznaczone jako publiczne. Ustawienia poszczególnych pól pozostają zapisane po
+              przełączeniu profilu na prywatny.
+            </p>
+          </div>
         </header>
 
         <div class="avatar-row">
@@ -384,6 +405,59 @@ async function saveProfile() {
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
+}
+
+.visibility-control {
+  position: relative;
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.visibility-info-button {
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border: 1px solid #386a54;
+  border-radius: 50%;
+  color: #386a54;
+  background: transparent;
+}
+
+.visibility-info-button svg {
+  width: 1.2rem;
+  height: 1.2rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+}
+
+.visibility-info-button:focus-visible {
+  outline: 3px solid #294d3d;
+  outline-offset: 2px;
+}
+
+.visibility-info {
+  position: absolute;
+  z-index: 1;
+  top: calc(100% + 0.5rem);
+  right: 0;
+  width: min(20rem, calc(100vw - 3rem));
+  margin: 0;
+  padding: 0.75rem 1rem;
+  border: 1px solid #386a54;
+  border-radius: 0.75rem;
+  color: #111827;
+  background: #fff;
+  box-shadow: 0 0.5rem 1.5rem rgb(0 0 0 / 15%);
+  font-size: 0.875rem;
+  line-height: 1.5;
 }
 
 h1 {
@@ -640,6 +714,10 @@ input {
     flex-direction: column;
   }
 
+  .visibility-control {
+    align-self: stretch;
+  }
+
   .info-row {
     align-items: stretch;
   }
@@ -709,6 +787,21 @@ input {
   }
 
   .avatar-dialog {
+    color: #f3f4f6;
+    background: #1f2937;
+  }
+
+  .visibility-info-button {
+    border-color: #6ee7b7;
+    color: #6ee7b7;
+  }
+
+  .visibility-info-button:focus-visible {
+    outline-color: #6ee7b7;
+  }
+
+  .visibility-info {
+    border-color: #6ee7b7;
     color: #f3f4f6;
     background: #1f2937;
   }
