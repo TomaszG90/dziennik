@@ -44,6 +44,8 @@ Pola:
 - `password_confirmation` (string, required): potwierdzenie hasła
 - `profile_visibility` (string, required): widoczność profilu, wartości: `public` lub `private`
 
+Podczas rejestracji backend losuje plik PNG z `backend/public/avatars` i zapisuje jego nazwę w `avatar_path` (np. `3.png`).
+
 **Odpowiedź sukcesu `201 Created`:**
 
 ```json
@@ -52,7 +54,21 @@ Pola:
     "id": 1,
     "name": "John Doe",
     "email": "john@example.com",
+    "first_name": null,
+    "last_name": null,
+    "city": null,
+    "birth_date": null,
+    "avatar_path": "3.png",
     "profile_visibility": "public",
+    "privacy_settings": {
+      "name": false,
+      "email": false,
+      "firstName": false,
+      "lastName": false,
+      "city": false,
+      "birthDate": false,
+      "avatar": false
+    },
     "created_at": "2026-10-29T17:00:00+00:00",
     "updated_at": "2026-10-29T17:00:00+00:00"
   }
@@ -96,7 +112,21 @@ Pola:
       "id": 1,
       "name": "John Doe",
       "email": "john@example.com",
+      "first_name": null,
+      "last_name": null,
+      "city": null,
+      "birth_date": null,
+      "avatar_path": "3.png",
       "profile_visibility": "public",
+      "privacy_settings": {
+        "name": false,
+        "email": false,
+        "firstName": false,
+        "lastName": false,
+        "city": false,
+        "birthDate": false,
+        "avatar": false
+      },
       "created_at": "2026-10-29T17:00:00+00:00",
       "updated_at": "2026-10-29T17:00:00+00:00"
     },
@@ -158,12 +188,28 @@ Brak danych w ciele żądania. Wymaga nagłówka `Authorization: Bearer {token}`
     "id": 1,
     "name": "John Doe",
     "email": "john@example.com",
+    "first_name": null,
+    "last_name": null,
+    "city": null,
+    "birth_date": null,
+    "avatar_path": "3.png",
     "profile_visibility": "public",
+    "privacy_settings": {
+      "name": false,
+      "email": false,
+      "firstName": false,
+      "lastName": false,
+      "city": false,
+      "birthDate": false,
+      "avatar": false
+    },
     "created_at": "2026-10-29T17:00:00+00:00",
     "updated_at": "2026-10-29T17:00:00+00:00"
   }
 }
 ```
+
+`privacy_settings` zawiera ustawienia widoczności jako wartości logiczne. Jego klucze (`name`, `email`, `firstName`, `lastName`, `city`, `birthDate`, `avatar`) odpowiadają bezpośrednio kluczom frontendu. Pola profilu są zapisane w bazie jako `first_name`, `last_name`, `city`, `birth_date` i `avatar_path`; `firstName` odpowiada `first_name`, `birthDate` — `birth_date`, a `avatar` — `avatar_path`.
 
 **Odpowiedź błędu autoryzacji `401 Unauthorized`:**
 
@@ -204,7 +250,21 @@ Pola:
     "id": 1,
     "name": "John Doe",
     "email": "john@example.com",
+    "first_name": null,
+    "last_name": null,
+    "city": null,
+    "birth_date": null,
+    "avatar_path": "3.png",
     "profile_visibility": "private",
+    "privacy_settings": {
+      "name": false,
+      "email": false,
+      "firstName": false,
+      "lastName": false,
+      "city": false,
+      "birthDate": false,
+      "avatar": false
+    },
     "created_at": "2026-10-29T17:00:00+00:00",
     "updated_at": "2026-10-31T10:00:00+00:00"
   }
