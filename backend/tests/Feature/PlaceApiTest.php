@@ -183,6 +183,56 @@ class PlaceApiTest extends TestCase
         ])->assertUnprocessable();
     }
 
+    public function test_reorder_rejects_duplicate_place_ids_without_changing_positions(): void
+    {
+        $user = User::factory()->create();
+        Sanctum::actingAs($user);
+
+        $trip = $this->createTrip($user);
+        $first = $this->createPlace($trip, ['position' => 1]);
+        $second = $this->createPlace($trip, ['position' => 2]);
+
+        $this->patchJson("/api/v1/trips/{$trip->id}/places/reorder", [
+            'place_ids' => [$first->id, $first->id],
+        ])->assertUnprocessable()
+            ->assertJsonValidationErrors(['place_ids.1']);
+
+        $this->assertDatabaseHas('places', ['id' => $first->id, 'position' => 1]);
+        $this->assertDatabaseHas('places', ['id' => $second->id, 'position' => 2]);
+    }
+
+    public function test_reorder_rejects_omitted_places_without_changing_positions(): void
+    {
+        $user = User::factory()->create();
+        Sanctum::actingAs($user);
+
+        $trip = $this->createTrip($user);
+        $first = $this->createPlace($trip, ['position' => 1]);
+        $second = $this->createPlace($trip, ['position' => 2]);
+
+        $this->patchJson("/api/v1/trips/{$trip->id}/places/reorder", [
+            'place_ids' => [$second->id],
+        ])->assertUnprocessable()
+            ->assertJsonPath('message', 'The place_ids must contain every place in this trip exactly once.');
+
+        $this->assertDatabaseHas('places', ['id' => $first->id, 'position' => 1]);
+        $this->assertDatabaseHas('places', ['id' => $second->id, 'position' => 2]);
+    }
+
+    public function test_reorder_rejects_an_empty_place_list(): void
+    {
+        $user = User::factory()->create();
+        Sanctum::actingAs($user);
+
+        $trip = $this->createTrip($user);
+        $this->createPlace($trip);
+
+        $this->patchJson("/api/v1/trips/{$trip->id}/places/reorder", [
+            'place_ids' => [],
+        ])->assertUnprocessable()
+            ->assertJsonValidationErrors(['place_ids']);
+    }
+
     public function test_places_api_requires_authentication(): void
     {
         $user = User::factory()->create();
