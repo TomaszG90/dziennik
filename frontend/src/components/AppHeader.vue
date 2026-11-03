@@ -27,8 +27,7 @@ async function handleLogout() {
       </template>
 
       <template v-else>
-        <RouterLink to="/login">Zaloguj</RouterLink>
-        <RouterLink to="/register">Zarejestruj się</RouterLink>
+        <RouterLink :to="{ name: 'auth' }">Konto</RouterLink>
       </template>
     </nav>
   </header>

@@ -20,10 +20,10 @@ const auth = useAuthStore()
       </p>
 
       <div v-if="!auth.isAuthenticated" class="actions">
-        <RouterLink class="button button-primary" to="/register">
+        <RouterLink class="button button-primary" :to="{ name: 'auth', query: { mode: 'register' } }">
           Załóż konto
         </RouterLink>
-        <RouterLink class="button button-secondary" to="/login">
+        <RouterLink class="button button-secondary" :to="{ name: 'auth' }">
           Zaloguj się
         </RouterLink>
       </div>

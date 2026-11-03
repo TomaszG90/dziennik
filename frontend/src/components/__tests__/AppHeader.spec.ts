@@ -21,9 +21,9 @@ async function mountHeader(authenticated = false) {
     history: createMemoryHistory(),
     routes: [
       { path: '/', name: 'home', component: Placeholder },
-      { path: '/login', name: 'login', component: Placeholder },
-      { path: '/register', name: 'register', component: Placeholder },
+      { path: '/auth', name: 'auth', component: Placeholder },
       { path: '/dashboard', name: 'dashboard', component: Placeholder },
+      { path: '/me', name: 'me', component: Placeholder },
     ],
   })
 
@@ -36,11 +36,10 @@ async function mountHeader(authenticated = false) {
 }
 
 describe('AppHeader', () => {
-  it('shows login and registration links to a guest', async () => {
+  it('shows the unified account link to a guest', async () => {
     const { wrapper } = await mountHeader()
 
-    expect(wrapper.text()).toContain('Zaloguj')
-    expect(wrapper.text()).toContain('Zarejestruj się')
+    expect(wrapper.get('a[href="/auth"]').text()).toBe('Konto')
     expect(wrapper.find('button').exists()).toBe(false)
     expect(wrapper.find('a[href="/dashboard"]').exists()).toBe(false)
   })
@@ -50,7 +49,7 @@ describe('AppHeader', () => {
 
     expect(wrapper.text()).toContain('Ala Kowalska')
     expect(wrapper.find('button').text()).toBe('Wyloguj')
-    expect(wrapper.text()).not.toContain('Zarejestruj się')
+    expect(wrapper.find('a[href="/auth"]').exists()).toBe(false)
     expect(wrapper.get('a[href="/dashboard"]').text()).toBe('Mój dziennik')
   })
 

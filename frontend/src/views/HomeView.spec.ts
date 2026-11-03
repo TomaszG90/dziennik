@@ -21,8 +21,7 @@ async function mountHome(authenticated = false) {
     history: createMemoryHistory(),
     routes: [
       { path: '/', name: 'home', component: Placeholder },
-      { path: '/login', name: 'login', component: Placeholder },
-      { path: '/register', name: 'register', component: Placeholder },
+      { path: '/auth', name: 'auth', component: Placeholder },
     ],
   })
 
@@ -39,15 +38,15 @@ describe('HomeView', () => {
     const wrapper = await mountHome()
 
     expect(wrapper.get('h1').text()).toContain('Wspomnienia z drogi')
-    expect(wrapper.get('a[href="/register"]').text()).toContain('Załóż konto')
-    expect(wrapper.get('a[href="/login"]').text()).toContain('Zaloguj się')
+    expect(wrapper.get('a[href="/auth?mode=register"]').text()).toContain('Załóż konto')
+    expect(wrapper.get('a[href="/auth"]').text()).toContain('Zaloguj się')
   })
 
   it('greets an authenticated user without showing account links', async () => {
     const wrapper = await mountHome(true)
 
     expect(wrapper.text()).toContain('Witaj ponownie, Ala Kowalska')
-    expect(wrapper.find('a[href="/register"]').exists()).toBe(false)
-    expect(wrapper.find('a[href="/login"]').exists()).toBe(false)
+    expect(wrapper.find('a[href="/auth?mode=register"]').exists()).toBe(false)
+    expect(wrapper.find('a[href="/auth"]').exists()).toBe(false)
   })
 })
