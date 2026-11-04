@@ -144,7 +144,29 @@ class GeocodingService
             throw GeocodingProviderException::unavailable();
         }
 
-        return $features[0]['properties']['countrycode'] ?? null;
+        if ($features === []) {
+            return null;
+        }
+
+        $feature = $features[0];
+
+        if (! is_array($feature)) {
+            throw GeocodingProviderException::unavailable();
+        }
+
+        $properties = $feature['properties'] ?? null;
+
+        if ($properties !== null && ! is_array($properties)) {
+            throw GeocodingProviderException::unavailable();
+        }
+
+        $countryCode = $properties['countrycode'] ?? null;
+
+        if ($countryCode !== null && ! is_string($countryCode)) {
+            throw GeocodingProviderException::unavailable();
+        }
+
+        return $countryCode;
     }
 
     /**

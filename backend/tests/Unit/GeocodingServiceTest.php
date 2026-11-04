@@ -297,6 +297,68 @@ class GeocodingServiceTest extends TestCase
         });
     }
 
+    public function test_reverse_country_code_returns_null_when_feature_has_no_properties(): void
+    {
+        Http::fake([
+            'https://photon.komoot.io/reverse*' => Http::response([
+                'features' => [[]],
+            ]),
+        ]);
+
+        Cache::flush();
+
+        $this->assertNull((new GeocodingService)->reverseCountryCode(48.2082, 16.3725));
+    }
+
+    public function test_reverse_country_code_throws_when_feature_is_not_an_object(): void
+    {
+        Http::fake([
+            'https://photon.komoot.io/reverse*' => Http::response([
+                'features' => ['AT'],
+            ]),
+        ]);
+
+        Cache::flush();
+
+        $this->expectException(GeocodingProviderException::class);
+
+        (new GeocodingService)->reverseCountryCode(48.2082, 16.3725);
+    }
+
+    public function test_reverse_country_code_throws_when_properties_are_not_an_object(): void
+    {
+        Http::fake([
+            'https://photon.komoot.io/reverse*' => Http::response([
+                'features' => [
+                    ['properties' => 'AT'],
+                ],
+            ]),
+        ]);
+
+        Cache::flush();
+
+        $this->expectException(GeocodingProviderException::class);
+
+        (new GeocodingService)->reverseCountryCode(48.2082, 16.3725);
+    }
+
+    public function test_reverse_country_code_throws_when_country_code_is_not_a_string(): void
+    {
+        Http::fake([
+            'https://photon.komoot.io/reverse*' => Http::response([
+                'features' => [
+                    ['properties' => ['countrycode' => ['AT']]],
+                ],
+            ]),
+        ]);
+
+        Cache::flush();
+
+        $this->expectException(GeocodingProviderException::class);
+
+        (new GeocodingService)->reverseCountryCode(48.2082, 16.3725);
+    }
+
     public function test_reverse_country_code_caches_results_per_rounded_coordinate(): void
     {
         Http::fake([

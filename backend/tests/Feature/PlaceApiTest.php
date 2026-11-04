@@ -308,6 +308,37 @@ class PlaceApiTest extends TestCase
         ]);
     }
 
+    public function test_place_is_created_without_country_code_when_the_provider_payload_is_unusable(): void
+    {
+        Http::fake([
+            'https://photon.komoot.io/reverse*' => Http::response([
+                'features' => [
+                    ['properties' => ['countrycode' => ['AT']]],
+                ],
+            ]),
+        ]);
+        Cache::flush();
+
+        $user = User::factory()->create();
+        Sanctum::actingAs($user);
+
+        $trip = $this->createTrip($user);
+
+        $response = $this->postJson("/api/v1/trips/{$trip->id}/places", [
+            'name' => 'Wien',
+            'latitude' => 48.2082,
+            'longitude' => 16.3725,
+        ]);
+
+        $response->assertCreated()
+            ->assertJsonPath('data.country_code', null);
+
+        $this->assertDatabaseHas('places', [
+            'trip_id' => $trip->id,
+            'country_code' => null,
+        ]);
+    }
+
     public function test_country_code_is_resolved_again_when_coordinates_change(): void
     {
         $this->fakeReverseCountry('DE');
