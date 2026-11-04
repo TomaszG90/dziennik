@@ -240,6 +240,8 @@ onMounted(() => {
               <div class="trip-date-row">
                 <svg
                   class="meta-icon"
+                  width="16"
+                  height="16"
                   aria-hidden="true"
                   viewBox="0 0 24 24"
                   fill="none"
@@ -338,6 +340,8 @@ onMounted(() => {
               <div class="trip-date-row">
                 <svg
                   class="meta-icon"
+                  width="16"
+                  height="16"
                   aria-hidden="true"
                   viewBox="0 0 24 24"
                   fill="none"
