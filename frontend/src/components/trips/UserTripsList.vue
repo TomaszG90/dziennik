@@ -293,6 +293,8 @@ onMounted(() => {
               <div class="trip-date-row">
                 <svg
                   class="meta-icon"
+                  width="16"
+                  height="16"
                   aria-hidden="true"
                   viewBox="0 0 24 24"
                   fill="none"
@@ -416,6 +418,8 @@ onMounted(() => {
               <div class="trip-date-row">
                 <svg
                   class="meta-icon"
+                  width="16"
+                  height="16"
                   aria-hidden="true"
                   viewBox="0 0 24 24"
                   fill="none"
@@ -743,9 +747,11 @@ onMounted(() => {
 
 .trip-item {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
+  flex-wrap: wrap;
   gap: 1rem;
+  box-sizing: border-box;
   padding: 1.125rem 1.25rem;
   border-radius: 0.875rem;
   background: #ffffff;
@@ -768,7 +774,7 @@ onMounted(() => {
   flex-direction: column;
   gap: 0.4rem;
   flex: 1;
-  min-width: 0;
+  min-width: min(100%, 14rem);
 }
 
 .trip-title-row {
@@ -782,7 +788,9 @@ onMounted(() => {
   font-size: 1.1rem;
   font-weight: 700;
   color: #111827;
-  word-break: break-word;
+  min-width: 0;
+  word-break: keep-all;
+  overflow-wrap: normal;
 }
 
 .badge-origin {
@@ -832,7 +840,7 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  flex-shrink: 0;
+  min-width: 0;
   flex-wrap: wrap;
 }
 
@@ -847,7 +855,15 @@ onMounted(() => {
   font-size: 0.85rem;
   font-weight: 600;
   cursor: pointer;
+  justify-content: center;
+  max-width: 100%;
+  white-space: nowrap;
   transition: all 150ms ease;
+}
+
+.trip-item-actions > button {
+  min-width: max-content;
+  box-sizing: border-box;
 }
 
 .details-button {
@@ -908,6 +924,11 @@ onMounted(() => {
   .trip-item-actions {
     width: 100%;
     justify-content: flex-start;
+  }
+
+  .trip-item-actions > button {
+    flex: 1 1 5rem;
+    min-width: min(100%, 6rem);
   }
 }
 

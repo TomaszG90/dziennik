@@ -256,7 +256,9 @@ function toggleFieldVisibility(field: VisibilityKey) {
   display: grid;
   justify-items: center;
   width: 100%;
-  padding: 3rem 0;
+  min-width: 0;
+  padding: 3rem clamp(0.75rem, 4vw, 2rem);
+  box-sizing: border-box;
 }
 
 .profile-layout {
@@ -265,13 +267,15 @@ function toggleFieldVisibility(field: VisibilityKey) {
   align-items: start;
   gap: 1.5rem;
   width: 100%;
+  min-width: 0;
 }
 
 .profile-card {
   display: grid;
   gap: 1.5rem;
   width: 100%;
-  min-width: 0;
+  min-width: min(100%, 22rem);
+  box-sizing: border-box;
   padding: clamp(1.5rem, 6vw, 3rem);
   border-radius: 1.5rem;
   background: linear-gradient(135deg, #e9f5ef, #f5f2e9);
@@ -280,14 +284,33 @@ function toggleFieldVisibility(field: VisibilityKey) {
 
 .profile-header {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
+  min-width: 0;
+}
+
+.profile-header > *,
+.field,
+.tab-panel {
+  min-width: 0;
+}
+
+.profile-card h1,
+.profile-card h2,
+.profile-card p,
+.profile-card label {
+  overflow-wrap: break-word;
 }
 
 h1 {
+  min-width: min(100%, 14rem);
   margin-bottom: 0.5rem;
   font-size: 2rem;
+  line-height: 1.2;
+  word-break: keep-all;
+  white-space: nowrap;
   color: inherit;
 }
 
