@@ -398,6 +398,54 @@ class GeocodingServiceTest extends TestCase
         Http::assertSentCount(1);
     }
 
+    public function test_reverse_country_code_throws_when_the_lookup_budget_is_exhausted(): void
+    {
+        config(['services.photon.reverse_lookups_per_minute' => 1]);
+
+        Http::fake([
+            'https://photon.komoot.io/reverse*' => Http::response([
+                'features' => [
+                    [
+                        'properties' => ['countrycode' => 'AT'],
+                    ],
+                ],
+            ]),
+        ]);
+
+        Cache::flush();
+
+        $service = new GeocodingService;
+        $service->reverseCountryCode(48.2082, 16.3725);
+
+        $this->expectException(GeocodingProviderException::class);
+
+        $service->reverseCountryCode(52.52, 13.405);
+    }
+
+    public function test_reverse_country_code_does_not_consume_the_budget_on_cache_hits(): void
+    {
+        config(['services.photon.reverse_lookups_per_minute' => 1]);
+
+        Http::fake([
+            'https://photon.komoot.io/reverse*' => Http::response([
+                'features' => [
+                    [
+                        'properties' => ['countrycode' => 'AT'],
+                    ],
+                ],
+            ]),
+        ]);
+
+        Cache::flush();
+
+        $service = new GeocodingService;
+
+        $this->assertSame('AT', $service->reverseCountryCode(48.2082, 16.3725));
+        $this->assertSame('AT', $service->reverseCountryCode(48.2082, 16.3725));
+
+        Http::assertSentCount(1);
+    }
+
     public function test_reverse_country_code_does_not_cache_provider_failures(): void
     {
         Http::fake([

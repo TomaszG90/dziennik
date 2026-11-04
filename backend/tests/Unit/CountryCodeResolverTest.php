@@ -152,6 +152,18 @@ class CountryCodeResolverTest extends TestCase
         $this->assertNull($countryCode);
     }
 
+    public function test_exhausted_lookup_budget_returns_null(): void
+    {
+        config(['services.photon.reverse_lookups_per_minute' => 1]);
+        $this->fakeProviderCountry('AT');
+        Cache::flush();
+
+        $resolver = $this->resolver();
+
+        $this->assertSame('AT', $resolver->resolve(null, 48.2082, 16.3725));
+        $this->assertNull($resolver->resolve(null, 52.52, 13.405));
+    }
+
     public function test_provider_failure_returns_null_and_is_logged(): void
     {
         Http::fake([

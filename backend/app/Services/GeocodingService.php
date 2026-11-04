@@ -6,6 +6,7 @@ use App\Exceptions\GeocodingProviderException;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\RateLimiter;
 
 class GeocodingService
 {
@@ -123,6 +124,8 @@ class GeocodingService
      */
     private function fetchCountryCode(float $latitude, float $longitude): ?string
     {
+        $this->ensureLookupBudget();
+
         try {
             $response = Http::timeout(5)
                 ->get(config('services.photon.reverse_url'), [
@@ -178,5 +181,34 @@ class GeocodingService
     private function coordinateKey(float $latitude, float $longitude): string
     {
         return round($latitude, 4).','.round($longitude, 4);
+    }
+
+    /**
+     * Keep reverse lookups within the provider budget of the current caller.
+     *
+     * The budget is consumed only when the provider is actually queried, so
+     * cached coordinates stay free. Reaching the limit is reported like any
+     * other provider failure, which lets the caller store the point without a
+     * country code instead of failing the request.
+     *
+     * @throws GeocodingProviderException When the caller has no budget left.
+     */
+    private function ensureLookupBudget(): void
+    {
+        $key = 'geocode:reverse:'.(auth()->id() ?? 'ip:'.request()->ip());
+
+        if (RateLimiter::tooManyAttempts($key, $this->reverseLookupLimit())) {
+            throw GeocodingProviderException::rateLimited();
+        }
+
+        RateLimiter::hit($key, 60);
+    }
+
+    /**
+     * Number of reverse lookups allowed per caller within a minute.
+     */
+    private function reverseLookupLimit(): int
+    {
+        return max(1, (int) config('services.photon.reverse_lookups_per_minute'));
     }
 }

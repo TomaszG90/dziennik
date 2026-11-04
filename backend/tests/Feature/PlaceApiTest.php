@@ -364,6 +364,74 @@ class PlaceApiTest extends TestCase
         ]);
     }
 
+    public function test_place_is_created_without_country_code_when_the_lookup_budget_is_exhausted(): void
+    {
+        config(['services.photon.reverse_lookups_per_minute' => 1]);
+        $this->fakeReverseCountry('AT');
+        Cache::flush();
+
+        $user = User::factory()->create();
+        Sanctum::actingAs($user);
+
+        $trip = $this->createTrip($user);
+
+        $this->postJson("/api/v1/trips/{$trip->id}/places", [
+            'name' => 'Wien',
+            'latitude' => 48.2082,
+            'longitude' => 16.3725,
+        ])->assertCreated()
+            ->assertJsonPath('data.country_code', 'AT');
+
+        $this->postJson("/api/v1/trips/{$trip->id}/places", [
+            'name' => 'Berlin',
+            'latitude' => 52.5200,
+            'longitude' => 13.4050,
+        ])->assertCreated()
+            ->assertJsonPath('data.country_code', null);
+    }
+
+    public function test_explicit_null_country_code_is_resolved_again_from_coordinates(): void
+    {
+        $this->fakeReverseCountry('DE');
+        Cache::flush();
+
+        $user = User::factory()->create();
+        Sanctum::actingAs($user);
+
+        $trip = $this->createTrip($user);
+        $place = $this->createPlace($trip);
+
+        $this->patchJson("/api/v1/trips/{$trip->id}/places/{$place->id}", [
+            'country_code' => null,
+        ])->assertOk()
+            ->assertJsonPath('data.country_code', 'DE');
+    }
+
+    public function test_country_code_is_cleared_when_coordinates_change_and_the_provider_is_unavailable(): void
+    {
+        Http::fake([
+            'https://photon.komoot.io/reverse*' => Http::response(status: 500),
+        ]);
+        Cache::flush();
+
+        $user = User::factory()->create();
+        Sanctum::actingAs($user);
+
+        $trip = $this->createTrip($user);
+        $place = $this->createPlace($trip);
+
+        $this->patchJson("/api/v1/trips/{$trip->id}/places/{$place->id}", [
+            'latitude' => 52.5200,
+            'longitude' => 13.4050,
+        ])->assertOk()
+            ->assertJsonPath('data.country_code', null);
+
+        $this->assertDatabaseHas('places', [
+            'id' => $place->id,
+            'country_code' => null,
+        ]);
+    }
+
     public function test_country_code_is_resolved_again_when_coordinates_change(): void
     {
         $this->fakeReverseCountry('DE');
