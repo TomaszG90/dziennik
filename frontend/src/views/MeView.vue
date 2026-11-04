@@ -4,6 +4,7 @@ import { apiClient, ApiError, updateMyProfile } from '@/api'
 import type { UpdateProfilePayload } from '@/api/auth'
 import type { ProfilePrivacySettings } from '@/api/types'
 import { useAuthStore } from '@/stores/auth'
+import UserTripsList from '@/components/trips/UserTripsList.vue'
 
 type ProfileTab = 'trips' | 'friends' | 'stats'
 type ProfileFieldKey = 'name' | 'email' | 'first_name' | 'last_name' | 'city' | 'birth_date'
@@ -324,7 +325,7 @@ async function saveProfile() {
         </div>
 
         <div class="tab-panel" role="tabpanel" :aria-labelledby="`tab-${activeTab}`">
-          <p v-if="activeTab === 'trips'">Lista wycieczek pojawi się tutaj.</p>
+          <UserTripsList v-if="activeTab === 'trips'" />
           <p v-else-if="activeTab === 'friends'">Lista znajomych pojawi się tutaj.</p>
           <p v-else>Statystyki pojawią się tutaj.</p>
         </div>

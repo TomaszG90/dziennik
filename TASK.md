@@ -85,7 +85,7 @@ Utwórz Issue, korzystając z szablonu funkcji w `.github/ISSUE_TEMPLATE/feature
 | ~~**PR-20**~~ | Model `Place` (punkt: nazwa, współrzędne, kolejność, kod kraju) i `Leg` (odcinek: z, do, transport, dystans) + migracje~~ | backend | PR-18 | M |
 | PR-21 | API punktów podróży: dodawanie, edycja, usuwanie, zmiana kolejności + testy | backend | PR-20 | L |
 | PR-22 | API odcinków: tworzenie, edycja, usuwanie, wybór środka transportu (samochód, samolot, pociąg, inne) + testy | backend | PR-20 | L |
-| PR-23 | Frontend: lista podróży użytkownika (widok + stan ładowania i pusty stan) | frontend | PR-15, PR-19 | M |
+| ~~PR-23~~ | Frontend: lista podróży użytkownika (widok + stan ładowania i pusty stan) | frontend | PR-15, PR-19 | M |
 | PR-24 | Frontend: formularz tworzenia i edycji podróży (nazwa, daty, opis), usuwanie z potwierdzeniem | frontend | PR-23 | M |
 | PR-25 | Frontend: widok szczegółów podróży z listą punktów i odcinków (bez mapy) | frontend | PR-24, PR-21, PR-22 | M |
 | PR-26 | Frontend: dodawanie, usuwanie i zmiana kolejności punktów i odcinków oraz wybór transportu | frontend | PR-25 | L |

@@ -50,6 +50,26 @@ const router = createRouter({
       component: MeView,
       meta: { requiresAuth: true },
     },
+    {
+      path: '/trips/new',
+      name: 'trip-create',
+      component: RoutePlaceholderView,
+      props: {
+        title: 'Nowa podróż',
+        message: 'Formularz tworzenia podróży (PR-24).',
+      },
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/trips/:id',
+      name: 'trip-details',
+      component: RoutePlaceholderView,
+      props: (route) => ({
+        title: 'Szczegóły podróży',
+        message: `Szczegóły podróży #${route.params.id} (PR-25).`,
+      }),
+      meta: { requiresAuth: true },
+    },
   ],
 })
 
