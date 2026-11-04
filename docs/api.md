@@ -316,7 +316,7 @@ Pola:
 
 Kod kraju przesłany w żądaniu ma pierwszeństwo i nie powoduje zapytania do dostawcy geokodowania; zwykle pochodzi z odpowiedzi `GET /api/v1/geocode`. Backend normalizuje go do wielkich liter, więc wartość `at` jest zapisywana jako `AT`. Kod spoza listy obsługiwanych kodów krajów (np. `ZZ`) kończy się odpowiedzią `422`.
 
-Gdy `country_code` nie zostanie przesłany, backend ustala kraj na podstawie współrzędnych i zapisuje go przy punkcie. Jeżeli dostawca geokodowania jest niedostępny albo nie zwróci kodu przypisanego w standardzie ISO 3166-1, punkt nadal jest zapisywany, a `country_code` pozostaje `null` — zapis punktu nie jest blokowany przez zewnętrzną usługę.
+Gdy `country_code` nie zostanie przesłany, backend ustala kraj na podstawie współrzędnych i zapisuje go przy punkcie. Jeżeli dostawca geokodowania jest niedostępny albo nie zwróci kodu obsługiwanego przez aplikację, punkt nadal jest zapisywany, a `country_code` pozostaje `null` — zapis punktu nie jest blokowany przez zewnętrzną usługę.
 
 Zapytania do dostawcy geokodowania są limitowane do 60 na minutę dla jednego użytkownika; odpowiedzi pobrane z cache limitu nie zużywają. Po wyczerpaniu limitu punkt nadal jest zapisywany, a `country_code` przyjmuje wartość `null` — limit nie powoduje odpowiedzi `429`.
 
@@ -392,7 +392,7 @@ Pola:
 
 Przesłany `country_code` ma pierwszeństwo przed ustalaniem kraju ze współrzędnych i jest normalizowany do wielkich liter. Wartość `null` w tym polu oznacza ponowne ustalenie kraju ze współrzędnych. Kod spoza listy obsługiwanych kodów krajów (np. `ZZ`) kończy się odpowiedzią `422`, więc zapisany kod kraju pozostaje bez zmian.
 
-Gdy `country_code` nie zostanie przesłany, a zmienią się współrzędne punktu, backend ustala kraj ponownie i nadpisuje zapisaną wartość. Zmiana wyłącznie nazwy punktu zachowuje dotychczasowy kod kraju, więc taka edycja nie powoduje zapytania do dostawcy geokodowania. Jeżeli dostawca jest niedostępny albo nie zwróci kodu przypisanego w standardzie ISO 3166-1, odpowiedź nadal ma status `200 OK`, a `country_code` przyjmuje wartość `null`.
+Gdy `country_code` nie zostanie przesłany, a zmienią się współrzędne punktu, backend ustala kraj ponownie i nadpisuje zapisaną wartość. Zmiana wyłącznie nazwy punktu zachowuje dotychczasowy kod kraju, więc taka edycja nie powoduje zapytania do dostawcy geokodowania. Jeżeli dostawca jest niedostępny albo nie zwróci kodu obsługiwanego przez aplikację, odpowiedź nadal ma status `200 OK`, a `country_code` przyjmuje wartość `null`.
 
 Limit zapytań do dostawcy (60 na minutę dla jednego użytkownika, bez uwzględnienia odpowiedzi z cache) działa jak przy dodawaniu punktu: po jego wyczerpaniu odpowiedź nadal ma status `200 OK`, a `country_code` przyjmuje wartość `null`.
 
@@ -424,6 +424,8 @@ Limit zapytań do dostawcy (60 na minutę dla jednego użytkownika, bez uwzględ
   }
 }
 ```
+
+Kod kraju jest walidowany tak samo jak przy dodawaniu punktu: wartość spoza listy obsługiwanych kodów kończy się komunikatem `The selected country code is invalid.`
 
 **Odpowiedź błędu autoryzacji `401 Unauthorized`:**
 
