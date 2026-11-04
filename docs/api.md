@@ -312,9 +312,9 @@ Pola:
 - `name` (string, required): nazwa punktu, max 255 znaków
 - `latitude` (number, required): szerokość geograficzna w stopniach dziesiętnych, od -90 do 90
 - `longitude` (number, required): długość geograficzna w stopniach dziesiętnych, od -180 do 180
-- `country_code` (string, optional): kod kraju w formacie ISO 3166-1 alpha-2
+- `country_code` (string, optional): kod kraju w formacie ISO 3166-1 alpha-2; dozwolone są wyłącznie kody obsługiwane przez aplikację (lista ISO 3166-1 oraz `XK` dla Kosowa)
 
-Kod kraju przesłany w żądaniu ma pierwszeństwo i nie powoduje zapytania do dostawcy geokodowania; zwykle pochodzi z odpowiedzi `GET /api/v1/geocode`. Backend normalizuje go do wielkich liter, więc wartość `at` jest zapisywana jako `AT`.
+Kod kraju przesłany w żądaniu ma pierwszeństwo i nie powoduje zapytania do dostawcy geokodowania; zwykle pochodzi z odpowiedzi `GET /api/v1/geocode`. Backend normalizuje go do wielkich liter, więc wartość `at` jest zapisywana jako `AT`. Kod spoza listy obsługiwanych kodów krajów (np. `ZZ`) kończy się odpowiedzią `422`.
 
 Gdy `country_code` nie zostanie przesłany, backend ustala kraj na podstawie współrzędnych i zapisuje go przy punkcie. Jeżeli dostawca geokodowania jest niedostępny albo nie zwróci kodu przypisanego w standardzie ISO 3166-1, punkt nadal jest zapisywany, a `country_code` pozostaje `null` — zapis punktu nie jest blokowany przez zewnętrzną usługę.
 
@@ -347,12 +347,14 @@ Pola punktu:
 
 ```json
 {
-  "message": "The country code field must be 2 characters.",
+  "message": "The selected country code is invalid.",
   "errors": {
-    "country_code": ["The country code field must be 2 characters."]
+    "country_code": ["The selected country code is invalid."]
   }
 }
 ```
+
+Kod o długości innej niż 2 znaki kończy się komunikatem `The country code field must be 2 characters.`
 
 **Odpowiedź błędu autoryzacji `401 Unauthorized`:**
 
@@ -386,9 +388,9 @@ Pola:
 - `name` (string, optional): nazwa punktu, max 255 znaków
 - `latitude` (number, optional): szerokość geograficzna w stopniach dziesiętnych, od -90 do 90
 - `longitude` (number, optional): długość geograficzna w stopniach dziesiętnych, od -180 do 180
-- `country_code` (string|null, optional): kod kraju w formacie ISO 3166-1 alpha-2
+- `country_code` (string|null, optional): kod kraju w formacie ISO 3166-1 alpha-2; dozwolone są wyłącznie kody obsługiwane przez aplikację (lista ISO 3166-1 oraz `XK` dla Kosowa)
 
-Przesłany `country_code` ma pierwszeństwo przed ustalaniem kraju ze współrzędnych i jest normalizowany do wielkich liter. Wartość `null` w tym polu oznacza ponowne ustalenie kraju ze współrzędnych.
+Przesłany `country_code` ma pierwszeństwo przed ustalaniem kraju ze współrzędnych i jest normalizowany do wielkich liter. Wartość `null` w tym polu oznacza ponowne ustalenie kraju ze współrzędnych. Kod spoza listy obsługiwanych kodów krajów (np. `ZZ`) kończy się odpowiedzią `422`, więc zapisany kod kraju pozostaje bez zmian.
 
 Gdy `country_code` nie zostanie przesłany, a zmienią się współrzędne punktu, backend ustala kraj ponownie i nadpisuje zapisaną wartość. Zmiana wyłącznie nazwy punktu zachowuje dotychczasowy kod kraju, więc taka edycja nie powoduje zapytania do dostawcy geokodowania. Jeżeli dostawca jest niedostępny albo nie zwróci kodu przypisanego w standardzie ISO 3166-1, odpowiedź nadal ma status `200 OK`, a `country_code` przyjmuje wartość `null`.
 
@@ -463,7 +465,7 @@ Pola wyniku:
 - `name` (string|null): nazwa miejsca zwrócona przez dostawcę
 - `latitude` (number|null): szerokość geograficzna w stopniach dziesiętnych
 - `longitude` (number|null): długość geograficzna w stopniach dziesiętnych
-- `country_code` (string|null): kod kraju w formacie ISO 3166-1 alpha-2
+- `country_code` (string|null): kod kraju w formacie ISO 3166-1 alpha-2 albo `null`, gdy dostawca nie zwrócił kodu obsługiwanego przez aplikację
 
 Lista zawiera maksymalnie 10 wyników. Brak trafień kończy się odpowiedzią `200 OK` z pustą tablicą (`{"data": []}`), co pozwala klientowi odróżnić brak wyników od błędu. Wyniki trafiają do cache na 24 godziny, natomiast błędów dostawcy nie zapisujemy w cache.
 
