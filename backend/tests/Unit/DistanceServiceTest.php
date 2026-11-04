@@ -152,4 +152,70 @@ class DistanceServiceTest extends TestCase
         $this->assertIsFloat($distance);
         $this->assertEquals(round($distance, 2), $distance);
     }
+
+    public function test_haversine_distance_with_negative_coordinates(): void
+    {
+        // Sydney, Australia: -33.8688, 151.2093
+        // Melbourne, Australia: -37.8136, 144.9631
+        $distance = $this->service->calculateHaversineDistance(-33.8688, 151.2093, -37.8136, 144.9631);
+
+        $this->assertGreaterThan(700, $distance);
+        $this->assertLessThan(750, $distance);
+    }
+
+    public function test_straight_line_distance_with_negative_coordinates(): void
+    {
+        // Sydney, Australia: -33.8688, 151.2093
+        // Melbourne, Australia: -37.8136, 144.9631
+        $distance = $this->service->calculateStraightLineDistance(-33.8688, 151.2093, -37.8136, 144.9631);
+
+        $this->assertGreaterThan(700, $distance);
+        $this->assertLessThan(750, $distance);
+    }
+
+    public function test_haversine_distance_with_negative_longitude(): void
+    {
+        // New York: 40.7128, -74.0060
+        // Los Angeles: 34.0522, -118.2437
+        $distance = $this->service->calculateHaversineDistance(40.7128, -74.0060, 34.0522, -118.2437);
+
+        $this->assertGreaterThan(3900, $distance);
+        $this->assertLessThan(4000, $distance);
+    }
+
+    public function test_straight_line_distance_with_negative_longitude(): void
+    {
+        // New York: 40.7128, -74.0060
+        // Los Angeles: 34.0522, -118.2437
+        $distance = $this->service->calculateStraightLineDistance(40.7128, -74.0060, 34.0522, -118.2437);
+
+        $this->assertGreaterThan(3900, $distance);
+        $this->assertLessThan(4000, $distance);
+    }
+
+    public function test_haversine_distance_at_latitude_boundaries(): void
+    {
+        // North Pole to Equator
+        $distance = $this->service->calculateHaversineDistance(90, 0, 0, 0);
+
+        $this->assertGreaterThan(9980, $distance);
+        $this->assertLessThan(10020, $distance);
+    }
+
+    public function test_straight_line_distance_at_latitude_boundaries(): void
+    {
+        // North Pole to Equator
+        $distance = $this->service->calculateStraightLineDistance(90, 0, 0, 0);
+
+        $this->assertGreaterThan(9980, $distance);
+        $this->assertLessThan(10020, $distance);
+    }
+
+    public function test_haversine_distance_at_longitude_boundaries(): void
+    {
+        // Points at 180 and -180 longitude (same meridian)
+        $distance = $this->service->calculateHaversineDistance(0, 180, 0, -180);
+
+        $this->assertEquals(0.0, $distance);
+    }
 }
