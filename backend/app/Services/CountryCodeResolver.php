@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Exceptions\GeocodingProviderException;
+use App\Support\CountryCodes;
 use Illuminate\Support\Facades\Log;
 
 class CountryCodeResolver
@@ -14,22 +15,24 @@ class CountryCodeResolver
     /**
      * Resolve the ISO 3166-1 alpha-2 country code of a point.
      *
-     * A code supplied by the caller (for example a geocoding result chosen
-     * by the user) takes precedence and skips the provider call. Otherwise
-     * the country is looked up from the coordinates and accepted only when
-     * ISO 3166-1 assigns it. An unavailable provider must not block saving
-     * the point, so it yields null instead of an error.
+     * A code supported by the application (for example a geocoding result
+     * chosen by the user) takes precedence and skips the provider call.
+     * Otherwise the country is looked up from the coordinates. Codes the
+     * application does not support are treated as no country, whether they
+     * come from the caller or from the provider. An unavailable provider
+     * must not block saving the point, so it yields null instead of an
+     * error.
      */
     public function resolve(?string $provided, float $latitude, float $longitude): ?string
     {
-        $countryCode = $this->normalize($provided);
+        $countryCode = CountryCodes::normalize($provided);
 
         if ($countryCode !== null) {
             return $countryCode;
         }
 
         try {
-            return $this->normalizeIsoCountry(
+            return CountryCodes::normalize(
                 $this->geocodingService->reverseCountryCode($latitude, $longitude)
             );
         } catch (GeocodingProviderException $exception) {
@@ -41,34 +44,5 @@ class CountryCodeResolver
 
             return null;
         }
-    }
-
-    /**
-     * Normalize a country code to upper case and reject unusable values.
-     */
-    private function normalize(?string $countryCode): ?string
-    {
-        if ($countryCode === null) {
-            return null;
-        }
-
-        $countryCode = strtoupper(trim($countryCode));
-
-        return preg_match('/^[A-Z]{2}$/', $countryCode) === 1 ? $countryCode : null;
-    }
-
-    /**
-     * Normalize a provider country code and accept only assigned ISO codes,
-     * so an unusable value is stored as no country at all.
-     */
-    private function normalizeIsoCountry(?string $countryCode): ?string
-    {
-        $countryCode = $this->normalize($countryCode);
-
-        if ($countryCode === null) {
-            return null;
-        }
-
-        return in_array($countryCode, config('countries.codes'), true) ? $countryCode : null;
     }
 }

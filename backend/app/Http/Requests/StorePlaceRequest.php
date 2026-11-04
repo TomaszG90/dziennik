@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Rules\CountryCode;
 use Illuminate\Foundation\Http\FormRequest;
 
 class StorePlaceRequest extends FormRequest
@@ -17,7 +18,7 @@ class StorePlaceRequest extends FormRequest
             'name' => ['required', 'string', 'max:255'],
             'latitude' => ['required', 'numeric', 'between:-90,90'],
             'longitude' => ['required', 'numeric', 'between:-180,180'],
-            'country_code' => ['nullable', 'string', 'size:2', 'alpha'],
+            'country_code' => ['nullable', 'string', 'size:2', new CountryCode],
         ];
     }
 }

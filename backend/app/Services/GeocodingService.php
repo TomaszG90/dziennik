@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Exceptions\GeocodingProviderException;
+use App\Support\CountryCodes;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
@@ -108,7 +109,7 @@ class GeocodingService
                     'name' => $properties['name'] ?? null,
                     'latitude' => $coordinates[1] ?? null,
                     'longitude' => $coordinates[0] ?? null,
-                    'country_code' => $properties['countrycode'] ?? null,
+                    'country_code' => CountryCodes::normalize($properties['countrycode'] ?? null),
                 ];
             })
             ->filter()
