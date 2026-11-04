@@ -30,7 +30,7 @@ class GeocodingService
         $cached = Cache::get($cacheKey);
 
         if ($cached !== null) {
-            return $cached;
+            return $this->normalizeCountryCodes($cached);
         }
 
         $results = $this->fetch($query);
@@ -66,6 +66,24 @@ class GeocodingService
         Cache::put($cacheKey, ['country_code' => $countryCode], now()->addHours(24));
 
         return $countryCode;
+    }
+
+    /**
+     * Normalize country codes of cached results.
+     *
+     * Entries stored before the whitelist existed must not return a code the
+     * places endpoints reject, so the same rule is applied on the way out.
+     *
+     * @param  array<int, array<string, mixed>>  $results
+     * @return array<int, array<string, mixed>>
+     */
+    private function normalizeCountryCodes(array $results): array
+    {
+        return array_map(function (array $result): array {
+            $result['country_code'] = CountryCodes::normalize($result['country_code'] ?? null);
+
+            return $result;
+        }, $results);
     }
 
     /**
