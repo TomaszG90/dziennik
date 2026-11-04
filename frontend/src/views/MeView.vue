@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { reactive, ref } from 'vue'
 import { useAuthStore } from '@/stores/auth'
+import UserTripsList from '@/components/trips/UserTripsList.vue'
 
 type VisibilityKey = FieldKey | 'avatar'
 type FieldKey = 'name' | 'email' | 'firstName' | 'lastName' | 'city' | 'birthDate'
@@ -241,7 +242,7 @@ function toggleFieldVisibility(field: VisibilityKey) {
         </div>
 
         <div class="tab-panel" role="tabpanel" :aria-labelledby="`tab-${activeTab}`">
-          <p v-if="activeTab === 'trips'">Lista wycieczek pojawi się tutaj.</p>
+          <UserTripsList v-if="activeTab === 'trips'" />
           <p v-else-if="activeTab === 'friends'">Lista znajomych pojawi się tutaj.</p>
           <p v-else>Statystyki pojawią się tutaj.</p>
         </div>
