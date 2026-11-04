@@ -11,6 +11,7 @@ function createTestRouter() {
       { path: '/', name: 'home', component: { template: '<div>Home</div>' } },
       { path: '/trips/new', name: 'trip-create', component: { template: '<div>Create</div>' } },
       { path: '/trips/:id', name: 'trip-details', component: { template: '<div>Details</div>' } },
+      { path: '/trips/:id/edit', name: 'trip-edit', component: { template: '<div>Edit</div>' } },
     ],
   })
 }
@@ -183,11 +184,87 @@ describe('UserTripsList', () => {
 
     await flushPromises()
 
-    const detailsBtn = wrapper.get('.details-button')
+    const detailsBtn = wrapper.get('[data-testid="details-trip-button"]')
     await detailsBtn.trigger('click')
     await flushPromises()
 
     expect(wrapper.emitted('select')).toEqual([[42]])
     expect(router.currentRoute.value.path).toBe('/trips/42')
+  })
+
+  it('navigates to edit trip when clicking edit button', async () => {
+    const mockTrips: tripsApi.Trip[] = [
+      {
+        id: 15,
+        name: 'Bieszczady',
+        start_date: '2030-06-01',
+        end_date: null,
+        description: null,
+        created_at: '2026-01-01T00:00:00Z',
+        updated_at: '2026-01-01T00:00:00Z',
+      },
+    ]
+
+    vi.spyOn(tripsApi, 'getTrips').mockResolvedValue(mockTrips)
+    const router = createTestRouter()
+
+    const wrapper = mount(UserTripsList, {
+      global: { plugins: [router] },
+      props: { autoFetch: true },
+    })
+
+    await flushPromises()
+
+    const editBtn = wrapper.get('[data-testid="edit-trip-button"]')
+    await editBtn.trigger('click')
+    await flushPromises()
+
+    expect(wrapper.emitted('edit')).toEqual([[15]])
+    expect(router.currentRoute.value.path).toBe('/trips/15/edit')
+  })
+
+  it('deletes trip with confirmation and removes it from the list', async () => {
+    const mockTrips: tripsApi.Trip[] = [
+      {
+        id: 15,
+        name: 'Wycieczka do usunięcia',
+        start_date: '2030-06-01',
+        end_date: null,
+        description: null,
+        created_at: '2026-01-01T00:00:00Z',
+        updated_at: '2026-01-01T00:00:00Z',
+      },
+    ]
+
+    vi.spyOn(tripsApi, 'getTrips').mockResolvedValue(mockTrips)
+    const deleteSpy = vi.spyOn(tripsApi, 'deleteTrip').mockResolvedValue()
+    const router = createTestRouter()
+
+    const wrapper = mount(UserTripsList, {
+      global: { plugins: [router] },
+      props: { autoFetch: true },
+    })
+
+    await flushPromises()
+
+    const deleteBtn = wrapper.get('[data-testid="delete-trip-button"]')
+    await deleteBtn.trigger('click')
+    await flushPromises()
+
+    // Confirm modal opens
+    const modal = wrapper.getComponent({ name: 'ConfirmModal' })
+    expect(modal.props('isOpen')).toBe(true)
+
+    // Confirm
+    const confirmBtn = wrapper.get('[data-testid="modal-confirm-button"]')
+    await confirmBtn.trigger('click')
+    await flushPromises()
+
+    expect(deleteSpy).toHaveBeenCalledWith(15)
+    expect(wrapper.emitted('delete')).toEqual([[15]])
+
+    // Trip removed from list, empty state shown
+    expect(wrapper.find('[data-testid="trip-card"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="planned-empty-state"]').exists()).toBe(true)
   })
 })

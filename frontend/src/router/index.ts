@@ -5,6 +5,7 @@ import { createAuthGuard } from './authGuard'
 import RoutePlaceholderView from '../views/RoutePlaceholderView.vue'
 import MeView from '../views/MeView.vue'
 import AuthView from '../views/AuthView.vue'
+import TripFormView from '../views/TripFormView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -53,11 +54,13 @@ const router = createRouter({
     {
       path: '/trips/new',
       name: 'trip-create',
-      component: RoutePlaceholderView,
-      props: {
-        title: 'Nowa podróż',
-        message: 'Formularz tworzenia podróży (PR-24).',
-      },
+      component: TripFormView,
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/trips/:id/edit',
+      name: 'trip-edit',
+      component: TripFormView,
       meta: { requiresAuth: true },
     },
     {

@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { getTrips, type Trip } from '@/api/trips'
+import { deleteTrip, getTrips, type Trip } from '@/api/trips'
+import ConfirmModal from '@/components/common/ConfirmModal.vue'
 
 const props = withDefaults(
   defineProps<{
@@ -17,6 +18,8 @@ const props = withDefaults(
 const emit = defineEmits<{
   (e: 'create'): void
   (e: 'select', id: number): void
+  (e: 'edit', id: number): void
+  (e: 'delete', id: number): void
 }>()
 
 const router = useRouter()
@@ -24,6 +27,11 @@ const router = useRouter()
 const trips = ref<Trip[]>(props.initialTrips ?? [])
 const isLoading = ref<boolean>(props.autoFetch && props.initialTrips === undefined)
 const error = ref<string | null>(null)
+
+// Zarządzanie usuwaniem z potwierdzeniem
+const tripToDelete = ref<Trip | null>(null)
+const isDeleting = ref<boolean>(false)
+const deleteError = ref<string | null>(null)
 
 function getTodayString(): string {
   const now = new Date()
@@ -102,6 +110,46 @@ function handleViewTrip(id: number) {
   }
 }
 
+function handleEditTrip(id: number) {
+  emit('edit', id)
+  if (router) {
+    router.push(`/trips/${id}/edit`).catch(() => {})
+  }
+}
+
+function promptDeleteTrip(trip: Trip) {
+  tripToDelete.value = trip
+  deleteError.value = null
+}
+
+function cancelDeleteTrip() {
+  tripToDelete.value = null
+  deleteError.value = null
+}
+
+async function confirmDeleteTrip() {
+  if (!tripToDelete.value) return
+
+  isDeleting.value = true
+  deleteError.value = null
+  const id = tripToDelete.value.id
+
+  try {
+    await deleteTrip(id)
+    trips.value = trips.value.filter((t) => t.id !== id)
+    emit('delete', id)
+    tripToDelete.value = null
+  } catch (err: unknown) {
+    if (err instanceof Error) {
+      deleteError.value = err.message
+    } else {
+      deleteError.value = 'Nie udało się usunąć podróży.'
+    }
+  } finally {
+    isDeleting.value = false
+  }
+}
+
 onMounted(() => {
   if (props.autoFetch && props.initialTrips === undefined) {
     void loadTrips()
@@ -137,7 +185,12 @@ onMounted(() => {
       </div>
     </section>
 
-    <!-- Stan błędu -->
+    <!-- Błąd usuwania jeśli wystąpił -->
+    <div v-if="deleteError" class="feedback-card error-card" role="alert">
+      <p class="feedback-text">{{ deleteError }}</p>
+    </div>
+
+    <!-- Stan błędu ładowania -->
     <div v-if="error" class="feedback-card error-card" role="alert">
       <div class="feedback-icon" aria-hidden="true">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -264,12 +317,37 @@ onMounted(() => {
                 type="button"
                 class="details-button"
                 :aria-label="`Szczegóły podróży ${trip.name}`"
+                data-testid="details-trip-button"
                 @click="handleViewTrip(trip.id)"
               >
                 Szczegóły
-                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                  <path d="M5 12h14M12 5l7 7-7 7" />
+              </button>
+
+              <button
+                type="button"
+                class="action-button edit-button"
+                :aria-label="`Edytuj podróż ${trip.name}`"
+                data-testid="edit-trip-button"
+                @click="handleEditTrip(trip.id)"
+              >
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
                 </svg>
+                <span>Edytuj</span>
+              </button>
+
+              <button
+                type="button"
+                class="action-button delete-button"
+                :aria-label="`Usuń podróż ${trip.name}`"
+                data-testid="delete-trip-button"
+                @click="promptDeleteTrip(trip)"
+              >
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                  <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                </svg>
+                <span>Usuń</span>
               </button>
             </div>
           </li>
@@ -362,18 +440,57 @@ onMounted(() => {
                 type="button"
                 class="details-button"
                 :aria-label="`Szczegóły podróży ${trip.name}`"
+                data-testid="details-trip-button"
                 @click="handleViewTrip(trip.id)"
               >
                 Szczegóły
-                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                  <path d="M5 12h14M12 5l7 7-7 7" />
+              </button>
+
+              <button
+                type="button"
+                class="action-button edit-button"
+                :aria-label="`Edytuj podróż ${trip.name}`"
+                data-testid="edit-trip-button"
+                @click="handleEditTrip(trip.id)"
+              >
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
                 </svg>
+                <span>Edytuj</span>
+              </button>
+
+              <button
+                type="button"
+                class="action-button delete-button"
+                :aria-label="`Usuń podróż ${trip.name}`"
+                data-testid="delete-trip-button"
+                @click="promptDeleteTrip(trip)"
+              >
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                  <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                </svg>
+                <span>Usuń</span>
               </button>
             </div>
           </li>
         </ul>
       </section>
     </div>
+
+    <!-- Modal potwierdzenia usunięcia podróży z listy -->
+    <ConfirmModal
+      :is-open="tripToDelete !== null"
+      title="Usuwanie podróży"
+      :message="`Czy na pewno chcesz usunąć podróż „${tripToDelete?.name || ''}”? Ta operacja jest nieodwracalna.`"
+      confirm-label="Usuń podróż"
+      cancel-label="Anuluj"
+      :is-loading="isDeleting"
+      variant="danger"
+      @confirm="confirmDeleteTrip"
+      @cancel="cancelDeleteTrip"
+      @close="cancelDeleteTrip"
+    />
   </div>
 </template>
 
@@ -712,23 +829,31 @@ onMounted(() => {
 }
 
 .trip-item-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
   flex-shrink: 0;
+  flex-wrap: wrap;
 }
 
-.details-button {
+.details-button,
+.action-button {
   display: inline-flex;
   align-items: center;
-  gap: 0.4rem;
-  padding: 0.5rem 0.9rem;
-  border: 1px solid rgba(56, 106, 84, 0.35);
+  gap: 0.35rem;
+  padding: 0.45rem 0.8rem;
   border-radius: 0.5rem;
-  color: #294d3d;
-  background: transparent;
   font: inherit;
-  font-size: 0.875rem;
+  font-size: 0.85rem;
   font-weight: 600;
   cursor: pointer;
   transition: all 150ms ease;
+}
+
+.details-button {
+  border: 1px solid rgba(56, 106, 84, 0.35);
+  color: #294d3d;
+  background: transparent;
 }
 
 .details-button:hover {
@@ -737,7 +862,32 @@ onMounted(() => {
   border-color: #386a54;
 }
 
-.details-button:focus-visible {
+.edit-button {
+  border: 1px solid #cbd5e1;
+  color: #334155;
+  background: #ffffff;
+}
+
+.edit-button:hover {
+  background: #f1f5f9;
+  border-color: #94a3b8;
+  color: #0f172a;
+}
+
+.delete-button {
+  border: 1px solid #fecaca;
+  color: #dc2626;
+  background: #fff5f5;
+}
+
+.delete-button:hover {
+  background: #dc2626;
+  color: #ffffff;
+  border-color: #dc2626;
+}
+
+.details-button:focus-visible,
+.action-button:focus-visible {
   outline: 2px solid #386a54;
   outline-offset: 2px;
 }
@@ -757,11 +907,7 @@ onMounted(() => {
 
   .trip-item-actions {
     width: 100%;
-  }
-
-  .details-button {
-    width: 100%;
-    justify-content: center;
+    justify-content: flex-start;
   }
 }
 
@@ -882,6 +1028,28 @@ onMounted(() => {
   .details-button:hover {
     background: #6ee7b7;
     color: #111827;
+  }
+
+  .edit-button {
+    background: #374151;
+    border-color: #4b5563;
+    color: #e2e8f0;
+  }
+
+  .edit-button:hover {
+    background: #4b5563;
+    color: #ffffff;
+  }
+
+  .delete-button {
+    background: rgba(220, 38, 38, 0.15);
+    border-color: rgba(220, 38, 38, 0.4);
+    color: #f87171;
+  }
+
+  .delete-button:hover {
+    background: #dc2626;
+    color: #ffffff;
   }
 
   .create-trip-button {
