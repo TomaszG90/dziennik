@@ -82,6 +82,26 @@ class GeocodeApiTest extends TestCase
             ->assertJsonPath('data.0.country_code', null);
     }
 
+    public function test_geocode_endpoint_returns_null_for_cached_country_code_not_assigned_in_iso(): void
+    {
+        Http::fake();
+
+        Cache::put('geocode:'.md5('Wien'), [
+            [
+                'name' => 'Wien',
+                'latitude' => 48.2082,
+                'longitude' => 16.3725,
+                'country_code' => 'ZZ',
+            ],
+        ], now()->addHours(24));
+
+        $this->getJson('/api/v1/geocode?q=Wien')
+            ->assertOk()
+            ->assertJsonPath('data.0.country_code', null);
+
+        Http::assertNothingSent();
+    }
+
     public function test_geocode_endpoint_requires_query_parameter(): void
     {
         $response = $this->getJson('/api/v1/geocode');
