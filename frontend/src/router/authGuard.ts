@@ -14,7 +14,7 @@ export function createAuthGuard(auth: AuthState) {
 
     if (to.meta.requiresAuth === true && !auth.isAuthenticated) {
       return {
-        name: 'login',
+        name: 'auth',
         query: { redirect: to.fullPath },
       }
     }

@@ -4,8 +4,7 @@ import { useAuthStore } from '../stores/auth'
 import { createAuthGuard } from './authGuard'
 import RoutePlaceholderView from '../views/RoutePlaceholderView.vue'
 import MeView from '../views/MeView.vue'
-import LoginView from '../views/LoginView.vue'
-import RegisterView from '../views/RegisterView.vue'
+import AuthView from '../views/AuthView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -16,16 +15,24 @@ const router = createRouter({
       component: HomeView,
     },
     {
-      path: '/login',
-      name: 'login',
-      component: LoginView,
+      path: '/auth',
+      name: 'auth',
+      component: AuthView,
       meta: { guestOnly: true },
     },
     {
+      path: '/login',
+      redirect: (to) => ({
+        name: 'auth',
+        query: { ...to.query, mode: 'login' },
+      }),
+    },
+    {
       path: '/register',
-      name: 'register',
-      component: RegisterView,
-      meta: { guestOnly: true },
+      redirect: (to) => ({
+        name: 'auth',
+        query: { ...to.query, mode: 'register' },
+      }),
     },
     {
       path: '/dashboard',

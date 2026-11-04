@@ -21,7 +21,7 @@ describe('auth route guard', () => {
     } as never)
 
     expect(authStore.restoreSession).toHaveBeenCalledOnce()
-    expect(result).toEqual({ name: 'login', query: { redirect: '/trips' } })
+    expect(result).toEqual({ name: 'auth', query: { redirect: '/trips' } })
   })
 
   it('redirects an authenticated user away from a guest-only route', async () => {
@@ -48,33 +48,33 @@ describe('router auth redirects', () => {
     setActivePinia(createPinia())
   })
 
-  it('redirects a guest from the dashboard to login', async () => {
+  it('redirects a guest from the dashboard to the auth view', async () => {
     const auth = useAuthStore()
     auth.isInitialized = true
 
     await router.push('/dashboard')
 
-    expect(router.currentRoute.value.name).toBe('login')
+    expect(router.currentRoute.value.name).toBe('auth')
     expect(router.currentRoute.value.query.redirect).toBe('/dashboard')
   })
 
-  it('redirects a guest from the profile to login', async () => {
+  it('redirects a guest from the profile to the auth view', async () => {
     const auth = useAuthStore()
     auth.isInitialized = true
 
     await router.push('/me')
 
-    expect(router.currentRoute.value.name).toBe('login')
+    expect(router.currentRoute.value.name).toBe('auth')
     expect(router.currentRoute.value.query.redirect).toBe('/me')
   })
 
-  it('redirects an authenticated user from login to home', async () => {
+  it('redirects an authenticated user from the auth view to home', async () => {
     const auth = useAuthStore()
     auth.isInitialized = true
     auth.user = { id: 1, name: 'Ala Kowalska', email: 'ala@example.com' }
     auth.token = 'test-token'
 
-    await router.push('/login')
+    await router.push('/auth')
 
     expect(router.currentRoute.value.name).toBe('home')
   })
