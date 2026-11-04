@@ -72,6 +72,51 @@ class CountryCodeResolverTest extends TestCase
         $this->assertSame('AT', $countryCode);
     }
 
+    public function test_provider_country_not_assigned_in_iso_is_rejected(): void
+    {
+        $this->fakeProviderCountry('ZZ');
+        Cache::flush();
+
+        $countryCode = $this->resolver()->resolve(null, 48.2082, 16.3725);
+
+        $this->assertNull($countryCode);
+    }
+
+    public function test_provider_kosovo_code_is_accepted(): void
+    {
+        $this->fakeProviderCountry('XK');
+        Cache::flush();
+
+        $countryCode = $this->resolver()->resolve(null, 42.6629, 21.1655);
+
+        $this->assertSame('XK', $countryCode);
+    }
+
+    public function test_provided_country_code_is_not_checked_against_iso_codes(): void
+    {
+        Http::fake();
+
+        $countryCode = $this->resolver()->resolve('zz', 48.2082, 16.3725);
+
+        $this->assertSame('ZZ', $countryCode);
+
+        Http::assertNothingSent();
+    }
+
+    public function test_configured_country_codes_are_unique_upper_case_pairs(): void
+    {
+        $codes = config('countries.codes');
+
+        $this->assertNotEmpty($codes);
+        $this->assertSame($codes, array_values(array_unique($codes)));
+        $this->assertSame([], array_values(array_filter(
+            $codes,
+            fn (string $code) => preg_match('/^[A-Z]{2}$/', $code) !== 1
+        )));
+        $this->assertContains('PL', $codes);
+        $this->assertContains('XK', $codes);
+    }
+
     public function test_invalid_provided_country_code_falls_back_to_the_provider(): void
     {
         $this->fakeProviderCountry('AT');
