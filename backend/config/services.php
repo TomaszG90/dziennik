@@ -37,6 +37,7 @@ return [
 
     'photon' => [
         'url' => env('PHOTON_API_URL', 'https://photon.komoot.io/api'),
+        'reverse_url' => env('PHOTON_REVERSE_API_URL', 'https://photon.komoot.io/reverse'),
     ],
 
 ];

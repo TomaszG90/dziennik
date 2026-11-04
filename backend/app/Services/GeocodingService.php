@@ -39,6 +39,34 @@ class GeocodingService
     }
 
     /**
+     * Resolve the ISO 3166-1 alpha-2 country code of a coordinate pair
+     * using the Photon reverse endpoint.
+     *
+     * The provider value is returned as-is and the caller normalizes it
+     * before storing. Successful lookups, including coordinates without a
+     * country, are cached per rounded coordinate so nearby points share one
+     * request. Provider errors are reported instead of being cached.
+     *
+     * @throws GeocodingProviderException When the provider cannot be used.
+     */
+    public function reverseCountryCode(float $latitude, float $longitude): ?string
+    {
+        $cacheKey = 'geocode:reverse:'.md5($this->coordinateKey($latitude, $longitude));
+
+        $cached = Cache::get($cacheKey);
+
+        if ($cached !== null) {
+            return $cached['country_code'];
+        }
+
+        $countryCode = $this->fetchCountryCode($latitude, $longitude);
+
+        Cache::put($cacheKey, ['country_code' => $countryCode], now()->addHours(24));
+
+        return $countryCode;
+    }
+
+    /**
      * Fetch and map results from Photon.
      *
      * @throws GeocodingProviderException When the provider is unreachable or
@@ -85,5 +113,48 @@ class GeocodingService
             ->filter()
             ->values()
             ->all();
+    }
+
+    /**
+     * Fetch the country code reported for the given coordinates.
+     *
+     * @throws GeocodingProviderException When the provider is unreachable or
+     *                                    returns an unusable payload.
+     */
+    private function fetchCountryCode(float $latitude, float $longitude): ?string
+    {
+        try {
+            $response = Http::timeout(5)
+                ->get(config('services.photon.reverse_url'), [
+                    'lat' => $latitude,
+                    'lon' => $longitude,
+                    'limit' => 1,
+                ]);
+        } catch (ConnectionException) {
+            throw GeocodingProviderException::unavailable();
+        }
+
+        if (! $response->successful()) {
+            throw GeocodingProviderException::unavailable();
+        }
+
+        $features = $response->json('features');
+
+        if (! is_array($features)) {
+            throw GeocodingProviderException::unavailable();
+        }
+
+        return $features[0]['properties']['countrycode'] ?? null;
+    }
+
+    /**
+     * Build a stable cache key fragment for a coordinate pair.
+     *
+     * Rounding to four decimals keeps the key stable for points within about
+     * ten meters, which always share the same country.
+     */
+    private function coordinateKey(float $latitude, float $longitude): string
+    {
+        return round($latitude, 4).','.round($longitude, 4);
     }
 }
