@@ -228,7 +228,6 @@ Edycja danych profilu zalogowanego użytkownika. Wymaga uwierzytelnienia (token 
 ```json
 {
   "name": "John Doe",
-  "email": "john@example.com",
   "password": "NewPassword123!",
   "password_confirmation": "NewPassword123!",
   "profile_visibility": "private"
@@ -237,10 +236,11 @@ Edycja danych profilu zalogowanego użytkownika. Wymaga uwierzytelnienia (token 
 
 Pola:
 - `name` (string, optional): imię i nazwisko użytkownika, max 255 znaków
-- `email` (string, optional): adres e-mail, musi być unikalny w systemie, max 255 znaków
 - `password` (string, optional): nowe hasło, musi być potwierdzone w `password_confirmation`
 - `password_confirmation` (string, wymagane przy zmianie `password`): potwierdzenie hasła
 - `profile_visibility` (string, optional): widoczność profilu, wartości: `public` lub `private`
+
+Adres e-mail jest niezmienny. Przesłanie pola `email` w żądaniu aktualizacji profilu — również z wartością `null` — kończy się odpowiedzią `422 Unprocessable Entity`.
 
 **Odpowiedź sukcesu `200 OK`:**
 

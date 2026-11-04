@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\User;
+use App\Services\ProfileService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
@@ -107,7 +108,7 @@ class ProfileTest extends TestCase
         ]);
     }
 
-    public function test_update_profile_can_update_email(): void
+    public function test_update_profile_cannot_update_email(): void
     {
         $user = User::factory()->create([
             'name' => 'John Doe',
@@ -121,12 +122,42 @@ class ProfileTest extends TestCase
                 'email' => 'new@example.com',
             ]);
 
-        $response->assertStatus(200)
-            ->assertJsonPath('data.email', 'new@example.com');
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['email']);
 
         $this->assertDatabaseHas('users', [
             'id' => $user->id,
+            'email' => 'old@example.com',
+        ]);
+    }
+
+    public function test_update_profile_rejects_email_field_even_when_null(): void
+    {
+        $user = User::factory()->create(['email' => 'old@example.com']);
+        $token = $user->createToken('api-token')->plainTextToken;
+
+        $this->withToken($token)
+            ->patchJson('/api/v1/me', ['email' => null])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['email']);
+
+        $this->assertDatabaseHas('users', [
+            'id' => $user->id,
+            'email' => 'old@example.com',
+        ]);
+    }
+
+    public function test_profile_service_does_not_update_email(): void
+    {
+        $user = User::factory()->create(['email' => 'old@example.com']);
+
+        app(ProfileService::class)->updateProfile($user, [
             'email' => 'new@example.com',
+        ]);
+
+        $this->assertDatabaseHas('users', [
+            'id' => $user->id,
+            'email' => 'old@example.com',
         ]);
     }
 
@@ -221,35 +252,6 @@ class ProfileTest extends TestCase
         $this->assertTrue(Hash::check('OldPassword123!', $user->fresh()->password));
     }
 
-    public function test_update_profile_rejects_invalid_email(): void
-    {
-        $user = User::factory()->create();
-        $token = $user->createToken('api-token')->plainTextToken;
-
-        $response = $this->withToken($token)
-            ->patchJson('/api/v1/me', [
-                'email' => 'invalid-email',
-            ]);
-
-        $response->assertStatus(422)
-            ->assertJsonValidationErrors(['email']);
-    }
-
-    public function test_update_profile_rejects_duplicate_email(): void
-    {
-        $existingUser = User::factory()->create(['email' => 'existing@example.com']);
-        $user = User::factory()->create(['email' => 'user@example.com']);
-        $token = $user->createToken('api-token')->plainTextToken;
-
-        $response = $this->withToken($token)
-            ->patchJson('/api/v1/me', [
-                'email' => 'existing@example.com',
-            ]);
-
-        $response->assertStatus(422)
-            ->assertJsonValidationErrors(['email']);
-    }
-
     public function test_update_profile_rejects_invalid_visibility(): void
     {
         $user = User::factory()->create();
@@ -277,13 +279,12 @@ class ProfileTest extends TestCase
         $response = $this->withToken($token)
             ->patchJson('/api/v1/me', [
                 'name' => 'New Name',
-                'email' => 'new@example.com',
                 'profile_visibility' => 'private',
             ]);
 
         $response->assertStatus(200)
             ->assertJsonPath('data.name', 'New Name')
-            ->assertJsonPath('data.email', 'new@example.com')
+            ->assertJsonPath('data.email', 'old@example.com')
             ->assertJsonPath('data.profile_visibility', 'private');
     }
 }

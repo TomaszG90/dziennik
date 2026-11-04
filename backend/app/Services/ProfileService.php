@@ -12,6 +12,8 @@ class ProfileService
      */
     public function updateProfile(User $user, array $data): User
     {
+        unset($data['email']);
+
         if (isset($data['password'])) {
             $data['password'] = Hash::make($data['password']);
         }
