@@ -58,6 +58,30 @@ class GeocodeApiTest extends TestCase
             ]);
     }
 
+    public function test_geocode_endpoint_returns_null_for_country_code_not_assigned_in_iso(): void
+    {
+        Http::fake([
+            'https://photon.komoot.io/api*' => Http::response([
+                'features' => [
+                    [
+                        'geometry' => [
+                            'coordinates' => [16.3725, 48.2082],
+                        ],
+                        'properties' => [
+                            'name' => 'Wien',
+                            'countrycode' => 'ZZ',
+                        ],
+                    ],
+                ],
+            ]),
+        ]);
+
+        $this->getJson('/api/v1/geocode?q=Wien')
+            ->assertOk()
+            ->assertJsonPath('data.0.name', 'Wien')
+            ->assertJsonPath('data.0.country_code', null);
+    }
+
     public function test_geocode_endpoint_requires_query_parameter(): void
     {
         $response = $this->getJson('/api/v1/geocode');

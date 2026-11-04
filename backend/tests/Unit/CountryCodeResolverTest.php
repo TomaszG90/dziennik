@@ -92,13 +92,24 @@ class CountryCodeResolverTest extends TestCase
         $this->assertSame('XK', $countryCode);
     }
 
-    public function test_provided_country_code_is_not_checked_against_iso_codes(): void
+    public function test_provided_country_code_not_assigned_in_iso_is_treated_as_absent(): void
     {
-        Http::fake();
+        $this->fakeProviderCountry('AT');
+        Cache::flush();
 
         $countryCode = $this->resolver()->resolve('zz', 48.2082, 16.3725);
 
-        $this->assertSame('ZZ', $countryCode);
+        $this->assertSame('AT', $countryCode);
+        Http::assertSentCount(1);
+    }
+
+    public function test_provided_kosovo_code_is_accepted_without_calling_the_provider(): void
+    {
+        Http::fake();
+
+        $countryCode = $this->resolver()->resolve('xk', 42.6629, 21.1655);
+
+        $this->assertSame('XK', $countryCode);
 
         Http::assertNothingSent();
     }

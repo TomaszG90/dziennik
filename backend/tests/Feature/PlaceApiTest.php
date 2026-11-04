@@ -280,6 +280,51 @@ class PlaceApiTest extends TestCase
         Http::assertNothingSent();
     }
 
+    public function test_submitted_country_code_not_assigned_in_iso_is_rejected(): void
+    {
+        Http::fake();
+
+        $user = User::factory()->create();
+        Sanctum::actingAs($user);
+
+        $trip = $this->createTrip($user);
+
+        $this->postJson("/api/v1/trips/{$trip->id}/places", [
+            'name' => 'Nowhere',
+            'latitude' => 48.2082,
+            'longitude' => 16.3725,
+            'country_code' => 'ZZ',
+        ])->assertUnprocessable()
+            ->assertJsonValidationErrors(['country_code']);
+
+        $this->assertDatabaseMissing('places', [
+            'trip_id' => $trip->id,
+            'name' => 'Nowhere',
+        ]);
+
+        Http::assertNothingSent();
+    }
+
+    public function test_submitted_kosovo_code_is_stored(): void
+    {
+        Http::fake();
+
+        $user = User::factory()->create();
+        Sanctum::actingAs($user);
+
+        $trip = $this->createTrip($user);
+
+        $this->postJson("/api/v1/trips/{$trip->id}/places", [
+            'name' => 'Prisztina',
+            'latitude' => 42.6629,
+            'longitude' => 21.1655,
+            'country_code' => 'xk',
+        ])->assertCreated()
+            ->assertJsonPath('data.country_code', 'XK');
+
+        Http::assertNothingSent();
+    }
+
     public function test_place_is_created_without_country_code_when_the_provider_fails(): void
     {
         Http::fake([
@@ -491,5 +536,26 @@ class PlaceApiTest extends TestCase
             ->assertJsonPath('data.country_code', 'AT');
 
         Http::assertNothingSent();
+    }
+
+    public function test_update_rejects_country_code_not_assigned_in_iso(): void
+    {
+        Http::fake();
+
+        $user = User::factory()->create();
+        Sanctum::actingAs($user);
+
+        $trip = $this->createTrip($user);
+        $place = $this->createPlace($trip);
+
+        $this->patchJson("/api/v1/trips/{$trip->id}/places/{$place->id}", [
+            'country_code' => 'XX',
+        ])->assertUnprocessable()
+            ->assertJsonValidationErrors(['country_code']);
+
+        $this->assertDatabaseHas('places', [
+            'id' => $place->id,
+            'country_code' => 'PL',
+        ]);
     }
 }
