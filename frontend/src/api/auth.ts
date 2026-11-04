@@ -25,11 +25,6 @@ export async function registerUser(payload: RegisterPayload): Promise<void> {
   await apiClient.post('/auth/register', payload)
 }
 
-export async function updateMyProfile(payload: UpdateProfilePayload): Promise<UserProfile> {
-  const { data } = await apiClient.patch<{ data: UserProfile }>('/me', payload)
-  return data.data
-}
-
 export interface PasswordResetRequest {
   email: string
 }
