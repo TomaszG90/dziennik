@@ -102,6 +102,10 @@ function handleViewTrip(id: number) {
   }
 }
 
+function handleEditTrip(id: number) {
+  router.push(`/trips/${id}/edit`).catch(() => {})
+}
+
 onMounted(() => {
   if (props.autoFetch && props.initialTrips === undefined) {
     void loadTrips()
@@ -263,6 +267,15 @@ onMounted(() => {
 
             <div class="trip-item-actions">
               <button
+                v-if="!trip.is_invitation"
+                type="button"
+                class="edit-button"
+                :aria-label="`Edytuj podróż ${trip.name}`"
+                @click="handleEditTrip(trip.id)"
+              >
+                Edytuj
+              </button>
+              <button
                 type="button"
                 class="details-button"
                 :aria-label="`Szczegóły podróży ${trip.name}`"
@@ -362,6 +375,15 @@ onMounted(() => {
             </div>
 
             <div class="trip-item-actions">
+              <button
+                v-if="!trip.is_invitation"
+                type="button"
+                class="edit-button"
+                :aria-label="`Edytuj podróż ${trip.name}`"
+                @click="handleEditTrip(trip.id)"
+              >
+                Edytuj
+              </button>
               <button
                 type="button"
                 class="details-button"
@@ -630,6 +652,7 @@ onMounted(() => {
 
 .trip-item {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
@@ -654,8 +677,8 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   gap: 0.4rem;
-  flex: 1;
-  min-width: 0;
+  flex: 1 1 14rem;
+  min-width: min(100%, 14rem);
 }
 
 .trip-title-row {
@@ -666,10 +689,12 @@ onMounted(() => {
 }
 
 .trip-name {
+  min-width: 5ch;
   font-size: 1.1rem;
   font-weight: 700;
   color: #111827;
-  word-break: break-word;
+  word-break: keep-all;
+  overflow-wrap: normal;
 }
 
 .badge-origin {
@@ -694,6 +719,7 @@ onMounted(() => {
 
 .trip-date-row {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 0.4rem;
   color: #4b5563;
@@ -701,7 +727,8 @@ onMounted(() => {
 }
 
 .meta-icon {
-  flex-shrink: 0;
+  flex: 0 1 auto;
+  margin-left: auto;
   color: #386a54;
 }
 
@@ -716,7 +743,31 @@ onMounted(() => {
 }
 
 .trip-item-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
   flex-shrink: 0;
+}
+
+.edit-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.4rem;
+  padding: 0.45rem 0.85rem;
+  border: 1px solid rgba(56, 106, 84, 0.35);
+  border-radius: 0.5rem;
+  color: #294d3d;
+  background: transparent;
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.edit-button:hover {
+  background: rgba(56, 106, 84, 0.1);
 }
 
 .details-button {
@@ -766,6 +817,10 @@ onMounted(() => {
   .details-button {
     width: 100%;
     justify-content: center;
+  }
+
+  .edit-button {
+    width: 100%;
   }
 }
 
@@ -879,6 +934,11 @@ onMounted(() => {
   }
 
   .details-button {
+    border-color: #6ee7b7;
+    color: #6ee7b7;
+  }
+
+  .edit-button {
     border-color: #6ee7b7;
     color: #6ee7b7;
   }
