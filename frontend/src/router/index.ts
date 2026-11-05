@@ -21,6 +21,11 @@ const router = createRouter({
       meta: { guestOnly: true },
     },
     {
+      path: '/reset-password',
+      name: 'reset-password',
+      component: AuthView,
+    },
+    {
       path: '/login',
       redirect: (to) => ({
         name: 'auth',
