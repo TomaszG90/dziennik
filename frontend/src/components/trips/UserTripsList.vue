@@ -24,6 +24,9 @@ const router = useRouter()
 const trips = ref<Trip[]>(props.initialTrips ?? [])
 const isLoading = ref<boolean>(props.autoFetch && props.initialTrips === undefined)
 const error = ref<string | null>(null)
+const visibleMonth = ref(new Date(new Date().getFullYear(), new Date().getMonth(), 1))
+const selectedCalendarDate = ref<string | null>(null)
+const selectedTripId = ref<number | null>(null)
 
 function getTodayString(): string {
   const now = new Date()
@@ -69,6 +72,83 @@ function formatDateRange(
 
 const plannedTrips = computed(() => trips.value.filter((trip) => !isPastTrip(trip)))
 const pastTrips = computed(() => trips.value.filter((trip) => isPastTrip(trip)))
+const monthLabel = computed(() =>
+  new Intl.DateTimeFormat('pl-PL', { month: 'long', year: 'numeric' }).format(visibleMonth.value),
+)
+const calendarDays = computed<Array<string | null>>(() => {
+  const year = visibleMonth.value.getFullYear()
+  const month = visibleMonth.value.getMonth()
+  const firstWeekday = (new Date(year, month, 1).getDay() + 6) % 7
+  const daysInMonth = new Date(year, month + 1, 0).getDate()
+  const cells: Array<string | null> = Array(firstWeekday).fill(null)
+
+  for (let day = 1; day <= daysInMonth; day += 1) {
+    cells.push(`${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`)
+  }
+
+  while (cells.length % 7 !== 0) cells.push(null)
+  return cells
+})
+
+function tripDateRange(trip: Trip): [string, string] | null {
+  const start = trip.start_date?.slice(0, 10) ?? trip.end_date?.slice(0, 10)
+  const end = trip.end_date?.slice(0, 10) ?? trip.start_date?.slice(0, 10)
+  if (!start || !end) return null
+  return start <= end ? [start, end] : [end, start]
+}
+
+function tripsOnDate(date: string): Trip[] {
+  return trips.value.filter((trip) => {
+    const range = tripDateRange(trip)
+    return range !== null && date >= range[0] && date <= range[1]
+  })
+}
+
+function tripColorClass(trip: Trip): string {
+  const index = trips.value.findIndex((listedTrip) => listedTrip.id === trip.id)
+  return `calendar-marker--color-${Math.max(index, 0) % 5}`
+}
+
+function calendarDateLabel(date: string): string {
+  const parsedDate = new Date(`${date}T00:00:00`)
+  const tripsForDate = tripsOnDate(date)
+  const dateLabel = new Intl.DateTimeFormat('pl-PL', { dateStyle: 'full' }).format(parsedDate)
+  if (tripsForDate.length === 0) return dateLabel
+  return `${dateLabel}: ${tripsForDate.map((trip) => trip.name).join(', ')}`
+}
+
+function selectCalendarDate(date: string) {
+  selectedCalendarDate.value = date
+  selectedTripId.value = null
+}
+
+function selectTripDate(trip: Trip) {
+  selectedTripId.value = trip.id
+  const date = tripDateRange(trip)?.[0]
+  selectedCalendarDate.value = date ?? null
+  if (date) {
+    const year = Number(date.slice(0, 4))
+    const month = Number(date.slice(5, 7))
+    visibleMonth.value = new Date(year, month - 1, 1)
+  }
+}
+
+function changeMonth(offset: number) {
+  visibleMonth.value = new Date(
+    visibleMonth.value.getFullYear(),
+    visibleMonth.value.getMonth() + offset,
+    1,
+  )
+  selectedCalendarDate.value = null
+  selectedTripId.value = null
+}
+
+function isTripHighlighted(trip: Trip): boolean {
+  if (selectedTripId.value !== null) return selectedTripId.value === trip.id
+  if (!selectedCalendarDate.value) return false
+  const range = tripDateRange(trip)
+  return range !== null && selectedCalendarDate.value >= range[0] && selectedCalendarDate.value <= range[1]
+}
 
 async function loadTrips() {
   isLoading.value = true
@@ -179,6 +259,44 @@ onMounted(() => {
         aria-labelledby="heading-planned-trips"
         data-testid="planned-section"
       >
+        <section class="trip-calendar" aria-label="Kalendarz podróży">
+          <div class="calendar-header">
+            <button type="button" class="calendar-nav-button" aria-label="Poprzedni miesiac" @click="changeMonth(-1)">
+              <span aria-hidden="true">&lsaquo;</span>
+            </button>
+            <h4 class="calendar-month" aria-live="polite">{{ monthLabel }}</h4>
+            <button type="button" class="calendar-nav-button" aria-label="Nastepny miesiac" @click="changeMonth(1)">
+              <span aria-hidden="true">&rsaquo;</span>
+            </button>
+          </div>
+          <div class="calendar-grid" role="grid" :aria-label="monthLabel">
+            <span v-for="weekday in ['Pn', 'Wt', 'Sr', 'Cz', 'Pt', 'So', 'Nd']" :key="weekday" class="calendar-weekday" role="columnheader">
+              {{ weekday }}
+            </span>
+            <template v-for="(date, index) in calendarDays" :key="date ?? `empty-${index}`">
+              <span v-if="!date" class="calendar-day calendar-day--empty" role="gridcell" aria-hidden="true"></span>
+              <button
+                v-else
+                type="button"
+                class="calendar-day"
+                :class="{
+                  'calendar-day--scheduled': tripsOnDate(date).length > 0,
+                  'calendar-day--selected': selectedCalendarDate === date,
+                }"
+                role="gridcell"
+                :aria-label="calendarDateLabel(date)"
+                :aria-pressed="selectedCalendarDate === date"
+                @click="selectCalendarDate(date)"
+              >
+                <span>{{ Number(date.slice(-2)) }}</span>
+                <span v-if="tripsOnDate(date).length" class="calendar-markers" aria-hidden="true">
+                  <i v-for="trip in tripsOnDate(date)" :key="trip.id" class="calendar-marker" :class="tripColorClass(trip)"></i>
+                </span>
+              </button>
+            </template>
+          </div>
+          <p class="calendar-hint">Wybierz dzien z podroza, aby podswietlic ja na liscie. Kliknij termin na liscie, aby przejsc do jego miesiaca.</p>
+        </section>
         <header class="section-header">
           <div>
             <h3 id="heading-planned-trips" class="section-title">Zaplanowane wycieczki</h3>
@@ -221,6 +339,7 @@ onMounted(() => {
             v-for="trip in plannedTrips"
             :key="trip.id"
             class="trip-item"
+            :class="{ 'trip-item--calendar-highlighted': isTripHighlighted(trip) }"
             data-testid="trip-card"
           >
             <div class="trip-item-main">
@@ -241,7 +360,12 @@ onMounted(() => {
                 </span>
               </div>
 
-              <div class="trip-date-row">
+              <button
+                type="button"
+                class="trip-date-row trip-date-button"
+                :aria-label="`Pokaż termin podróży ${trip.name} w kalendarzu`"
+                @click="selectTripDate(trip)"
+              >
                 <svg
                   class="meta-icon"
                   width="16"
@@ -258,7 +382,7 @@ onMounted(() => {
                   <line x1="3" y1="10" x2="21" y2="10" />
                 </svg>
                 <span class="trip-date">{{ formatDateRange(trip.start_date, trip.end_date) }}</span>
-              </div>
+              </button>
 
               <p v-if="trip.description" class="trip-description">
                 {{ trip.description }}
@@ -330,6 +454,7 @@ onMounted(() => {
             v-for="trip in pastTrips"
             :key="trip.id"
             class="trip-item trip-item--past"
+            :class="{ 'trip-item--calendar-highlighted': isTripHighlighted(trip) }"
             data-testid="past-trip-card"
           >
             <div class="trip-item-main">
@@ -350,7 +475,12 @@ onMounted(() => {
                 </span>
               </div>
 
-              <div class="trip-date-row">
+              <button
+                type="button"
+                class="trip-date-row trip-date-button"
+                :aria-label="`Pokaż termin podróży ${trip.name} w kalendarzu`"
+                @click="selectTripDate(trip)"
+              >
                 <svg
                   class="meta-icon"
                   width="16"
@@ -367,7 +497,7 @@ onMounted(() => {
                   <line x1="3" y1="10" x2="21" y2="10" />
                 </svg>
                 <span class="trip-date">{{ formatDateRange(trip.start_date, trip.end_date) }}</span>
-              </div>
+              </button>
 
               <p v-if="trip.description" class="trip-description">
                 {{ trip.description }}
@@ -585,6 +715,136 @@ onMounted(() => {
   font-weight: 700;
 }
 
+.trip-calendar {
+  align-self: center;
+  width: min(100%, 32rem);
+  padding: 1rem;
+  border: 1px solid rgba(56, 106, 84, 0.18);
+  border-radius: 0.875rem;
+  background: rgba(255, 255, 255, 0.55);
+}
+
+.calendar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.calendar-month {
+  margin: 0;
+  color: #294d3d;
+  font-size: 1.05rem;
+  font-weight: 700;
+  text-transform: capitalize;
+}
+
+.calendar-nav-button {
+  display: grid;
+  width: 2.25rem;
+  height: 2.25rem;
+  place-items: center;
+  border: 1px solid rgba(56, 106, 84, 0.25);
+  border-radius: 0.5rem;
+  color: #294d3d;
+  background: transparent;
+  font: inherit;
+  font-size: 1.5rem;
+  cursor: pointer;
+}
+
+.calendar-nav-button:hover,
+.calendar-nav-button:focus-visible {
+  background: rgba(56, 106, 84, 0.12);
+}
+
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 0.25rem;
+}
+
+.calendar-weekday {
+  padding: 0.35rem 0;
+  color: #6b7280;
+  text-align: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.calendar-day {
+  display: flex;
+  min-width: 0;
+  min-height: 2.75rem;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.2rem;
+  padding: 0.25rem;
+  border: 1px solid transparent;
+  border-radius: 0.5rem;
+  color: #1f2937;
+  background: transparent;
+  font: inherit;
+  font-size: 0.875rem;
+}
+
+button.calendar-day {
+  cursor: pointer;
+}
+
+button.calendar-day:hover,
+button.calendar-day:focus-visible {
+  border-color: #386a54;
+  outline: none;
+}
+
+.calendar-day--scheduled {
+  background: rgba(56, 106, 84, 0.08);
+}
+
+.calendar-day--selected {
+  color: #fff;
+  background: #386a54;
+  font-weight: 700;
+}
+
+.calendar-day--empty {
+  pointer-events: none;
+}
+
+.calendar-markers {
+  display: flex;
+  min-height: 0.35rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.15rem;
+}
+
+.calendar-marker {
+  width: 0.35rem;
+  height: 0.35rem;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: #386a54;
+}
+
+.calendar-marker--color-1 { background: #2563eb; }
+.calendar-marker--color-2 { background: #c2410c; }
+.calendar-marker--color-3 { background: #9333ea; }
+.calendar-marker--color-4 { background: #be123c; }
+
+.calendar-day--selected .calendar-marker {
+  background: #fff;
+}
+
+.calendar-hint {
+  margin: 0.75rem 0 0;
+  color: #6b7280;
+  font-size: 0.8rem;
+}
+
 /* ── Puste stany ── */
 .empty-card {
   display: flex;
@@ -673,6 +933,12 @@ onMounted(() => {
   border-color: rgba(56, 106, 84, 0.3);
 }
 
+.trip-item--calendar-highlighted {
+  border-color: #386a54;
+  background: #edf6f0;
+  box-shadow: 0 0 0 2px rgba(56, 106, 84, 0.18);
+}
+
 .trip-item-main {
   display: flex;
   flex-direction: column;
@@ -726,9 +992,24 @@ onMounted(() => {
   font-size: 0.875rem;
 }
 
+.trip-date-button {
+  width: fit-content;
+  max-width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+
+.trip-date-button:focus-visible {
+  border-radius: 0.25rem;
+  outline: 2px solid #386a54;
+  outline-offset: 2px;
+}
+
 .meta-icon {
-  flex: 0 1 auto;
-  margin-left: auto;
+  flex-shrink: 0;
   color: #386a54;
 }
 
@@ -747,7 +1028,8 @@ onMounted(() => {
   flex-wrap: wrap;
   align-items: center;
   gap: 0.5rem;
-  flex-shrink: 0;
+  flex: 0 1 auto;
+  margin-left: auto;
 }
 
 .edit-button {
@@ -841,6 +1123,53 @@ onMounted(() => {
   .badge-count {
     background: rgba(110, 231, 183, 0.15);
     color: #6ee7b7;
+  }
+
+  .trip-calendar {
+    border-color: rgba(110, 231, 183, 0.2);
+    background: rgba(0, 0, 0, 0.2);
+  }
+
+  .calendar-month,
+  .calendar-nav-button {
+    color: #6ee7b7;
+  }
+
+  .calendar-nav-button {
+    border-color: rgba(110, 231, 183, 0.3);
+  }
+
+  .calendar-nav-button:hover,
+  .calendar-nav-button:focus-visible {
+    background: rgba(110, 231, 183, 0.12);
+  }
+
+  .calendar-weekday,
+  .calendar-hint {
+    color: #9ca3af;
+  }
+
+  .calendar-day {
+    color: #f3f4f6;
+  }
+
+  .calendar-day--scheduled {
+    background: rgba(110, 231, 183, 0.1);
+  }
+
+  .calendar-day--selected {
+    color: #111827;
+    background: #6ee7b7;
+  }
+
+  .calendar-marker {
+    background: #6ee7b7;
+  }
+
+  .trip-item--calendar-highlighted {
+    border-color: #6ee7b7;
+    background: #1a2e24;
+    box-shadow: 0 0 0 2px rgba(110, 231, 183, 0.18);
   }
 
   .feedback-card {
