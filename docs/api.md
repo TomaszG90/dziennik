@@ -172,6 +172,61 @@ Brak danych w ciele żądania. Wymaga nagłówka `Authorization: Bearer {token}`
 }
 ```
 
+### `POST /api/v1/forgot-password`
+
+Wysyła e-mail z jednorazowym linkiem do zmiany hasła. Nie wymaga uwierzytelnienia.
+
+**Żądanie:**
+
+```json
+{
+  "email": "john@example.com"
+}
+```
+
+Po kliknięciu w link użytkownik trafia do widoku `/reset-password` we frontendzie z parametrami `token` i `email`.
+
+**Odpowiedź `200 OK`:**
+
+```json
+{
+  "message": "Jeśli konto z podanym adresem istnieje, otrzymasz wiadomość z linkiem do zmiany hasła."
+}
+```
+
+Ta sama odpowiedź jest zwracana, gdy adres nie jest przypisany do konta, aby nie ujawniać, którzy użytkownicy są zarejestrowani. Wysłanie kolejnych wiadomości jest ograniczone do 6 żądań na minutę z jednego adresu IP; broker haseł dodatkowo ogranicza ponowne generowanie tokenu dla danego konta.
+
+**Odpowiedź błędu walidacji `422 Unprocessable Entity`:**
+
+Zwracana, gdy pole `email` jest nieobecne lub nie zawiera prawidłowego adresu e-mail.
+
+### `POST /api/v1/reset-password`
+
+Zmienia hasło przy użyciu tokenu otrzymanego e-mailem. Nie wymaga uwierzytelnienia.
+
+**Żądanie:**
+
+```json
+{
+  "email": "john@example.com",
+  "token": "token-from-email",
+  "password": "NewPassword123!",
+  "password_confirmation": "NewPassword123!"
+}
+```
+
+`password` musi spełniać domyślne reguły siły haseł aplikacji, a `password_confirmation` musi być z nim zgodne. Po udanej zmianie token resetujący i wszystkie tokeny Sanctum użytkownika zostają unieważnione.
+
+**Odpowiedź sukcesu `200 OK`:**
+
+```json
+{
+  "message": "Hasło zostało zmienione."
+}
+```
+
+Nieprawidłowy, wygasły lub wykorzystany token zwraca `422 Unprocessable Entity` z błędem pola `email`. Nieprawidłowe dane żądania zwracają `422` z błędami walidacji.
+
 ### `GET /api/v1/me`
 
 Podgląd danych profilu zalogowanego użytkownika. Wymaga uwierzytelnienia (token w nagłówku `Authorization: Bearer {token}`).

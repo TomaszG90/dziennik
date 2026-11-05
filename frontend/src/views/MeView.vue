@@ -1,5 +1,8 @@
 <script setup lang="ts">
-import { reactive, ref } from 'vue'
+import { computed, reactive, ref } from 'vue'
+import { apiClient, ApiError, updateMyProfile } from '@/api'
+import type { UpdateProfilePayload } from '@/api/auth'
+import type { ProfilePrivacySettings } from '@/api/types'
 import { useAuthStore } from '@/stores/auth'
 import UserTripsList from '@/components/trips/UserTripsList.vue'
 
@@ -7,9 +10,32 @@ type VisibilityKey = FieldKey | 'avatar'
 type FieldKey = 'name' | 'email' | 'firstName' | 'lastName' | 'city' | 'birthDate'
 
 type ProfileTab = 'trips' | 'friends' | 'stats'
-const activeTab = ref<ProfileTab>('trips')
+type ProfileFieldKey = 'name' | 'email' | 'first_name' | 'last_name' | 'city' | 'birth_date'
 
-const fieldVisibility = reactive<Record<VisibilityKey, boolean>>({
+interface ProfileForm {
+  name: string
+  email: string
+  first_name: string
+  last_name: string
+  city: string
+  birth_date: string
+  avatar_path: string
+}
+
+interface ProfileField {
+  key: ProfileFieldKey
+  privacyKey: keyof ProfilePrivacySettings
+  label: string
+  inputType: 'text' | 'email' | 'date'
+  autocomplete: string
+}
+
+const auth = useAuthStore()
+const activeTab = ref<ProfileTab>('trips')
+const profileVisibility = ref<'private' | 'public'>(
+  auth.user?.profile_visibility ?? 'private',
+)
+const defaultPrivacySettings: ProfilePrivacySettings = {
   name: false,
   email: false,
   firstName: false,
@@ -17,141 +43,200 @@ const fieldVisibility = reactive<Record<VisibilityKey, boolean>>({
   city: false,
   birthDate: false,
   avatar: false,
-})
-
-interface ProfileField {
-  key: FieldKey
-  label: string
-  value: string
-  editable: boolean
-  inputType: 'text' | 'email' | 'date'
-  autocomplete: string
 }
-
-const auth = useAuthStore()
-
-const profileVisibility = ref<'private' | 'public'>('private')
-
-const profileFields = reactive<ProfileField[]>([
+const fieldVisibility = reactive<ProfilePrivacySettings>({
+  ...defaultPrivacySettings,
+  ...auth.user?.privacy_settings,
+})
+const form = reactive<ProfileForm>({
+  name: auth.user?.name ?? '',
+  email: auth.user?.email ?? '',
+  first_name: auth.user?.first_name ?? '',
+  last_name: auth.user?.last_name ?? '',
+  city: auth.user?.city ?? '',
+  birth_date: auth.user?.birth_date ?? '',
+  avatar_path: auth.user?.avatar_path ?? '1.png',
+})
+const profileFields: ProfileField[] = [
   {
     key: 'name',
+    privacyKey: 'name',
     label: 'Nazwa profilu',
-    value: auth.user?.name ?? '',
-    editable: true,
     inputType: 'text',
     autocomplete: 'nickname',
   },
   {
     key: 'email',
+    privacyKey: 'email',
     label: 'E-mail',
-    value: auth.user?.email ?? '',
-    editable: false,
     inputType: 'email',
     autocomplete: 'email',
   },
   {
-    key: 'firstName',
+    key: 'first_name',
+    privacyKey: 'firstName',
     label: 'Imię',
-    value: '',
-    editable: true,
     inputType: 'text',
     autocomplete: 'given-name',
   },
   {
-    key: 'lastName',
+    key: 'last_name',
+    privacyKey: 'lastName',
     label: 'Nazwisko',
-    value: '',
-    editable: true,
     inputType: 'text',
     autocomplete: 'family-name',
   },
   {
     key: 'city',
+    privacyKey: 'city',
     label: 'Miejscowość',
-    value: '',
-    editable: true,
     inputType: 'text',
     autocomplete: 'address-level2',
   },
   {
-    key: 'birthDate',
+    key: 'birth_date',
+    privacyKey: 'birthDate',
     label: 'Data urodzenia',
-    value: '',
-    editable: true,
     inputType: 'date',
     autocomplete: 'bday',
   },
-])
+]
+const avatarDialog = ref<HTMLDialogElement | null>(null)
+const showVisibilityInfo = ref(false)
+const avatarFiles = Array.from({ length: 10 }, (_, index) => `${index + 1}.png`)
+const isSaving = ref(false)
+const saveError = ref('')
+const statusMessage = ref('')
+const friendsCount: number = 0
+const friendsCountLabel = computed(() => {
+  if (friendsCount === 1) return '1 znajomy'
+  return `${friendsCount} znajomych`
+})
+
+const avatarUrl = (filename: string) =>
+  new URL(`/avatars/${filename}`, apiClient.defaults.baseURL).toString()
 
 function toggleProfileVisibility() {
-  if (profileVisibility.value === 'public') {
-    profileVisibility.value = 'private'
-    fieldVisibility.name = false
-    fieldVisibility.email = false
-    fieldVisibility.avatar = false
-    fieldVisibility.firstName = false
-    fieldVisibility.lastName = false
-    fieldVisibility.city = false
-    fieldVisibility.birthDate = false
-    return
-  }
-
-  profileVisibility.value = 'public'
+  profileVisibility.value = profileVisibility.value === 'public' ? 'private' : 'public'
 }
 
-function toggleFieldVisibility(field: VisibilityKey) {
+function toggleFieldVisibility(field: keyof ProfilePrivacySettings) {
   if (profileVisibility.value === 'private') return
-
   fieldVisibility[field] = !fieldVisibility[field]
+}
+
+function openAvatarDialog() {
+  avatarDialog.value?.showModal()
+}
+
+function closeAvatarDialog() {
+  avatarDialog.value?.close()
+}
+
+function selectAvatar(filename: string) {
+  form.avatar_path = filename
+  closeAvatarDialog()
+}
+
+async function saveProfile() {
+  isSaving.value = true
+  saveError.value = ''
+  statusMessage.value = ''
+
+  const payload: UpdateProfilePayload = {
+    name: form.name,
+    email: form.email,
+    first_name: form.first_name,
+    last_name: form.last_name,
+    city: form.city,
+    birth_date: form.birth_date || null,
+    avatar_path: form.avatar_path,
+    profile_visibility: profileVisibility.value,
+    privacy_settings: { ...fieldVisibility },
+  }
+
+  try {
+    const updatedProfile = await updateMyProfile(payload)
+    auth.user = updatedProfile
+    statusMessage.value = 'Zmiany profilu zostały zapisane.'
+  } catch (error) {
+    saveError.value =
+      error instanceof ApiError
+        ? Object.values(error.validationErrors ?? {})[0]?.[0] ?? error.message
+        : 'Nie udało się zapisać profilu. Spróbuj ponownie.'
+  } finally {
+    isSaving.value = false
+  }
 }
 </script>
 
 <template>
   <main class="profile-page">
     <div class="profile-layout">
-      <section class="profile-card" aria-labelledby="profile-title">
+      <section class="profile-card profile-editor-card" aria-labelledby="profile-title">
         <header class="profile-header">
-          <div>
-            <h1 id="profile-title">Edytuj profil</h1>
-          </div>
+          <h1 id="profile-title">Edytuj profil</h1>
 
-          <button
-            class="visibility-button master-visibility"
-            type="button"
-            :aria-pressed="profileVisibility === 'public'"
-            @click="toggleProfileVisibility"
-          >
-            <svg
-              :class="{ 'eye-closed': profileVisibility === 'private' }"
-              aria-hidden="true"
-              viewBox="0 0 24 24"
+          <div class="visibility-control">
+            <button
+              class="visibility-button master-visibility"
+              type="button"
+              :aria-pressed="profileVisibility === 'public'"
+              @click="toggleProfileVisibility"
             >
-              <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z" />
-              <circle cx="12" cy="12" r="3" />
-              <path
-                v-if="profileVisibility === 'private'"
-                d="M3 3l18 18"
-              />
-            </svg>
-
-            {{ profileVisibility === 'public' ? 'Profil publiczny' : 'Profil prywatny' }}
-          </button>
+              <svg
+                :class="{ 'eye-closed': profileVisibility === 'private' }"
+                aria-hidden="true"
+                viewBox="0 0 24 24"
+              >
+                <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z" />
+                <circle cx="12" cy="12" r="3" />
+                <path v-if="profileVisibility === 'private'" d="M3 3l18 18" />
+              </svg>
+              {{ profileVisibility === 'public' ? 'Profil publiczny' : 'Profil prywatny' }}
+            </button>
+            <button
+              class="visibility-info-button"
+              type="button"
+              aria-label="Informacje o widoczności profilu"
+              aria-controls="visibility-info"
+              :aria-expanded="showVisibilityInfo"
+              @click="showVisibilityInfo = !showVisibilityInfo"
+            >
+              <svg aria-hidden="true" viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="9" />
+                <path d="M12 11v5m0-8h.01" />
+              </svg>
+            </button>
+            <p v-if="showVisibilityInfo" id="visibility-info" class="visibility-info" role="tooltip">
+              Profil prywatny jest ukryty dla innych. Profil publiczny udostępnia tylko pola
+              oznaczone jako publiczne. Ustawienia poszczególnych pól pozostają zapisane po
+              przełączeniu profilu na prywatny.
+            </p>
+          </div>
         </header>
 
         <div class="avatar-row">
-          <div class="avatar-placeholder" role="img" aria-label="Zdjęcie profilowe">
-            <span>Zdjęcie<br />profilowe</span>
-          </div>
-
           <button
-            class="visibility-button"
+            class="avatar-preview"
+            type="button"
+            aria-label="Zmień awatar"
+            @click="openAvatarDialog"
+          >
+            <img :src="avatarUrl(form.avatar_path)" alt="" />
+          </button>
+          <div class="avatar-details">
+            <strong>{{ friendsCountLabel }}</strong>
+          </div>
+          <button
+            class="visibility-button avatar-visibility"
             type="button"
             :disabled="profileVisibility === 'private'"
             :aria-pressed="fieldVisibility.avatar"
             :aria-label="
               fieldVisibility.avatar
-                ? 'Ukryj zdjęcie profilowe'
-                : 'Pokaż zdjęcie profilowe'
+                ? 'Ukryj zdjęcie profilowe i liczbę znajomych'
+                : 'Pokaż zdjęcie profilowe i liczbę znajomych'
             "
             @click="toggleFieldVisibility('avatar')"
           >
@@ -160,50 +245,51 @@ function toggleFieldVisibility(field: VisibilityKey) {
               <circle cx="12" cy="12" r="3" />
               <path v-if="!fieldVisibility.avatar" d="M3 3l18 18" />
             </svg>
-            <span v-if="fieldVisibility.avatar">Publiczne</span>
+            <span>{{ fieldVisibility.avatar ? 'Publiczne' : 'Prywatne' }}</span>
           </button>
         </div>
 
-        <form class="profile-form" @submit.prevent>
-          <div
-            v-for="field in profileFields"
-            :key="field.key"
-            class="info-row"
-          >
+        <form class="profile-form" @submit.prevent="saveProfile">
+          <div v-for="field in profileFields" :key="field.key" class="info-row">
             <div class="field">
               <label :for="field.key">{{ field.label }}</label>
               <input
                 :id="field.key"
-                v-model="field.value"
+                v-model="form[field.key]"
                 :type="field.inputType"
                 :autocomplete="field.autocomplete"
-                :readonly="!field.editable"
+                :required="field.key === 'name' || field.key === 'email'"
+                maxlength="255"
               />
             </div>
 
             <button
-              class="visibility-button"
+              class="visibility-button field-visibility"
               type="button"
               :disabled="profileVisibility === 'private'"
-              :aria-pressed="fieldVisibility[field.key]"
+              :aria-pressed="fieldVisibility[field.privacyKey]"
               :aria-label="
-                fieldVisibility[field.key]
+                fieldVisibility[field.privacyKey]
                   ? `Ukryj: ${field.label}`
                   : `Pokaż: ${field.label}`
               "
-              @click="toggleFieldVisibility(field.key)"
+              @click="toggleFieldVisibility(field.privacyKey)"
             >
               <svg aria-hidden="true" viewBox="0 0 24 24">
                 <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z" />
                 <circle cx="12" cy="12" r="3" />
-                <path v-if="!fieldVisibility[field.key]" d="M3 3l18 18" />
+                <path v-if="!fieldVisibility[field.privacyKey]" d="M3 3l18 18" />
               </svg>
-              <span v-if="fieldVisibility[field.key]">Publiczne</span>
+              <span>{{ fieldVisibility[field.privacyKey] ? 'Publiczne' : 'Prywatne' }}</span>
             </button>
           </div>
 
-          <button class="save-button" type="button" disabled>
-            Zapisz zmiany
+          <p v-if="saveError" class="form-message form-error" role="alert">{{ saveError }}</p>
+          <p v-if="statusMessage" class="form-message form-success" role="status">
+            {{ statusMessage }}
+          </p>
+          <button class="save-button" type="submit" :disabled="isSaving">
+            {{ isSaving ? 'Zapisywanie...' : 'Zapisz zmiany' }}
           </button>
         </form>
       </section>
@@ -248,6 +334,41 @@ function toggleFieldVisibility(field: VisibilityKey) {
         </div>
       </section>
     </div>
+
+    <dialog
+      ref="avatarDialog"
+      class="avatar-dialog"
+      aria-labelledby="avatar-dialog-title"
+      @click.self="closeAvatarDialog"
+    >
+      <div class="avatar-dialog-content">
+        <header class="dialog-header">
+          <h2 id="avatar-dialog-title">Wybierz awatar</h2>
+          <button
+            class="dialog-close"
+            type="button"
+            aria-label="Zamknij wybór awatara"
+            @click="closeAvatarDialog"
+          >
+            ×
+          </button>
+        </header>
+        <div class="avatar-gallery">
+          <button
+            v-for="avatar in avatarFiles"
+            :key="avatar"
+            class="avatar-option"
+            :class="{ selected: form.avatar_path === avatar }"
+            type="button"
+            :aria-label="`Wybierz awatar ${avatarFiles.indexOf(avatar) + 1}`"
+            :aria-pressed="form.avatar_path === avatar"
+            @click="selectAvatar(avatar)"
+          >
+            <img :src="avatarUrl(avatar)" :alt="`Awatar ${avatarFiles.indexOf(avatar) + 1}`" />
+          </button>
+        </div>
+      </div>
+    </dialog>
   </main>
 </template>
 
@@ -263,7 +384,7 @@ function toggleFieldVisibility(field: VisibilityKey) {
 
 .profile-layout {
   display: grid;
-  grid-template-columns: minmax(17rem, 0.8fr) minmax(0, 1.4fr);
+  grid-template-columns: minmax(30rem, 0.8fr) minmax(0, 1.4fr);
   align-items: start;
   gap: 1.5rem;
   width: 100%;
@@ -282,7 +403,12 @@ function toggleFieldVisibility(field: VisibilityKey) {
   color: #111827;
 }
 
-.profile-header {
+.profile-editor-card {
+  min-width: 30rem;
+}
+
+.profile-header,
+.avatar-row {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -304,6 +430,59 @@ function toggleFieldVisibility(field: VisibilityKey) {
   overflow-wrap: break-word;
 }
 
+.visibility-control {
+  position: relative;
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.visibility-info-button {
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border: 1px solid #386a54;
+  border-radius: 50%;
+  color: #386a54;
+  background: transparent;
+}
+
+.visibility-info-button svg {
+  width: 1.2rem;
+  height: 1.2rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+}
+
+.visibility-info-button:focus-visible {
+  outline: 3px solid #294d3d;
+  outline-offset: 2px;
+}
+
+.visibility-info {
+  position: absolute;
+  z-index: 1;
+  top: calc(100% + 0.5rem);
+  right: 0;
+  width: min(20rem, calc(100vw - 3rem));
+  margin: 0;
+  padding: 0.75rem 1rem;
+  border: 1px solid #386a54;
+  border-radius: 0.75rem;
+  color: #111827;
+  background: #fff;
+  box-shadow: 0 0.5rem 1.5rem rgb(0 0 0 / 15%);
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
 h1 {
   min-width: min(100%, 14rem);
   margin-bottom: 0.5rem;
@@ -319,33 +498,51 @@ h2 {
   color: inherit;
 }
 
-label {
-  color: inherit;
-}
-
-.intro {
-  color: #4b5563;
-}
-
-.avatar-row,
-.info-row {
-  display: flex;
-  align-items: end;
-  gap: 1rem;
-}
-
-.avatar-placeholder {
-  display: grid;
+.avatar-preview {
   flex: 0 0 auto;
-  place-items: center;
-  width: 8rem;
+  width: 7rem;
   aspect-ratio: 1;
-  border: 2px dashed #386a54;
+  overflow: hidden;
+  border: 3px solid #386a54;
   border-radius: 50%;
-  color: #294d3d;
   background: rgb(255 255 255 / 45%);
-  font-weight: 600;
-  text-align: center;
+  cursor: pointer;
+  padding: 0;
+}
+
+.avatar-preview:focus-visible {
+  outline: 3px solid #294d3d;
+  outline-offset: 3px;
+}
+
+.avatar-preview img,
+.avatar-option img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.avatar-details {
+  display: grid;
+  flex: 1;
+  gap: 0.25rem;
+}
+
+.avatar-details p {
+  color: #4b5563;
+  font-size: 0.875rem;
+}
+
+.choose-avatar-button {
+  justify-self: start;
+  padding: 0;
+  border: 0;
+  color: #294d3d;
+  background: transparent;
+  font: inherit;
+  font-weight: 700;
+  text-decoration: underline;
 }
 
 .profile-form,
@@ -363,6 +560,10 @@ label {
   min-width: 0;
 }
 
+.field label {
+  color: inherit;
+}
+
 input {
   width: 100%;
   min-height: 2.75rem;
@@ -372,12 +573,6 @@ input {
   font: inherit;
   color: #111827;
   background: #ffffff;
-}
-
-input[readonly] {
-  color: #4b5563;
-  background: #f3f4f6;
-  border-color: #d1d5db;
 }
 
 .visibility-button,
@@ -407,7 +602,8 @@ input[readonly] {
   stroke-width: 2;
 }
 
-.master-visibility {
+.avatar-visibility {
+  align-self: center;
   flex: 0 0 auto;
 }
 
@@ -421,25 +617,22 @@ input[readonly] {
   opacity: 0.55;
 }
 
-@media (max-width: 600px) {
-  .profile-header {
-    align-items: flex-start;
-    flex-direction: column;
-  }
-
-  .info-row {
-    align-items: stretch;
-  }
+.info-row {
+  display: flex;
+  align-items: end;
+  gap: 1rem;
 }
 
-@media (max-width: 420px) {
-  .info-row {
-    flex-direction: column;
-  }
+.form-message {
+  margin-bottom: -0.75rem;
+}
 
-  .info-row .visibility-button {
-    align-self: flex-start;
-  }
+.form-error {
+  color: #b42318;
+}
+
+.form-success {
+  color: #294d3d;
 }
 
 .tabs {
@@ -469,43 +662,127 @@ input[readonly] {
   padding-top: 1rem;
 }
 
-@media (max-width: 850px) {
+.avatar-dialog {
+  width: min(36rem, calc(100vw - 2rem));
+  max-width: none;
+  max-height: calc(100vh - 2rem);
+  margin: auto;
+  padding: 0;
+  overflow: auto;
+  border: 0;
+  border-radius: 1rem;
+  color: #111827;
+  background: #fff;
+  box-shadow: 0 1.5rem 4rem rgb(0 0 0 / 25%);
+}
+
+.avatar-dialog::backdrop {
+  background: rgb(17 24 39 / 65%);
+}
+
+.avatar-dialog-content {
+  display: grid;
+  gap: 1.5rem;
+  padding: 1.5rem;
+}
+
+.dialog-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.dialog-close {
+  width: 2.5rem;
+  height: 2.5rem;
+  border: 0;
+  border-radius: 50%;
+  color: inherit;
+  background: #f3f4f6;
+  font-size: 1.75rem;
+  line-height: 1;
+}
+
+.avatar-gallery {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.avatar-option {
+  aspect-ratio: 1;
+  padding: 0.2rem;
+  overflow: hidden;
+  border: 3px solid transparent;
+  border-radius: 50%;
+  background: transparent;
+}
+
+.avatar-option.selected {
+  border-color: #386a54;
+}
+
+@media (max-width: 900px) {
   .profile-layout {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 
-/* ── Dark mode ── */
+@media (max-width: 600px) {
+  .profile-page {
+    padding: 1rem 0;
+  }
+
+  .profile-editor-card {
+    min-width: 0;
+  }
+
+  .profile-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .visibility-control {
+    align-self: stretch;
+  }
+
+  .info-row {
+    align-items: stretch;
+  }
+
+  .avatar-row {
+    flex-wrap: wrap;
+  }
+}
+
+@media (max-width: 420px) {
+  .info-row {
+    flex-direction: column;
+  }
+
+  .field-visibility {
+    align-self: flex-start;
+  }
+}
+
 @media (prefers-color-scheme: dark) {
   .profile-card {
     background: linear-gradient(135deg, #1a2e24, #2a2618);
     color: #f3f4f6;
   }
 
-  .intro {
+  .avatar-details p {
     color: #9ca3af;
   }
 
-  .avatar-placeholder {
-    border-color: #6ee7b7;
+  .choose-avatar-button {
     color: #6ee7b7;
-    background: rgb(0 0 0 / 25%);
   }
 
   input {
     color: #f3f4f6;
     background: #1f2937;
     border-color: #4b5563;
-  }
-
-  input[readonly] {
-    color: #9ca3af;
-    background: #111827;
-    border-color: #374151;
-  }
-
-  input::placeholder {
-    color: #6b7280;
   }
 
   .tabs {
@@ -527,6 +804,38 @@ input[readonly] {
 
   .tab-panel p {
     color: #9ca3af;
+  }
+
+  .form-error {
+    color: #fca5a5;
+  }
+
+  .form-success {
+    color: #6ee7b7;
+  }
+
+  .avatar-dialog {
+    color: #f3f4f6;
+    background: #1f2937;
+  }
+
+  .visibility-info-button {
+    border-color: #6ee7b7;
+    color: #6ee7b7;
+  }
+
+  .visibility-info-button:focus-visible {
+    outline-color: #6ee7b7;
+  }
+
+  .visibility-info {
+    border-color: #6ee7b7;
+    color: #f3f4f6;
+    background: #1f2937;
+  }
+
+  .dialog-close {
+    background: #374151;
   }
 }
 </style>
