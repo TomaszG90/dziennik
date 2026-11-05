@@ -76,7 +76,7 @@ class LegController extends Controller
     private function ensureLegBelongsToTrip(Trip $trip, Leg $leg): void
     {
         abort_unless(
-            $leg->trip_id === $trip->id,
+            (int) $leg->trip_id === (int) $trip->id,
             Response::HTTP_NOT_FOUND
         );
     }
