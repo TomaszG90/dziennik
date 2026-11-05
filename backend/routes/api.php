@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\GeocodeController;
+use App\Http\Controllers\LegController;
 use App\Http\Controllers\PlaceController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\TripController;
@@ -29,14 +30,22 @@ Route::prefix('v1')->group(function () {
     Route::middleware('auth:sanctum')->group(function () {
         Route::get('/me', [ProfileController::class, 'show']);
         Route::patch('/me', [ProfileController::class, 'update']);
+
         Route::apiResource('trips', TripController::class);
+
+        // Places
         Route::get('/trips/{trip}/places', [PlaceController::class, 'index']);
         Route::post('/trips/{trip}/places', [PlaceController::class, 'store']);
-
         Route::patch('/trips/{trip}/places/reorder', [PlaceController::class, 'reorder']);
-
         Route::get('/trips/{trip}/places/{place}', [PlaceController::class, 'show']);
         Route::patch('/trips/{trip}/places/{place}', [PlaceController::class, 'update']);
         Route::delete('/trips/{trip}/places/{place}', [PlaceController::class, 'destroy']);
+
+        // Legs
+        Route::get('/trips/{trip}/legs', [LegController::class, 'index']);
+        Route::post('/trips/{trip}/legs', [LegController::class, 'store']);
+        Route::get('/trips/{trip}/legs/{leg}', [LegController::class, 'show']);
+        Route::patch('/trips/{trip}/legs/{leg}', [LegController::class, 'update']);
+        Route::delete('/trips/{trip}/legs/{leg}', [LegController::class, 'destroy']);
     });
 });
