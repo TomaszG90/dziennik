@@ -258,7 +258,7 @@ async function saveProfile() {
                 v-model="form[field.key]"
                 :type="field.inputType"
                 :autocomplete="field.autocomplete"
-                :required="field.key === 'name' || field.key === 'email'"
+                :required="field.key === 'name'"
                 maxlength="255"
               />
             </div>
