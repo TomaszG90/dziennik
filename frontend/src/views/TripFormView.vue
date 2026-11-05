@@ -318,6 +318,13 @@ onMounted(() => {
             </p>
           </div>
 
+          <div v-if="!isEditMode" class="invite-friends-row">
+            <button type="button" class="btn-secondary" disabled data-testid="invite-friends-button">
+              Zaproś znajomych
+            </button>
+            <p class="invite-friends-hint">Ta opcja będzie dostępna w przyszłości.</p>
+          </div>
+
           <!-- Przyciski akcji formularza -->
           <div class="form-actions-row">
             <div class="left-actions">
@@ -598,6 +605,18 @@ textarea:focus {
   margin-top: 0.15rem;
 }
 
+.invite-friends-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.invite-friends-hint {
+  color: #6b7280;
+  font-size: 0.875rem;
+}
+
 /* ── Form Actions ── */
 .form-actions-row {
   display: flex;
@@ -743,6 +762,10 @@ textarea:focus {
   }
 
   .optional {
+    color: #9ca3af;
+  }
+
+  .invite-friends-hint {
     color: #9ca3af;
   }
 
