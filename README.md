@@ -6,20 +6,19 @@ Po kilku latach korzystania z aplikacji można otworzyć mapę i zobaczyć wszys
 
 ## Funkcjonalności
 
-### Konta użytkowników (planowane)
-- Rejestracja, logowanie i wylogowywanie
+### Konta użytkowników (częściowo zaimplementowane)
+- Rejestracja, logowanie i wylogowywanie przez API
 - Połączony widok logowania i rejestracji pod adresem `/auth`
-- Reset hasła przez e-mail
-- Edycja danych profilu, w tym wybór jednego z 10 predefiniowanych awatarów
-- Publiczny lub prywatny profil oraz niezależne ustawienia widoczności poszczególnych pól
+- Reset hasła przez e-mail (PR-17E): żądanie linku oraz ustawienie nowego hasła po jego otwarciu
+- Edycja profilu, wybór predefiniowanego awatara i ustawienia prywatności
 - Developerskie konta demonstracyjne: publiczne, prywatne i częściowo ukryte
-- Przeglądanie podróży innych użytkowników (tylko profile publiczne)
+- Przeglądanie podróży innych użytkowników (tylko profile publiczne) — w planach
 
-### Zarządzanie podróżami (planowane)
-- Dodawanie, edycja i usuwanie podróży
+### Zarządzanie podróżami (API zaimplementowane, interfejs w planach)
+- Dodawanie, edycja, usuwanie i wyświetlanie podróży przez API
 - Nazwa, data lub zakres dat, opcjonalny opis
-- Dowolna liczba punktów i odcinków w podróży
-- Ustalanie kolejności miejsc i środka transportu dla każdego odcinka
+- Dodawanie, edycja, usuwanie i zmiana kolejności punktów podróży przez API
+- Obsługa odcinków i wybór środka transportu — w planach
 
 Przykład podróży:
 
@@ -29,7 +28,7 @@ Przykład podróży:
 4. Majorka → Berlin (samolot)
 5. Berlin → Legnica (samochód)
 
-### Środki transportu (planowane)
+### Środki transportu (w planach)
 
 | Transport | Prezentacja na mapie | Obliczanie dystansu |
 |---|---|---|
@@ -38,14 +37,18 @@ Przykład podróży:
 | Pociąg | Linia prosta | Odległość w linii prostej |
 | Inne | Uproszczone połączenie | Odległość w linii prostej |
 
-### Interaktywna mapa (planowana)
+### Geokodowanie (API zaimplementowane)
+- Wyszukiwanie miejsc przez API geokodowania
+- Cache wyników oraz ograniczanie liczby zapytań
+
+### Interaktywna mapa (w planach)
 - Pojedyncza podróż z punktami i odcinkami
 - Rozróżnienie transportu kolorami, ikonami lub stylem linii
 - Wszystkie podróże użytkownika na jednej mapie
 - Automatyczne oznaczanie odwiedzonych państw na podstawie zapisanych podróży
 - Przybliżanie mapy i podgląd szczegółów tras
 
-### Statystyki (planowane)
+### Statystyki (w planach)
 Dla całej historii oraz dla wybranego roku kalendarzowego:
 - liczba odbytych podróży
 - liczba i lista odwiedzonych państw (wyróżnione na mapie)
@@ -55,7 +58,7 @@ Dla całej historii oraz dla wybranego roku kalendarzowego:
 
 ## Architektura
 
-Aplikacja składa się z backendu Laravel i osobnej aplikacji SPA. Docelowo frontend i aplikacja mobilna będą korzystać ze wspólnego REST API (`/api/v1`). Repozytorium zawiera obecnie szkielet aplikacji; funkcje podróży, mapy i statystyk są planowane.
+Aplikacja składa się z backendu Laravel i osobnej aplikacji SPA. Frontend korzysta ze wspólnego REST API (`/api/v1`); backend udostępnia m.in. funkcje kont, profilu, podróży, punktów podróży i geokodowania. Interfejs zarządzania podróżami, mapa i statystyki są w planach.
 
 ```
 backend/    # Laravel: REST API
@@ -174,6 +177,7 @@ DB_PASSWORD=local_dev_password
 | `ROUTING_API_KEY` | Klucz do API wyznaczania tras (do skonfigurowania, gdy funkcja zostanie wdrożona) |
 | `GEOCODING_API_KEY` | Klucz do API geokodowania (do skonfigurowania, gdy funkcja zostanie wdrożona) |
 | `VITE_API_BASE_URL` | Bazowy adres API frontendu (domyślnie `http://localhost:8000/api/v1`) |
+| `FRONTEND_URL` | Publiczny adres frontendu używany w linkach resetowania hasła (domyślnie `http://localhost:5173`) |
 
 ## Testy i jakość kodu
 
