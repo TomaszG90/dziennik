@@ -3,6 +3,7 @@
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\GeocodeController;
 use App\Http\Controllers\LegController;
+use App\Http\Controllers\PasswordResetController;
 use App\Http\Controllers\PlaceController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\TripController;
@@ -26,6 +27,9 @@ Route::prefix('v1')->group(function () {
     Route::post('/auth/register', [AuthController::class, 'register']);
     Route::post('/auth/login', [AuthController::class, 'login']);
     Route::post('/auth/logout', [AuthController::class, 'logout'])->middleware('auth:sanctum');
+    Route::post('/forgot-password', [PasswordResetController::class, 'sendResetLink'])
+        ->middleware('throttle:6,1');
+    Route::post('/reset-password', [PasswordResetController::class, 'reset']);
 
     Route::middleware('auth:sanctum')->group(function () {
         Route::get('/me', [ProfileController::class, 'show']);

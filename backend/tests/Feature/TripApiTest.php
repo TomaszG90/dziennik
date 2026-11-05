@@ -132,6 +132,56 @@ class TripApiTest extends TestCase
             ->assertJsonValidationErrors(['end_date']);
     }
 
+    public function test_trip_update_rejects_start_date_after_existing_end_date(): void
+    {
+        $user = User::factory()->create();
+        $trip = $this->createTrip($user);
+        Sanctum::actingAs($user);
+
+        $this->patchJson("/api/v1/trips/{$trip->id}", [
+            'start_date' => '2026-11-06',
+        ])->assertUnprocessable()
+            ->assertJsonValidationErrors(['end_date']);
+
+        $this->assertDatabaseHas('trips', [
+            'id' => $trip->id,
+            'start_date' => '2026-11-01',
+            'end_date' => '2026-11-05',
+        ]);
+    }
+
+    public function test_trip_update_rejects_end_date_before_existing_start_date(): void
+    {
+        $user = User::factory()->create();
+        $trip = $this->createTrip($user);
+        Sanctum::actingAs($user);
+
+        $this->patchJson("/api/v1/trips/{$trip->id}", [
+            'end_date' => '2026-10-31',
+        ])->assertUnprocessable()
+            ->assertJsonValidationErrors(['end_date']);
+
+        $this->assertDatabaseHas('trips', [
+            'id' => $trip->id,
+            'start_date' => '2026-11-01',
+            'end_date' => '2026-11-05',
+        ]);
+    }
+
+    public function test_trip_update_accepts_same_start_and_end_date(): void
+    {
+        $user = User::factory()->create();
+        $trip = $this->createTrip($user);
+        Sanctum::actingAs($user);
+
+        $this->patchJson("/api/v1/trips/{$trip->id}", [
+            'start_date' => '2026-11-10',
+            'end_date' => '2026-11-10',
+        ])->assertOk()
+            ->assertJsonPath('data.start_date', '2026-11-10')
+            ->assertJsonPath('data.end_date', '2026-11-10');
+    }
+
     public function test_trip_endpoints_require_authentication(): void
     {
         $this->getJson('/api/v1/trips')->assertUnauthorized();
