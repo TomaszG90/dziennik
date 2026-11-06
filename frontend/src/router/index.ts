@@ -1,4 +1,4 @@
-import { createRouter, createWebHistory } from 'vue-router'
+﻿import { createRouter, createWebHistory } from 'vue-router'
 import HomeView from '../views/HomeView.vue'
 import { useAuthStore } from '../stores/auth'
 import { createAuthGuard } from './authGuard'
@@ -6,6 +6,7 @@ import RoutePlaceholderView from '../views/RoutePlaceholderView.vue'
 import MeView from '../views/MeView.vue'
 import AuthView from '../views/AuthView.vue'
 import TripFormView from '../views/TripFormView.vue'
+import TripDetailsView from '../views/TripDetailsView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -45,8 +46,8 @@ const router = createRouter({
       name: 'dashboard',
       component: RoutePlaceholderView,
       props: {
-        title: 'Mój dziennik',
-        message: 'Tutaj pojawią się Twoje podróże.',
+        title: 'MĂłj dziennik',
+        message: 'Tutaj pojawiÄ… siÄ™ Twoje podrĂłĹĽe.',
       },
       meta: { requiresAuth: true },
     },
@@ -71,11 +72,7 @@ const router = createRouter({
     {
       path: '/trips/:id',
       name: 'trip-details',
-      component: RoutePlaceholderView,
-      props: (route) => ({
-        title: 'Szczegóły podróży',
-        message: `Szczegóły podróży #${route.params.id} (PR-25).`,
-      }),
+      component: TripDetailsView,
       meta: { requiresAuth: true },
     },
   ],
