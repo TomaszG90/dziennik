@@ -25,6 +25,26 @@ export interface TripPayload {
   description?: string | null
 }
 
+export interface TripPlace {
+  id: number
+  trip_id: number
+  name: string
+  latitude: string | number | null
+  longitude: string | number | null
+  position: number
+  country_code: string | null
+}
+
+export interface TripLeg {
+  id: number
+  trip_id: number
+  from_place_id: number
+  to_place_id: number
+  transport: string
+  distance: string | number | null
+  position: number
+}
+
 export async function getTrips(): Promise<Trip[]> {
   const response = await apiClient.get<{ data: Trip[] }>('/trips')
   return response.data.data
@@ -32,6 +52,16 @@ export async function getTrips(): Promise<Trip[]> {
 
 export async function getTrip(id: string | number): Promise<Trip> {
   const response = await apiClient.get<{ data: Trip }>(`/trips/${id}`)
+  return response.data.data
+}
+
+export async function getTripPlaces(id: string | number): Promise<TripPlace[]> {
+  const response = await apiClient.get<{ data: TripPlace[] }>(`/trips/${id}/places`)
+  return response.data.data
+}
+
+export async function getTripLegs(id: string | number): Promise<TripLeg[]> {
+  const response = await apiClient.get<{ data: TripLeg[] }>(`/trips/${id}/legs`)
   return response.data.data
 }
 
