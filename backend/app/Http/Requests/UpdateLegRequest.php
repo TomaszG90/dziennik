@@ -34,7 +34,7 @@ class UpdateLegRequest extends FormRequest
                 'sometimes',
                 'required',
                 'string',
-                Rule::in(['car', 'plane', 'train', 'other']),
+                Rule::in(['walking', 'car', 'plane', 'train', 'other']),
             ],
             'distance' => ['sometimes', 'nullable', 'numeric', 'min:0'],
         ];

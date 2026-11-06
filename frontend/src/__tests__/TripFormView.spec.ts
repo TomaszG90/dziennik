@@ -12,6 +12,7 @@ function createTestRouter(initialPath = '/trips/new') {
       { path: '/me', name: 'me', component: { template: '<div>Profile</div>' } },
       { path: '/trips/new', name: 'trip-create', component: TripFormView },
       { path: '/trips/:id/edit', name: 'trip-edit', component: TripFormView },
+      { path: '/trips/:id', name: 'trip-details', component: { template: '<div>Details</div>' } },
     ],
   })
   router.push(initialPath)
@@ -54,8 +55,12 @@ describe('TripFormView', () => {
     await flushPromises()
 
     expect(createSpy).not.toHaveBeenCalled()
-    expect(wrapper.find('[data-testid="name-error"]').text()).toContain('Nazwa podróży jest wymagana')
-    expect(wrapper.find('[data-testid="start-date-error"]').text()).toContain('Data rozpoczęcia jest wymagana')
+    expect(wrapper.find('[data-testid="name-error"]').text()).toContain(
+      'Nazwa podróży jest wymagana',
+    )
+    expect(wrapper.find('[data-testid="start-date-error"]').text()).toContain(
+      'Data rozpoczęcia jest wymagana',
+    )
   })
 
   it('rejects a trip name longer than 255 characters before calling the API', async () => {
@@ -194,7 +199,9 @@ describe('TripFormView', () => {
     await flushPromises()
 
     expect(wrapper.find('[data-testid="name-error"]').text()).toContain('Nazwa jest już zajęta.')
-    expect(wrapper.find('[data-testid="form-error-banner"]').text()).toContain('Niepoprawne dane formularza')
+    expect(wrapper.find('[data-testid="form-error-banner"]').text()).toContain(
+      'Niepoprawne dane formularza',
+    )
   })
 
   it('loads trip data in edit mode and updates trip on submit', async () => {
@@ -225,12 +232,12 @@ describe('TripFormView', () => {
     expect((wrapper.get('[data-testid="trip-name-input"]').element as HTMLInputElement).value).toBe(
       'Bieszczady 2026',
     )
-    expect((wrapper.get('[data-testid="trip-start-date-input"]').element as HTMLInputElement).value).toBe(
-      '2026-09-01',
-    )
-    expect((wrapper.get('[data-testid="trip-end-date-input"]').element as HTMLInputElement).value).toBe(
-      '2026-09-05',
-    )
+    expect(
+      (wrapper.get('[data-testid="trip-start-date-input"]').element as HTMLInputElement).value,
+    ).toBe('2026-09-01')
+    expect(
+      (wrapper.get('[data-testid="trip-end-date-input"]').element as HTMLInputElement).value,
+    ).toBe('2026-09-05')
 
     // Change name and submit
     await wrapper.get('[data-testid="trip-name-input"]').setValue('Bieszczady Jesień 2026')
@@ -244,6 +251,35 @@ describe('TripFormView', () => {
       description: 'Szlak graniczny',
     })
     expect(router.currentRoute.value.path).toBe('/me')
+  })
+
+  it('navigates from edit mode to the trip details', async () => {
+    const mockTrip: tripsApi.Trip = {
+      id: 5,
+      name: 'Bieszczady 2026',
+      start_date: '2026-09-01',
+      end_date: '2026-09-05',
+      description: null,
+      created_at: '2026-01-01T00:00:00Z',
+      updated_at: '2026-01-01T00:00:00Z',
+    }
+    vi.spyOn(tripsApi, 'getTrip').mockResolvedValue(mockTrip)
+
+    const router = createTestRouter('/trips/5/edit')
+    await router.isReady()
+    const wrapper = mount(TripFormView, {
+      global: { plugins: [router] },
+      props: { tripId: 5 },
+    })
+    await flushPromises()
+
+    const detailsLink = wrapper.get('[data-testid="trip-details-button"]')
+    expect(detailsLink.text()).toContain('Szczegóły podróży')
+    expect(detailsLink.attributes('href')).toBe('/trips/5')
+
+    await detailsLink.trigger('click')
+    await flushPromises()
+    expect(router.currentRoute.value.path).toBe('/trips/5')
   })
 
   it('deletes trip with confirmation modal in edit mode', async () => {

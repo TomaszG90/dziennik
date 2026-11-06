@@ -30,6 +30,9 @@ class GeocodeApiTest extends TestCase
                         ],
                         'properties' => [
                             'name' => 'Wien',
+                            'city' => 'Wien',
+                            'state' => 'Wien',
+                            'country' => 'Austria',
                             'countrycode' => 'AT',
                         ],
                     ],
@@ -46,6 +49,14 @@ class GeocodeApiTest extends TestCase
                         'name',
                         'latitude',
                         'longitude',
+                        'street',
+                        'housenumber',
+                        'postcode',
+                        'city',
+                        'district',
+                        'county',
+                        'state',
+                        'country',
                         'country_code',
                     ],
                 ],
@@ -54,7 +65,53 @@ class GeocodeApiTest extends TestCase
                 'name' => 'Wien',
                 'latitude' => 48.2082,
                 'longitude' => 16.3725,
+                'city' => 'Wien',
+                'state' => 'Wien',
+                'country' => 'Austria',
                 'country_code' => 'AT',
+            ]);
+    }
+
+    public function test_geocode_endpoint_returns_place_details_and_removes_duplicate_results(): void
+    {
+        $feature = [
+            'geometry' => ['coordinates' => [19.945, 50.0647]],
+            'properties' => [
+                'name' => 'Kraków',
+                'street' => 'Floriańska',
+                'housenumber' => '1',
+                'postcode' => '31-019',
+                'city' => 'Kraków',
+                'district' => 'Stare Miasto',
+                'county' => 'Kraków',
+                'state' => 'małopolskie',
+                'country' => 'Poland',
+                'countrycode' => 'pl',
+            ],
+        ];
+        $duplicateWithDifferentCoordinates = $feature;
+        $duplicateWithDifferentCoordinates['geometry']['coordinates'] = [19.94501, 50.06471];
+
+        Http::fake([
+            'https://photon.komoot.io/api*' => Http::response([
+                'features' => [$feature, $duplicateWithDifferentCoordinates],
+            ]),
+        ]);
+
+        $this->getJson('/api/v1/geocode?q=Florianska')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonFragment([
+                'name' => 'Kraków',
+                'street' => 'Floriańska',
+                'housenumber' => '1',
+                'postcode' => '31-019',
+                'city' => 'Kraków',
+                'district' => 'Stare Miasto',
+                'county' => 'Kraków',
+                'state' => 'małopolskie',
+                'country' => 'Poland',
+                'country_code' => 'PL',
             ]);
     }
 

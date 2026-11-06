@@ -432,6 +432,14 @@ Dodaje miejsce na końcu kolejności podróży; `position` przypisywane jest aut
   "name": "Wien",
   "latitude": 48.2082,
   "longitude": 16.3725,
+  "street": null,
+  "housenumber": null,
+  "postcode": null,
+  "city": "Wien",
+  "district": null,
+  "county": null,
+  "state": "Wien",
+  "country": "Austria",
   "country_code": "AT"
 }
 ```
@@ -493,7 +501,7 @@ Dodaje odcinek na końcu kolejności podróży; `position` przypisywane jest aut
 }
 ```
 
-`from_place_id` i `to_place_id` (identyfikatory miejsc z tej podróży, wymagane i różne), `transport` (wymagany; `car`, `plane`, `train` lub `other`), `distance` (opcjonalna, liczba nieujemna lub null).
+`from_place_id` i `to_place_id` (identyfikatory miejsc z tej podróży, wymagane i różne), `transport` (wymagany; `walking`, `car`, `plane`, `train` lub `other`), `distance` (opcjonalna, liczba nieujemna lub null).
 
 **Odpowiedź sukcesu `201 Created`:** utworzony odcinek w polu `data`.
 
@@ -543,9 +551,10 @@ Pola wyniku:
 - `name` (string|null): nazwa miejsca zwrócona przez dostawcę
 - `latitude` (number|null): szerokość geograficzna w stopniach dziesiętnych
 - `longitude` (number|null): długość geograficzna w stopniach dziesiętnych
+- `street`, `housenumber`, `postcode`, `city`, `district`, `county`, `state`, `country` (string|null): dodatkowe szczegóły adresu, miejscowości i regionu; wartości zależą od danych dostawcy
 - `country_code` (string|null): kod kraju w formacie ISO 3166-1 alpha-2
 
-Lista zawiera maksymalnie 10 wyników. Brak trafień kończy się odpowiedzią `200 OK` z pustą tablicą (`{"data": []}`), co pozwala klientowi odróżnić brak wyników od błędu. Wyniki trafiają do cache na 24 godziny, natomiast błędów dostawcy nie zapisujemy w cache.
+Lista zawiera maksymalnie 10 unikalnych wyników. Duplikaty o tych samych nazwach i szczegółach adresowych są łączone. Brak trafień kończy się odpowiedzią `200 OK` z pustą tablicą (`{"data": []}`), co pozwala klientowi odróżnić brak wyników od błędu. Wyniki trafiają do cache na 24 godziny, natomiast błędów dostawcy nie zapisujemy w cache.
 
 **Odpowiedź błędu walidacji `422 Unprocessable Entity`:**
 
