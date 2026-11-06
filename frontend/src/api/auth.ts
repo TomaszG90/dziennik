@@ -11,7 +11,6 @@ export interface RegisterPayload {
 
 export interface UpdateProfilePayload {
   name: string
-  email: string
   first_name: string
   last_name: string
   city: string

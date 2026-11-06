@@ -142,7 +142,6 @@ async function saveProfile() {
 
   const payload: UpdateProfilePayload = {
     name: form.name,
-    email: form.email,
     first_name: form.first_name,
     last_name: form.last_name,
     city: form.city,
@@ -250,12 +249,16 @@ async function saveProfile() {
           <div v-for="field in profileFields" :key="field.key" class="info-row">
             <div class="field">
               <label :for="field.key">{{ field.label }}</label>
+              <div v-if="field.key === 'email'" class="static-field-value">
+                <strong>{{ form.email }}</strong>
+              </div>
               <input
+                v-else
                 :id="field.key"
                 v-model="form[field.key]"
                 :type="field.inputType"
                 :autocomplete="field.autocomplete"
-                :required="field.key === 'name' || field.key === 'email'"
+                :required="field.key === 'name'"
                 maxlength="255"
               />
             </div>
@@ -548,6 +551,21 @@ input {
   background: #ffffff;
 }
 
+.static-field-value {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.75rem;
+  overflow-wrap: anywhere;
+  color: #386a54;
+  text-align: center;
+}
+
+.static-field-value strong {
+  font-size: 20px;
+  font-weight: 800;
+}
+
 .visibility-button,
 .save-button {
   display: inline-flex;
@@ -746,6 +764,10 @@ input {
 
   .avatar-details p {
     color: #9ca3af;
+  }
+
+  .static-field-value {
+    color: #6ee7b7;
   }
 
   .choose-avatar-button {
