@@ -1,8 +1,8 @@
 import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { useAuthStore } from '../stores/auth'
-import { createAuthGuard } from './authGuard'
-import router from './index'
+import { useAuthStore } from '@/stores/auth'
+import { createAuthGuard } from '@/router/authGuard'
+import router from '@/router'
 describe('auth route guard', () => {
   it('waits for session restoration and redirects a guest from a protected route', async () => {
     const authStore = {

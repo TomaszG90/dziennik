@@ -345,6 +345,174 @@ Pola:
 }
 ```
 
+### Podróże
+
+Wszystkie trasy podróży wymagają uwierzytelnienia tokenem Sanctum. Użytkownik może przeglądać i modyfikować wyłącznie własne podróże.
+
+#### `GET /api/v1/trips`
+
+Zwraca podróże zalogowanego użytkownika, posortowane rosnąco według `start_date`.
+
+**Odpowiedź sukcesu `200 OK`:**
+
+```json
+{
+  "data": [
+    {
+      "id": 1,
+      "name": "Wakacje w Austrii",
+      "start_date": "2026-10-29",
+      "end_date": "2026-11-05",
+      "description": null,
+      "created_at": "2026-10-29T17:00:00+00:00",
+      "updated_at": "2026-10-29T17:00:00+00:00"
+    }
+  ]
+}
+```
+
+#### `POST /api/v1/trips`
+
+Tworzy podróż zalogowanego użytkownika.
+
+**Żądanie:**
+
+```json
+{
+  "name": "Wakacje w Austrii",
+  "start_date": "2026-10-29",
+  "end_date": "2026-11-05",
+  "description": "Wyjazd do Wiednia"
+}
+```
+
+Pola: `name` (string, wymagane, max 255 znaków), `start_date` (data, wymagana), `end_date` (data, opcjonalna, nie wcześniejsza niż `start_date`), `description` (string lub null, opcjonalne).
+
+**Odpowiedź sukcesu `201 Created`:** obiekt podróży w polu `data`, w formacie takim jak element listy powyżej.
+
+#### `GET /api/v1/trips/{trip}`
+
+Zwraca jedną podróż użytkownika. Odpowiedź `200 OK` zawiera obiekt podróży w polu `data`.
+
+#### `PUT /api/v1/trips/{trip}` i `PATCH /api/v1/trips/{trip}`
+
+Aktualizuje podróż. Wszystkie pola są opcjonalne; przesłane pola muszą spełniać reguły tworzenia. `end_date` nie może być wcześniejsza niż aktualna lub przesłana `start_date`.
+
+**Żądanie:**
+
+```json
+{
+  "name": "Zmieniona nazwa",
+  "end_date": "2026-11-06"
+}
+```
+
+**Odpowiedź sukcesu `200 OK`:** zaktualizowany obiekt podróży w polu `data`.
+
+#### `DELETE /api/v1/trips/{trip}`
+
+Usuwa podróż. **Odpowiedź sukcesu:** `204 No Content` bez treści.
+
+### Miejsca podróży
+
+Wszystkie trasy miejsc wymagają uwierzytelnienia. Miejsca muszą należeć do podróży wskazanej w ścieżce; ich kolejność jest ustalana przez pole `position`.
+
+#### `GET /api/v1/trips/{trip}/places`
+
+Zwraca miejsca podróży posortowane rosnąco według `position`. **Odpowiedź `200 OK`:** tablica obiektów w polu `data`. Każdy obiekt zawiera `id`, `trip_id`, `name`, `latitude`, `longitude`, `position`, `country_code`, `created_at` i `updated_at`.
+
+#### `POST /api/v1/trips/{trip}/places`
+
+Dodaje miejsce na końcu kolejności podróży; `position` przypisywane jest automatycznie.
+
+**Żądanie:**
+
+```json
+{
+  "name": "Wien",
+  "latitude": 48.2082,
+  "longitude": 16.3725,
+  "country_code": "AT"
+}
+```
+
+`name` (string, wymagane, max 255 znaków), `latitude` (liczba od -90 do 90, wymagana), `longitude` (liczba od -180 do 180, wymagana), `country_code` (opcjonalny, dwuliterowy ciąg alfabetyczny lub null).
+
+**Odpowiedź sukcesu `201 Created`:** utworzone miejsce w polu `data`.
+
+#### `GET /api/v1/trips/{trip}/places/{place}`
+
+Zwraca pojedyncze miejsce należące do podróży. **Odpowiedź `200 OK`:** obiekt miejsca w polu `data`.
+
+#### `PATCH /api/v1/trips/{trip}/places/{place}`
+
+Aktualizuje miejsce. Opcjonalne pola: `name`, `latitude`, `longitude`, `country_code`; podane wartości podlegają tym samym regułom co przy tworzeniu. Kolejność zmienia się przez trasę `reorder`.
+
+**Odpowiedź sukcesu `200 OK`:** zaktualizowane miejsce w polu `data`.
+
+#### `DELETE /api/v1/trips/{trip}/places/{place}`
+
+Usuwa miejsce. **Odpowiedź sukcesu:** `204 No Content` bez treści.
+
+#### `PATCH /api/v1/trips/{trip}/places/reorder`
+
+Ustawia kolejność wszystkich miejsc w podróży.
+
+**Żądanie:**
+
+```json
+{
+  "place_ids": [3, 1, 2]
+}
+```
+
+`place_ids` musi zawierać każdy identyfikator miejsca z tej podróży dokładnie raz. Nieznane, powtórzone lub niekompletne identyfikatory powodują `422 Unprocessable Entity`.
+
+**Odpowiedź sukcesu `200 OK`:** tablica zaktualizowanych miejsc w nowej kolejności w polu `data`.
+
+### Odcinki podróży
+
+Wszystkie trasy odcinków wymagają uwierzytelnienia. Odcinki należą do podróży wskazanej w ścieżce; miejsca początkowe i końcowe muszą należeć do tej samej podróży.
+
+#### `GET /api/v1/trips/{trip}/legs`
+
+Zwraca odcinki podróży posortowane rosnąco według `position`. **Odpowiedź `200 OK`:** tablica obiektów w polu `data`. Każdy obiekt zawiera `id`, `trip_id`, `from_place_id`, `to_place_id`, `transport`, `distance`, `position`, `created_at` i `updated_at`.
+
+#### `POST /api/v1/trips/{trip}/legs`
+
+Dodaje odcinek na końcu kolejności podróży; `position` przypisywane jest automatycznie.
+
+**Żądanie:**
+
+```json
+{
+  "from_place_id": 1,
+  "to_place_id": 2,
+  "transport": "train",
+  "distance": 250.5
+}
+```
+
+`from_place_id` i `to_place_id` (identyfikatory miejsc z tej podróży, wymagane i różne), `transport` (wymagany; `car`, `plane`, `train` lub `other`), `distance` (opcjonalna, liczba nieujemna lub null).
+
+**Odpowiedź sukcesu `201 Created`:** utworzony odcinek w polu `data`.
+
+#### `GET /api/v1/trips/{trip}/legs/{leg}`
+
+Zwraca pojedynczy odcinek należący do podróży. **Odpowiedź `200 OK`:** obiekt odcinka w polu `data`.
+
+#### `PATCH /api/v1/trips/{trip}/legs/{leg}`
+
+Aktualizuje odcinek. Wszystkie pola tworzenia są opcjonalne, ale podane wartości podlegają tym samym regułom.
+
+**Odpowiedź sukcesu `200 OK`:** zaktualizowany odcinek w polu `data`.
+
+#### `DELETE /api/v1/trips/{trip}/legs/{leg}`
+
+Usuwa odcinek. **Odpowiedź sukcesu:** `204 No Content` bez treści.
+
+W tych grupach brak uwierzytelnienia zwraca `401 Unauthorized`, brak dostępu do podróży `403 Forbidden`, a nieistniejąca podróż lub zasób podrzędny `404 Not Found`. Nieprawidłowe dane żądania zwracają `422 Unprocessable Entity`.
+
 ### `GET /api/v1/geocode`
 
 Wyszukiwanie miejsc na potrzeby podpowiedzi przy dodawaniu punktu podróży. Nie wymaga uwierzytelnienia. Backend odpytuje dostawcę geokodowania (Photon) i zwraca wyniki w formacie aplikacji, niezależnym od dostawcy, dzięki czemu zmiana dostawcy nie wymaga zmian po stronie klienta.

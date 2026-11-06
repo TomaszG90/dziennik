@@ -68,11 +68,11 @@ Utwórz Issue, korzystając z szablonu funkcji w `.github/ISSUE_TEMPLATE/feature
 | ~~PR-15~~ | Layout aplikacji i nawigacja (nagłówek, menu, strona główna) oraz guardy routera (zalogowany / gość) | frontend | PR-14 | M |
 | ~~PR-16~~ | Widoki: formularz rejestracji i logowania z wyświetlaniem błędów walidacji | frontend | PR-14, PR-10, PR-11 | M |
 | ~~PR-17~~ | Widok edycji profilu (dane + przełącznik profil publiczny/prywatny) | frontend | PR-15, PR-12 | M |~~
-| PR-17A | Rozszerzenie modelu `User` i seeder developerski: migracja nowych pól i ustawień prywatności zgodnych z kontraktem frontendu; seeder z 3 predefiniowanymi kontami (publiczne, prywatne i częściowo ukryte z mieszanymi ustawieniami w polu JSON) | backend | PR-11 | M |
-| PR-17B | API profilu i wybór predefiniowanego awatara: endpoint `PATCH /api/v1/me`; walidacja awatara ograniczona do nazw wcześniej wgranych plików (np. `Rule::in(['1.png', ..., '10.png'])`) | backend | PR-17A | S |
-| PR-17C | Połączony widok logowania i rejestracji: zastąpienie osobnych tras jednym widokiem `/auth` z przełączanymi formularzami oraz aktualizacja Vue Routera i linków w menu | frontend | PR-15 | M |
-| PR-17D | Interfejs edycji profilu zgodny z makietą: pola danych, ustawienia prywatności poszczególnych pól w JSON i przełącznik globalny, modal/galeria wyboru jednego z 10 awatarów oraz minimalna szerokość okna edycji profilu | frontend | PR-17B, PR-17C | M |
-| PR-17E | Reset hasła: backendowe endpointy `POST /forgot-password` i `POST /reset-password` z tokenem e-mail oraz widoki podania adresu e-mail i zmiany hasła po kliknięciu w link | backend + frontend | PR-17C | L |
+| ~~PR-17A~~ | Rozszerzenie modelu `User` i seeder developerski: migracja nowych pól i ustawień prywatności zgodnych z kontraktem frontendu; seeder z 3 predefiniowanymi kontami (publiczne, prywatne i częściowo ukryte z mieszanymi ustawieniami w polu JSON) | backend | PR-11 | M |
+| ~~PR-17B~~ | API profilu i wybór predefiniowanego awatara: endpoint `PATCH /api/v1/me`; walidacja awatara ograniczona do nazw wcześniej wgranych plików (np. `Rule::in(['1.png', ..., '10.png'])`) | backend | PR-17A | S |
+| ~~PR-17C~~ | Połączony widok logowania i rejestracji: zastąpienie osobnych tras jednym widokiem `/auth` z przełączanymi formularzami oraz aktualizacja Vue Routera i linków w menu | frontend | PR-15 | M |
+| ~~PR-17D~~ | Interfejs edycji profilu zgodny z makietą: pola danych, ustawienia prywatności poszczególnych pól w JSON i przełącznik globalny, modal/galeria wyboru jednego z 10 awatarów oraz minimalna szerokość okna edycji profilu | frontend | PR-17B, PR-17C | M |
+| ~~PR-17E~~ | Reset hasła: backendowe endpointy `POST /forgot-password` i `POST /reset-password` z tokenem e-mail oraz widoki podania adresu e-mail i zmiany hasła po kliknięciu w link | backend + frontend | PR-17C | L |
 
 ---
 
@@ -83,12 +83,12 @@ Utwórz Issue, korzystając z szablonu funkcji w `.github/ISSUE_TEMPLATE/feature
 | ~~**PR-18**~~ | Model `Trip` (nazwa, data lub zakres dat, opis, właściciel) + migracja + polityka dostępu (tylko właściciel) | backend | PR-9 | M |
 | ~~PR-19~~ | CRUD podróży: `/api/v1/trips` (lista, szczegóły, tworzenie, edycja, usuwanie) + testy | backend | PR-18 | L |
 | ~~**PR-20**~~ | Model `Place` (punkt: nazwa, współrzędne, kolejność, kod kraju) i `Leg` (odcinek: z, do, transport, dystans) + migracje~~ | backend | PR-18 | M |
-| PR-21 | API punktów podróży: dodawanie, edycja, usuwanie, zmiana kolejności + testy | backend | PR-20 | L |
-| PR-22 | API odcinków: tworzenie, edycja, usuwanie, wybór środka transportu (samochód, samolot, pociąg, inne) + testy | backend | PR-20 | L |
+| ~~PR-21~~ | API punktów podróży: dodawanie, edycja, usuwanie, zmiana kolejności + testy | backend | PR-20 | L |
+| ~~PR-22~~ | API odcinków: tworzenie, edycja, usuwanie, wybór środka transportu (samochód, samolot, pociąg, inne) + testy | backend | PR-20 | L |
 | ~~PR-23~~ | Frontend: lista podróży użytkownika (widok + stan ładowania i pusty stan) | frontend | PR-15, PR-19 | M |
 | ~~PR-24~~ | Frontend: formularz tworzenia i edycji podróży (nazwa, daty, opis), usuwanie z potwierdzeniem | frontend | PR-23 | M |
-| PR-25 | Frontend: widok szczegółów podróży z listą punktów i odcinków (bez mapy) | frontend | PR-24, PR-21, PR-22 | M |
-| PR-26 | Frontend: dodawanie, usuwanie i zmiana kolejności punktów i odcinków oraz wybór transportu | frontend | PR-25 | L |
+| ~~PR-25~~ | Frontend: widok szczegółów podróży z listą punktów i odcinków (bez mapy) | frontend | PR-24, PR-21, PR-22 | M |
+| ~~PR-26~~| Frontend: dodawanie, usuwanie i zmiana kolejności punktów i odcinków oraz wybór transportu | frontend | PR-25 | L |
 
 ---
 

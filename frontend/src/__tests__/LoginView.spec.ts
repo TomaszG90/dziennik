@@ -2,7 +2,7 @@ import { flushPromises, mount } from '@vue/test-utils'
 import { createMemoryHistory, createRouter } from 'vue-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { ApiError } from '@/api'
-import LoginView from './LoginView.vue'
+import LoginView from '@/views/LoginView.vue'
 
 const { authMock } = vi.hoisted(() => ({
   authMock: {

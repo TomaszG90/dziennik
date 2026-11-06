@@ -2,7 +2,7 @@ import { flushPromises, mount } from '@vue/test-utils'
 import { createMemoryHistory, createRouter } from 'vue-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { ApiError, apiClient } from '@/api'
-import RegisterView from './RegisterView.vue'
+import RegisterView from '@/views/RegisterView.vue'
 
 const Placeholder = { template: '<div />' }
 

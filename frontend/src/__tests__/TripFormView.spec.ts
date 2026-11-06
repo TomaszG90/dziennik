@@ -1,9 +1,9 @@
 import { flushPromises, mount } from '@vue/test-utils'
 import { createMemoryHistory, createRouter } from 'vue-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import TripFormView from '../TripFormView.vue'
-import * as tripsApi from '@/api/trips.ts'
-import { ApiError } from '@/api/types.ts'
+import TripFormView from '@/views/TripFormView.vue'
+import * as tripsApi from '@/api/trips'
+import { ApiError } from '@/api/types'
 
 function createTestRouter(initialPath = '/trips/new') {
   const router = createRouter({

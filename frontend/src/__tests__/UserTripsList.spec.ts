@@ -1,7 +1,7 @@
 import { flushPromises, mount } from '@vue/test-utils'
 import { createMemoryHistory, createRouter } from 'vue-router'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
-import UserTripsList from '../UserTripsList.vue'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import UserTripsList from '@/components/trips/UserTripsList.vue'
 import * as tripsApi from '@/api/trips'
 
 function createTestRouter() {
@@ -18,6 +18,10 @@ function createTestRouter() {
 describe('UserTripsList', () => {
   beforeEach(() => {
     vi.restoreAllMocks()
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
   })
 
   it('shows loading state while fetching trips', async () => {
@@ -158,6 +162,70 @@ describe('UserTripsList', () => {
     const pastSection = wrapper.get('[data-testid="past-section"]')
     expect(pastSection.text()).toContain('Mazury 2020')
     expect(pastSection.find('[data-testid="past-empty-state"]').exists()).toBe(false)
+  })
+
+  it('highlights planned and past trip dates and their matching list cards', async () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date(2026, 5, 15, 12))
+
+    const plannedTrip: tripsApi.Trip = {
+      id: 21,
+      name: 'Wypad w góry',
+      start_date: '2026-06-20T00:00:00.000000Z',
+      end_date: '2026-06-22T00:00:00.000000Z',
+      description: null,
+      created_at: '2026-01-01T00:00:00Z',
+      updated_at: '2026-01-01T00:00:00Z',
+    }
+    const pastTrip: tripsApi.Trip = {
+      id: 22,
+      name: 'Majówka',
+      start_date: '2026-05-10',
+      end_date: '2026-05-12',
+      description: null,
+      created_at: '2026-01-01T00:00:00Z',
+      updated_at: '2026-01-01T00:00:00Z',
+    }
+    const wrapper = mount(UserTripsList, {
+      global: { plugins: [createTestRouter()] },
+      props: { initialTrips: [plannedTrip, pastTrip], autoFetch: false },
+    })
+
+    expect(wrapper.get('.calendar-month').text()).toBe('czerwiec 2026')
+    expect(wrapper.findAll('.calendar-weekday').map((day) => day.text())).toEqual([
+      'Pn',
+      'Wt',
+      'Śr',
+      'Cz',
+      'Pt',
+      'So',
+      'Nd',
+    ])
+    expect(wrapper.get('[data-date="2026-06-20"]').classes()).toContain('calendar-day--planned')
+    expect(wrapper.get('[data-date="2026-06-20"]').attributes('aria-label')).toContain(
+      'Wypad w góry',
+    )
+    expect(wrapper.get('.trip-date').text()).toBe('20.06.2026 – 22.06.2026')
+
+    await wrapper.get('[data-date="2026-06-21"]').trigger('click')
+    expect(wrapper.get('[data-testid="trip-card"]').classes()).toContain(
+      'trip-item--calendar-highlighted',
+    )
+
+    await wrapper.get('[aria-label="Poprzedni miesiąc"]').trigger('click')
+    expect(wrapper.get('.calendar-month').text()).toBe('maj 2026')
+    expect(wrapper.get('[data-date="2026-05-11"]').classes()).toContain('calendar-day--past')
+    await wrapper.get('[data-date="2026-05-11"]').trigger('click')
+    expect(wrapper.get('[data-testid="past-trip-card"]').classes()).toContain(
+      'trip-item--calendar-highlighted',
+    )
+
+    await wrapper.get('[aria-label="Pokaż termin podróży Wypad w góry w kalendarzu"]').trigger('click')
+    expect(wrapper.get('.calendar-month').text()).toBe('czerwiec 2026')
+    expect(wrapper.get('[data-date="2026-06-20"]').attributes('aria-pressed')).toBe('true')
+    expect(wrapper.get('[data-testid="trip-card"]').classes()).toContain(
+      'trip-item--calendar-highlighted',
+    )
   })
 
   it('navigates to trip details when clicking details button', async () => {

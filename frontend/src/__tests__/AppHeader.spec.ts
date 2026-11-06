@@ -4,7 +4,7 @@ import { defineComponent } from 'vue'
 import { createMemoryHistory, createRouter } from 'vue-router'
 import { describe, expect, it, vi } from 'vitest'
 import { useAuthStore } from '@/stores/auth'
-import AppHeader from '../AppHeader.vue'
+import AppHeader from '@/components/AppHeader.vue'
 
 const Placeholder = defineComponent({ render: () => null })
 
