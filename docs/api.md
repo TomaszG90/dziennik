@@ -345,6 +345,153 @@ Pola:
 }
 ```
 
+### `POST /api/v1/trips/{trip}/places`
+
+Dodanie punktu do podróży. Nowy punkt otrzymuje kolejną pozycję na liście punktów. Wymaga uwierzytelnienia (token w nagłówku `Authorization: Bearer {token}`) i jest dostępny wyłącznie dla właściciela podróży.
+
+**Parametry ścieżki:**
+- `trip` (integer, wymagany): identyfikator podróży zalogowanego użytkownika
+
+**Żądanie:**
+
+```json
+{
+  "name": "Wien",
+  "latitude": 48.2082,
+  "longitude": 16.3725,
+  "country_code": "AT"
+}
+```
+
+Pola:
+- `name` (string, required): nazwa punktu, max 255 znaków
+- `latitude` (number, required): szerokość geograficzna w stopniach dziesiętnych, od -90 do 90
+- `longitude` (number, required): długość geograficzna w stopniach dziesiętnych, od -180 do 180
+- `country_code` (string, optional): kod kraju w formacie ISO 3166-1 alpha-2; dozwolone są wyłącznie kody obsługiwane przez aplikację (lista ISO 3166-1 oraz `XK` dla Kosowa)
+
+Kod kraju przesłany w żądaniu ma pierwszeństwo i nie powoduje zapytania do dostawcy geokodowania; zwykle pochodzi z odpowiedzi `GET /api/v1/geocode`. Backend normalizuje go do wielkich liter, więc wartość `at` jest zapisywana jako `AT`. Kod spoza listy obsługiwanych kodów krajów (np. `ZZ`) kończy się odpowiedzią `422`.
+
+Gdy `country_code` nie zostanie przesłany, backend ustala kraj na podstawie współrzędnych i zapisuje go przy punkcie. Jeżeli dostawca geokodowania jest niedostępny albo nie zwróci kodu obsługiwanego przez aplikację, punkt nadal jest zapisywany, a `country_code` pozostaje `null` — zapis punktu nie jest blokowany przez zewnętrzną usługę.
+
+Zapytania do dostawcy geokodowania są limitowane do 60 na minutę dla jednego użytkownika; odpowiedzi pobrane z cache limitu nie zużywają. Po wyczerpaniu limitu punkt nadal jest zapisywany, a `country_code` przyjmuje wartość `null` — limit nie powoduje odpowiedzi `429`.
+
+**Odpowiedź sukcesu `201 Created`:**
+
+```json
+{
+  "data": {
+    "id": 7,
+    "trip_id": 3,
+    "name": "Wien",
+    "latitude": "48.2082000",
+    "longitude": "16.3725000",
+    "position": 1,
+    "country_code": "AT",
+    "created_at": "2026-11-04T10:00:00+00:00",
+    "updated_at": "2026-11-04T10:00:00+00:00"
+  }
+}
+```
+
+Pola punktu:
+- `latitude` i `longitude` (string): współrzędne w stopniach dziesiętnych z 7 miejscami po przecinku
+- `position` (integer): kolejność punktu w podróży, liczona od 1
+- `country_code` (string|null): kod kraju w formacie ISO 3166-1 alpha-2 albo `null`, gdy kraju nie udało się ustalić
+
+**Odpowiedź błędu walidacji `422 Unprocessable Entity`:**
+
+```json
+{
+  "message": "The selected country code is invalid.",
+  "errors": {
+    "country_code": ["The selected country code is invalid."]
+  }
+}
+```
+
+Kod o długości innej niż 2 znaki kończy się komunikatem `The country code field must be 2 characters.`
+
+**Odpowiedź błędu autoryzacji `401 Unauthorized`:**
+
+```json
+{
+  "message": "Unauthenticated."
+}
+```
+
+Gdy podróż należy do innego użytkownika, endpoint zwraca `403 Forbidden`. Format błędów opisuje sekcja „Błędy”.
+
+### `PATCH /api/v1/trips/{trip}/places/{place}`
+
+Edycja punktu podróży. Wymaga uwierzytelnienia (token w nagłówku `Authorization: Bearer {token}`) i jest dostępny wyłącznie dla właściciela podróży. Wszystkie pola są opcjonalne — aktualizowane są tylko przesłane.
+
+**Parametry ścieżki:**
+- `trip` (integer, wymagany): identyfikator podróży zalogowanego użytkownika
+- `place` (integer, wymagany): identyfikator punktu należącego do wskazanej podróży
+
+**Żądanie:**
+
+```json
+{
+  "name": "Wien Zentrum",
+  "latitude": 48.2100,
+  "longitude": 16.3700
+}
+```
+
+Pola:
+- `name` (string, optional): nazwa punktu, max 255 znaków
+- `latitude` (number, optional): szerokość geograficzna w stopniach dziesiętnych, od -90 do 90
+- `longitude` (number, optional): długość geograficzna w stopniach dziesiętnych, od -180 do 180
+- `country_code` (string|null, optional): kod kraju w formacie ISO 3166-1 alpha-2; dozwolone są wyłącznie kody obsługiwane przez aplikację (lista ISO 3166-1 oraz `XK` dla Kosowa)
+
+Przesłany `country_code` ma pierwszeństwo przed ustalaniem kraju ze współrzędnych i jest normalizowany do wielkich liter. Wartość `null` w tym polu oznacza ponowne ustalenie kraju ze współrzędnych. Kod spoza listy obsługiwanych kodów krajów (np. `ZZ`) kończy się odpowiedzią `422`, więc zapisany kod kraju pozostaje bez zmian.
+
+Gdy `country_code` nie zostanie przesłany, a zmienią się współrzędne punktu, backend ustala kraj ponownie i nadpisuje zapisaną wartość. Zmiana wyłącznie nazwy punktu zachowuje dotychczasowy kod kraju, więc taka edycja nie powoduje zapytania do dostawcy geokodowania. Jeżeli dostawca jest niedostępny albo nie zwróci kodu obsługiwanego przez aplikację, odpowiedź nadal ma status `200 OK`, a `country_code` przyjmuje wartość `null`.
+
+Limit zapytań do dostawcy (60 na minutę dla jednego użytkownika, bez uwzględnienia odpowiedzi z cache) działa jak przy dodawaniu punktu: po jego wyczerpaniu odpowiedź nadal ma status `200 OK`, a `country_code` przyjmuje wartość `null`.
+
+**Odpowiedź sukcesu `200 OK`:**
+
+```json
+{
+  "data": {
+    "id": 7,
+    "trip_id": 3,
+    "name": "Wien Zentrum",
+    "latitude": "48.2100000",
+    "longitude": "16.3700000",
+    "position": 1,
+    "country_code": "AT",
+    "created_at": "2026-11-04T10:00:00+00:00",
+    "updated_at": "2026-11-04T10:05:00+00:00"
+  }
+}
+```
+
+**Odpowiedź błędu walidacji `422 Unprocessable Entity`:**
+
+```json
+{
+  "message": "The latitude field must be between -90 and 90.",
+  "errors": {
+    "latitude": ["The latitude field must be between -90 and 90."]
+  }
+}
+```
+
+Kod kraju jest walidowany tak samo jak przy dodawaniu punktu: wartość spoza listy obsługiwanych kodów kończy się komunikatem `The selected country code is invalid.`
+
+**Odpowiedź błędu autoryzacji `401 Unauthorized`:**
+
+```json
+{
+  "message": "Unauthenticated."
+}
+```
+
+Punkt spoza wskazanej podróży kończy się odpowiedzią `404 Not Found`, a podróż innego użytkownika — `403 Forbidden`. Format błędów opisuje sekcja „Błędy”.
+
 ### `GET /api/v1/geocode`
 
 Wyszukiwanie miejsc na potrzeby podpowiedzi przy dodawaniu punktu podróży. Nie wymaga uwierzytelnienia. Backend odpytuje dostawcę geokodowania (Photon) i zwraca wyniki w formacie aplikacji, niezależnym od dostawcy, dzięki czemu zmiana dostawcy nie wymaga zmian po stronie klienta.
@@ -375,7 +522,7 @@ Pola wyniku:
 - `name` (string|null): nazwa miejsca zwrócona przez dostawcę
 - `latitude` (number|null): szerokość geograficzna w stopniach dziesiętnych
 - `longitude` (number|null): długość geograficzna w stopniach dziesiętnych
-- `country_code` (string|null): kod kraju w formacie ISO 3166-1 alpha-2
+- `country_code` (string|null): kod kraju w formacie ISO 3166-1 alpha-2 albo `null`, gdy dostawca nie zwrócił kodu obsługiwanego przez aplikację
 
 Lista zawiera maksymalnie 10 wyników. Brak trafień kończy się odpowiedzią `200 OK` z pustą tablicą (`{"data": []}`), co pozwala klientowi odróżnić brak wyników od błędu. Wyniki trafiają do cache na 24 godziny, natomiast błędów dostawcy nie zapisujemy w cache.
 

@@ -8,6 +8,7 @@ use App\Http\Requests\UpdatePlaceRequest;
 use App\Http\Resources\PlaceResource;
 use App\Models\Place;
 use App\Models\Trip;
+use App\Services\CountryCodeResolver;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\DB;
@@ -15,6 +16,10 @@ use Illuminate\Support\Facades\Gate;
 
 class PlaceController extends Controller
 {
+    public function __construct(
+        private CountryCodeResolver $countryCodeResolver
+    ) {}
+
     public function index(Trip $trip): JsonResponse
     {
         Gate::authorize('view', $trip);
@@ -30,8 +35,11 @@ class PlaceController extends Controller
 
         $position = ((int) $trip->places()->max('position')) + 1;
 
+        $attributes = $request->validated();
+        $attributes['country_code'] = $this->resolveCountryCode($attributes);
+
         $place = $trip->places()->create([
-            ...$request->validated(),
+            ...$attributes,
             'position' => $position,
         ]);
 
@@ -58,7 +66,13 @@ class PlaceController extends Controller
         Gate::authorize('update', $trip);
         $this->ensurePlaceBelongsToTrip($trip, $place);
 
-        $place->update($request->validated());
+        $attributes = $request->validated();
+
+        if ($this->shouldResolveCountryCode($attributes)) {
+            $attributes['country_code'] = $this->resolveCountryCode($attributes, $place);
+        }
+
+        $place->update($attributes);
 
         return (new PlaceResource($place->refresh()))
             ->response()
@@ -123,6 +137,39 @@ class PlaceController extends Controller
         return PlaceResource::collection(
             $trip->places()->orderBy('position')->get()
         )->response()->setStatusCode(Response::HTTP_OK);
+    }
+
+    /**
+     * Resolve the country code for the submitted place attributes.
+     *
+     * A code sent by the client, usually taken from a geocoding result, wins.
+     * Otherwise the country is determined from the coordinates, falling back
+     * to the stored ones so a partial update can still be resolved.
+     *
+     * @param  array<string, mixed>  $attributes
+     */
+    private function resolveCountryCode(array $attributes, ?Place $place = null): ?string
+    {
+        return $this->countryCodeResolver->resolve(
+            $attributes['country_code'] ?? null,
+            (float) ($attributes['latitude'] ?? $place?->latitude),
+            (float) ($attributes['longitude'] ?? $place?->longitude),
+        );
+    }
+
+    /**
+     * Decide whether an update must (re)resolve the stored country code.
+     *
+     * Only a submitted country code or changed coordinates can invalidate it,
+     * so editing the name alone keeps the current value.
+     *
+     * @param  array<string, mixed>  $attributes
+     */
+    private function shouldResolveCountryCode(array $attributes): bool
+    {
+        return array_key_exists('country_code', $attributes)
+            || array_key_exists('latitude', $attributes)
+            || array_key_exists('longitude', $attributes);
     }
 
     private function ensurePlaceBelongsToTrip(Trip $trip, Place $place): void
