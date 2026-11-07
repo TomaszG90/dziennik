@@ -25,7 +25,7 @@ class GeocodingService
      */
     public function search(string $query): array
     {
-        $cacheKey = 'geocode:'.md5($query);
+        $cacheKey = 'geocode:v2:'.md5($query);
 
         $cached = Cache::get($cacheKey);
 
@@ -98,7 +98,7 @@ class GeocodingService
             $response = Http::timeout(5)
                 ->get(config('services.photon.url'), [
                     'q' => $query,
-                    'limit' => 10,
+                    'limit' => 30,
                 ]);
         } catch (ConnectionException) {
             throw GeocodingProviderException::unavailable();
@@ -119,18 +119,51 @@ class GeocodingService
                 $coordinates = $feature['geometry']['coordinates'] ?? null;
                 $properties = $feature['properties'] ?? [];
 
-                if (! $coordinates) {
+                if (! is_array($coordinates) || ! isset($coordinates[0], $coordinates[1])) {
                     return null;
                 }
 
+                $text = static function (string $key) use ($properties): ?string {
+                    $value = $properties[$key] ?? null;
+
+                    return is_string($value) && trim($value) !== ''
+                        ? trim($value)
+                        : null;
+                };
+
                 return [
-                    'name' => $properties['name'] ?? null,
+                    'name' => $text('name'),
                     'latitude' => $coordinates[1] ?? null,
                     'longitude' => $coordinates[0] ?? null,
-                    'country_code' => CountryCodes::normalize($properties['countrycode'] ?? null),
+                    'street' => $text('street'),
+                    'housenumber' => $text('housenumber'),
+                    'postcode' => $text('postcode'),
+                    'city' => $text('city') ?? $text('locality'),
+                    'district' => $text('district'),
+                    'county' => $text('county'),
+                    'state' => $text('state'),
+                    'country' => $text('country'),
+                    'country_code' => isset($properties['countrycode'])
+                        ? strtoupper((string) $properties['countrycode'])
+                        : null,
                 ];
             })
             ->filter()
+            ->unique(function (array $result) {
+                return implode('|', [
+                    mb_strtolower(trim((string) $result['name'])),
+                    mb_strtolower(trim((string) $result['street'])),
+                    mb_strtolower(trim((string) $result['housenumber'])),
+                    mb_strtolower(trim((string) $result['postcode'])),
+                    mb_strtolower(trim((string) $result['city'])),
+                    mb_strtolower(trim((string) $result['district'])),
+                    mb_strtolower(trim((string) $result['county'])),
+                    mb_strtolower(trim((string) $result['state'])),
+                    mb_strtolower(trim((string) $result['country'])),
+                    (string) $result['country_code'],
+                ]);
+            })
+            ->take(10)
             ->values()
             ->all();
     }

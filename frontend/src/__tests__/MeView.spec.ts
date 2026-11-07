@@ -2,7 +2,7 @@ import { flushPromises, mount } from '@vue/test-utils'
 import { createPinia } from 'pinia'
 import { createMemoryHistory, createRouter } from 'vue-router'
 import { describe, expect, it, vi } from 'vitest'
-import MeView from '../MeView.vue'
+import MeView from '@/views/MeView.vue'
 import * as tripsApi from '@/api/trips'
 
 async function mountMeView() {

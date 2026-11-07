@@ -345,12 +345,85 @@ Pola:
 }
 ```
 
-### `POST /api/v1/trips/{trip}/places`
+### Podróże
 
-Dodanie punktu do podróży. Nowy punkt otrzymuje kolejną pozycję na liście punktów. Wymaga uwierzytelnienia (token w nagłówku `Authorization: Bearer {token}`) i jest dostępny wyłącznie dla właściciela podróży.
+Wszystkie trasy podróży wymagają uwierzytelnienia tokenem Sanctum. Użytkownik może przeglądać i modyfikować wyłącznie własne podróże.
 
-**Parametry ścieżki:**
-- `trip` (integer, wymagany): identyfikator podróży zalogowanego użytkownika
+#### `GET /api/v1/trips`
+
+Zwraca podróże zalogowanego użytkownika, posortowane rosnąco według `start_date`.
+
+**Odpowiedź sukcesu `200 OK`:**
+
+```json
+{
+  "data": [
+    {
+      "id": 1,
+      "name": "Wakacje w Austrii",
+      "start_date": "2026-10-29",
+      "end_date": "2026-11-05",
+      "description": null,
+      "created_at": "2026-10-29T17:00:00+00:00",
+      "updated_at": "2026-10-29T17:00:00+00:00"
+    }
+  ]
+}
+```
+
+#### `POST /api/v1/trips`
+
+Tworzy podróż zalogowanego użytkownika.
+
+**Żądanie:**
+
+```json
+{
+  "name": "Wakacje w Austrii",
+  "start_date": "2026-10-29",
+  "end_date": "2026-11-05",
+  "description": "Wyjazd do Wiednia"
+}
+```
+
+Pola: `name` (string, wymagane, max 255 znaków), `start_date` (data, wymagana), `end_date` (data, opcjonalna, nie wcześniejsza niż `start_date`), `description` (string lub null, opcjonalne).
+
+**Odpowiedź sukcesu `201 Created`:** obiekt podróży w polu `data`, w formacie takim jak element listy powyżej.
+
+#### `GET /api/v1/trips/{trip}`
+
+Zwraca jedną podróż użytkownika. Odpowiedź `200 OK` zawiera obiekt podróży w polu `data`.
+
+#### `PUT /api/v1/trips/{trip}` i `PATCH /api/v1/trips/{trip}`
+
+Aktualizuje podróż. Wszystkie pola są opcjonalne; przesłane pola muszą spełniać reguły tworzenia. `end_date` nie może być wcześniejsza niż aktualna lub przesłana `start_date`.
+
+**Żądanie:**
+
+```json
+{
+  "name": "Zmieniona nazwa",
+  "end_date": "2026-11-06"
+}
+```
+
+**Odpowiedź sukcesu `200 OK`:** zaktualizowany obiekt podróży w polu `data`.
+
+#### `DELETE /api/v1/trips/{trip}`
+
+Usuwa podróż. **Odpowiedź sukcesu:** `204 No Content` bez treści.
+
+### Miejsca podróży
+
+Wszystkie trasy miejsc wymagają uwierzytelnienia. Miejsca muszą należeć do podróży wskazanej w ścieżce; ich kolejność jest ustalana przez pole `position`.
+
+#### `GET /api/v1/trips/{trip}/places`
+
+Zwraca miejsca podróży posortowane rosnąco według `position`. **Odpowiedź `200 OK`:** tablica obiektów w polu `data`. Każdy obiekt zawiera `id`, `trip_id`, `name`, `latitude`, `longitude`, `position`, `country_code`, `created_at` i `updated_at`.
+
+#### `POST /api/v1/trips/{trip}/places`
+
+Dodaje miejsce na końcu kolejności podróży; `position` przypisywane jest automatycznie.
 
 **Żądanie:**
 
@@ -359,138 +432,94 @@ Dodanie punktu do podróży. Nowy punkt otrzymuje kolejną pozycję na liście p
   "name": "Wien",
   "latitude": 48.2082,
   "longitude": 16.3725,
+  "street": null,
+  "housenumber": null,
+  "postcode": null,
+  "city": "Wien",
+  "district": null,
+  "county": null,
+  "state": "Wien",
+  "country": "Austria",
   "country_code": "AT"
 }
 ```
 
-Pola:
-- `name` (string, required): nazwa punktu, max 255 znaków
-- `latitude` (number, required): szerokość geograficzna w stopniach dziesiętnych, od -90 do 90
-- `longitude` (number, required): długość geograficzna w stopniach dziesiętnych, od -180 do 180
-- `country_code` (string, optional): kod kraju w formacie ISO 3166-1 alpha-2; dozwolone są wyłącznie kody obsługiwane przez aplikację (lista ISO 3166-1 oraz `XK` dla Kosowa)
+`name` (string, wymagane, max 255 znaków), `latitude` (liczba od -90 do 90, wymagana), `longitude` (liczba od -180 do 180, wymagana), `country_code` (opcjonalny, dwuliterowy ciąg alfabetyczny lub null).
 
-Kod kraju przesłany w żądaniu ma pierwszeństwo i nie powoduje zapytania do dostawcy geokodowania; zwykle pochodzi z odpowiedzi `GET /api/v1/geocode`. Backend normalizuje go do wielkich liter, więc wartość `at` jest zapisywana jako `AT`. Kod spoza listy obsługiwanych kodów krajów (np. `ZZ`) kończy się odpowiedzią `422`.
+**Odpowiedź sukcesu `201 Created`:** utworzone miejsce w polu `data`.
 
-Gdy `country_code` nie zostanie przesłany, backend ustala kraj na podstawie współrzędnych i zapisuje go przy punkcie. Jeżeli dostawca geokodowania jest niedostępny albo nie zwróci kodu obsługiwanego przez aplikację, punkt nadal jest zapisywany, a `country_code` pozostaje `null` — zapis punktu nie jest blokowany przez zewnętrzną usługę.
+#### `GET /api/v1/trips/{trip}/places/{place}`
 
-Zapytania do dostawcy geokodowania są limitowane do 60 na minutę dla jednego użytkownika; odpowiedzi pobrane z cache limitu nie zużywają. Po wyczerpaniu limitu punkt nadal jest zapisywany, a `country_code` przyjmuje wartość `null` — limit nie powoduje odpowiedzi `429`.
+Zwraca pojedyncze miejsce należące do podróży. **Odpowiedź `200 OK`:** obiekt miejsca w polu `data`.
 
-**Odpowiedź sukcesu `201 Created`:**
+#### `PATCH /api/v1/trips/{trip}/places/{place}`
 
-```json
-{
-  "data": {
-    "id": 7,
-    "trip_id": 3,
-    "name": "Wien",
-    "latitude": "48.2082000",
-    "longitude": "16.3725000",
-    "position": 1,
-    "country_code": "AT",
-    "created_at": "2026-11-04T10:00:00+00:00",
-    "updated_at": "2026-11-04T10:00:00+00:00"
-  }
-}
-```
+Aktualizuje miejsce. Opcjonalne pola: `name`, `latitude`, `longitude`, `country_code`; podane wartości podlegają tym samym regułom co przy tworzeniu. Kolejność zmienia się przez trasę `reorder`.
 
-Pola punktu:
-- `latitude` i `longitude` (string): współrzędne w stopniach dziesiętnych z 7 miejscami po przecinku
-- `position` (integer): kolejność punktu w podróży, liczona od 1
-- `country_code` (string|null): kod kraju w formacie ISO 3166-1 alpha-2 albo `null`, gdy kraju nie udało się ustalić
+**Odpowiedź sukcesu `200 OK`:** zaktualizowane miejsce w polu `data`.
 
-**Odpowiedź błędu walidacji `422 Unprocessable Entity`:**
+#### `DELETE /api/v1/trips/{trip}/places/{place}`
 
-```json
-{
-  "message": "The selected country code is invalid.",
-  "errors": {
-    "country_code": ["The selected country code is invalid."]
-  }
-}
-```
+Usuwa miejsce. **Odpowiedź sukcesu:** `204 No Content` bez treści.
 
-Kod o długości innej niż 2 znaki kończy się komunikatem `The country code field must be 2 characters.`
+#### `PATCH /api/v1/trips/{trip}/places/reorder`
 
-**Odpowiedź błędu autoryzacji `401 Unauthorized`:**
-
-```json
-{
-  "message": "Unauthenticated."
-}
-```
-
-Gdy podróż należy do innego użytkownika, endpoint zwraca `403 Forbidden`. Format błędów opisuje sekcja „Błędy”.
-
-### `PATCH /api/v1/trips/{trip}/places/{place}`
-
-Edycja punktu podróży. Wymaga uwierzytelnienia (token w nagłówku `Authorization: Bearer {token}`) i jest dostępny wyłącznie dla właściciela podróży. Wszystkie pola są opcjonalne — aktualizowane są tylko przesłane.
-
-**Parametry ścieżki:**
-- `trip` (integer, wymagany): identyfikator podróży zalogowanego użytkownika
-- `place` (integer, wymagany): identyfikator punktu należącego do wskazanej podróży
+Ustawia kolejność wszystkich miejsc w podróży.
 
 **Żądanie:**
 
 ```json
 {
-  "name": "Wien Zentrum",
-  "latitude": 48.2100,
-  "longitude": 16.3700
+  "place_ids": [3, 1, 2]
 }
 ```
 
-Pola:
-- `name` (string, optional): nazwa punktu, max 255 znaków
-- `latitude` (number, optional): szerokość geograficzna w stopniach dziesiętnych, od -90 do 90
-- `longitude` (number, optional): długość geograficzna w stopniach dziesiętnych, od -180 do 180
-- `country_code` (string|null, optional): kod kraju w formacie ISO 3166-1 alpha-2; dozwolone są wyłącznie kody obsługiwane przez aplikację (lista ISO 3166-1 oraz `XK` dla Kosowa)
+`place_ids` musi zawierać każdy identyfikator miejsca z tej podróży dokładnie raz. Nieznane, powtórzone lub niekompletne identyfikatory powodują `422 Unprocessable Entity`.
 
-Przesłany `country_code` ma pierwszeństwo przed ustalaniem kraju ze współrzędnych i jest normalizowany do wielkich liter. Wartość `null` w tym polu oznacza ponowne ustalenie kraju ze współrzędnych. Kod spoza listy obsługiwanych kodów krajów (np. `ZZ`) kończy się odpowiedzią `422`, więc zapisany kod kraju pozostaje bez zmian.
+**Odpowiedź sukcesu `200 OK`:** tablica zaktualizowanych miejsc w nowej kolejności w polu `data`.
 
-Gdy `country_code` nie zostanie przesłany, a zmienią się współrzędne punktu, backend ustala kraj ponownie i nadpisuje zapisaną wartość. Zmiana wyłącznie nazwy punktu zachowuje dotychczasowy kod kraju, więc taka edycja nie powoduje zapytania do dostawcy geokodowania. Jeżeli dostawca jest niedostępny albo nie zwróci kodu obsługiwanego przez aplikację, odpowiedź nadal ma status `200 OK`, a `country_code` przyjmuje wartość `null`.
+### Odcinki podróży
 
-Limit zapytań do dostawcy (60 na minutę dla jednego użytkownika, bez uwzględnienia odpowiedzi z cache) działa jak przy dodawaniu punktu: po jego wyczerpaniu odpowiedź nadal ma status `200 OK`, a `country_code` przyjmuje wartość `null`.
+Wszystkie trasy odcinków wymagają uwierzytelnienia. Odcinki należą do podróży wskazanej w ścieżce; miejsca początkowe i końcowe muszą należeć do tej samej podróży.
 
-**Odpowiedź sukcesu `200 OK`:**
+#### `GET /api/v1/trips/{trip}/legs`
+
+Zwraca odcinki podróży posortowane rosnąco według `position`. **Odpowiedź `200 OK`:** tablica obiektów w polu `data`. Każdy obiekt zawiera `id`, `trip_id`, `from_place_id`, `to_place_id`, `transport`, `distance`, `position`, `created_at` i `updated_at`.
+
+#### `POST /api/v1/trips/{trip}/legs`
+
+Dodaje odcinek na końcu kolejności podróży; `position` przypisywane jest automatycznie.
+
+**Żądanie:**
 
 ```json
 {
-  "data": {
-    "id": 7,
-    "trip_id": 3,
-    "name": "Wien Zentrum",
-    "latitude": "48.2100000",
-    "longitude": "16.3700000",
-    "position": 1,
-    "country_code": "AT",
-    "created_at": "2026-11-04T10:00:00+00:00",
-    "updated_at": "2026-11-04T10:05:00+00:00"
-  }
+  "from_place_id": 1,
+  "to_place_id": 2,
+  "transport": "train",
+  "distance": 250.5
 }
 ```
 
-**Odpowiedź błędu walidacji `422 Unprocessable Entity`:**
+`from_place_id` i `to_place_id` (identyfikatory miejsc z tej podróży, wymagane i różne), `transport` (wymagany; `walking`, `car`, `plane`, `train` lub `other`), `distance` (opcjonalna, liczba nieujemna lub null).
 
-```json
-{
-  "message": "The latitude field must be between -90 and 90.",
-  "errors": {
-    "latitude": ["The latitude field must be between -90 and 90."]
-  }
-}
-```
+**Odpowiedź sukcesu `201 Created`:** utworzony odcinek w polu `data`.
 
-Kod kraju jest walidowany tak samo jak przy dodawaniu punktu: wartość spoza listy obsługiwanych kodów kończy się komunikatem `The selected country code is invalid.`
+#### `GET /api/v1/trips/{trip}/legs/{leg}`
 
-**Odpowiedź błędu autoryzacji `401 Unauthorized`:**
+Zwraca pojedynczy odcinek należący do podróży. **Odpowiedź `200 OK`:** obiekt odcinka w polu `data`.
 
-```json
-{
-  "message": "Unauthenticated."
-}
-```
+#### `PATCH /api/v1/trips/{trip}/legs/{leg}`
 
-Punkt spoza wskazanej podróży kończy się odpowiedzią `404 Not Found`, a podróż innego użytkownika — `403 Forbidden`. Format błędów opisuje sekcja „Błędy”.
+Aktualizuje odcinek. Wszystkie pola tworzenia są opcjonalne, ale podane wartości podlegają tym samym regułom.
+
+**Odpowiedź sukcesu `200 OK`:** zaktualizowany odcinek w polu `data`.
+
+#### `DELETE /api/v1/trips/{trip}/legs/{leg}`
+
+Usuwa odcinek. **Odpowiedź sukcesu:** `204 No Content` bez treści.
+
+W tych grupach brak uwierzytelnienia zwraca `401 Unauthorized`, brak dostępu do podróży `403 Forbidden`, a nieistniejąca podróż lub zasób podrzędny `404 Not Found`. Nieprawidłowe dane żądania zwracają `422 Unprocessable Entity`.
 
 ### `GET /api/v1/geocode`
 
@@ -522,9 +551,10 @@ Pola wyniku:
 - `name` (string|null): nazwa miejsca zwrócona przez dostawcę
 - `latitude` (number|null): szerokość geograficzna w stopniach dziesiętnych
 - `longitude` (number|null): długość geograficzna w stopniach dziesiętnych
-- `country_code` (string|null): kod kraju w formacie ISO 3166-1 alpha-2 albo `null`, gdy dostawca nie zwrócił kodu obsługiwanego przez aplikację
+- `street`, `housenumber`, `postcode`, `city`, `district`, `county`, `state`, `country` (string|null): dodatkowe szczegóły adresu, miejscowości i regionu; wartości zależą od danych dostawcy
+- `country_code` (string|null): kod kraju w formacie ISO 3166-1 alpha-2
 
-Lista zawiera maksymalnie 10 wyników. Brak trafień kończy się odpowiedzią `200 OK` z pustą tablicą (`{"data": []}`), co pozwala klientowi odróżnić brak wyników od błędu. Wyniki trafiają do cache na 24 godziny, natomiast błędów dostawcy nie zapisujemy w cache.
+Lista zawiera maksymalnie 10 unikalnych wyników. Duplikaty o tych samych nazwach i szczegółach adresowych są łączone. Brak trafień kończy się odpowiedzią `200 OK` z pustą tablicą (`{"data": []}`), co pozwala klientowi odróżnić brak wyników od błędu. Wyniki trafiają do cache na 24 godziny, natomiast błędów dostawcy nie zapisujemy w cache.
 
 **Odpowiedź błędu walidacji `422 Unprocessable Entity`:**
 

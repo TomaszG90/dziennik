@@ -30,6 +30,9 @@ class GeocodeApiTest extends TestCase
                         ],
                         'properties' => [
                             'name' => 'Wien',
+                            'city' => 'Wien',
+                            'state' => 'Wien',
+                            'country' => 'Austria',
                             'countrycode' => 'AT',
                         ],
                     ],
@@ -46,6 +49,14 @@ class GeocodeApiTest extends TestCase
                         'name',
                         'latitude',
                         'longitude',
+                        'street',
+                        'housenumber',
+                        'postcode',
+                        'city',
+                        'district',
+                        'county',
+                        'state',
+                        'country',
                         'country_code',
                     ],
                 ],
@@ -54,52 +65,54 @@ class GeocodeApiTest extends TestCase
                 'name' => 'Wien',
                 'latitude' => 48.2082,
                 'longitude' => 16.3725,
+                'city' => 'Wien',
+                'state' => 'Wien',
+                'country' => 'Austria',
                 'country_code' => 'AT',
             ]);
     }
 
-    public function test_geocode_endpoint_returns_null_for_country_code_not_assigned_in_iso(): void
+    public function test_geocode_endpoint_returns_place_details_and_removes_duplicate_results(): void
     {
+        $feature = [
+            'geometry' => ['coordinates' => [19.945, 50.0647]],
+            'properties' => [
+                'name' => 'Kraków',
+                'street' => 'Floriańska',
+                'housenumber' => '1',
+                'postcode' => '31-019',
+                'city' => 'Kraków',
+                'district' => 'Stare Miasto',
+                'county' => 'Kraków',
+                'state' => 'małopolskie',
+                'country' => 'Poland',
+                'countrycode' => 'pl',
+            ],
+        ];
+        $duplicateWithDifferentCoordinates = $feature;
+        $duplicateWithDifferentCoordinates['geometry']['coordinates'] = [19.94501, 50.06471];
+
         Http::fake([
             'https://photon.komoot.io/api*' => Http::response([
-                'features' => [
-                    [
-                        'geometry' => [
-                            'coordinates' => [16.3725, 48.2082],
-                        ],
-                        'properties' => [
-                            'name' => 'Wien',
-                            'countrycode' => 'ZZ',
-                        ],
-                    ],
-                ],
+                'features' => [$feature, $duplicateWithDifferentCoordinates],
             ]),
         ]);
 
-        $this->getJson('/api/v1/geocode?q=Wien')
+        $this->getJson('/api/v1/geocode?q=Florianska')
             ->assertOk()
-            ->assertJsonPath('data.0.name', 'Wien')
-            ->assertJsonPath('data.0.country_code', null);
-    }
-
-    public function test_geocode_endpoint_returns_null_for_cached_country_code_not_assigned_in_iso(): void
-    {
-        Http::fake();
-
-        Cache::put('geocode:'.md5('Wien'), [
-            [
-                'name' => 'Wien',
-                'latitude' => 48.2082,
-                'longitude' => 16.3725,
-                'country_code' => 'ZZ',
-            ],
-        ], now()->addHours(24));
-
-        $this->getJson('/api/v1/geocode?q=Wien')
-            ->assertOk()
-            ->assertJsonPath('data.0.country_code', null);
-
-        Http::assertNothingSent();
+            ->assertJsonCount(1, 'data')
+            ->assertJsonFragment([
+                'name' => 'Kraków',
+                'street' => 'Floriańska',
+                'housenumber' => '1',
+                'postcode' => '31-019',
+                'city' => 'Kraków',
+                'district' => 'Stare Miasto',
+                'county' => 'Kraków',
+                'state' => 'małopolskie',
+                'country' => 'Poland',
+                'country_code' => 'PL',
+            ]);
     }
 
     public function test_geocode_endpoint_requires_query_parameter(): void

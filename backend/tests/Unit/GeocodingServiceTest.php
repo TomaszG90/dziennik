@@ -163,7 +163,7 @@ class GeocodingServiceTest extends TestCase
         Http::assertSent(function ($request) {
             return str_starts_with($request->url(), 'https://photon.example.test/api')
                 && $request['q'] === 'Wien'
-                && $request['limit'] === 10;
+                && $request['limit'] === 30;
         });
     }
 

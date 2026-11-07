@@ -36,25 +36,32 @@ function getTodayString(): string {
   return `${year}-${month}-${day}`
 }
 
+function dateOnly(date: string | null | undefined): string | null {
+  return date?.slice(0, 10) ?? null
+}
+
 function isPastTrip(trip: Trip): boolean {
   const today = getTodayString()
-  if (trip.end_date) {
-    return trip.end_date < today
+  const endDate = dateOnly(trip.end_date)
+  const startDate = dateOnly(trip.start_date)
+  if (endDate) {
+    return endDate < today
   }
-  if (trip.start_date) {
-    return trip.start_date < today
+  if (startDate) {
+    return startDate < today
   }
   return false
 }
 
 function formatDate(dateStr: string | null | undefined): string {
-  if (!dateStr) return ''
-  const parts = dateStr.slice(0, 10).split('-')
+  const normalizedDate = dateOnly(dateStr)
+  if (!normalizedDate) return ''
+  const parts = normalizedDate.split('-')
   if (parts.length === 3) {
     const [year, month, day] = parts
     return `${day}.${month}.${year}`
   }
-  return dateStr
+  return normalizedDate
 }
 
 function formatDateRange(
@@ -62,12 +69,14 @@ function formatDateRange(
   endDate: string | null | undefined,
 ): string {
   if (!startDate && !endDate) return 'Termin do ustalenia'
-  if (startDate && endDate) {
-    if (startDate === endDate) return formatDate(startDate)
-    return `${formatDate(startDate)} – ${formatDate(endDate)}`
+  const normalizedStart = dateOnly(startDate)
+  const normalizedEnd = dateOnly(endDate)
+  if (normalizedStart && normalizedEnd) {
+    if (normalizedStart === normalizedEnd) return formatDate(normalizedStart)
+    return `${formatDate(normalizedStart)} – ${formatDate(normalizedEnd)}`
   }
-  if (startDate) return `Od ${formatDate(startDate)}`
-  return `Do ${formatDate(endDate)}`
+  if (normalizedStart) return `Od ${formatDate(normalizedStart)}`
+  return `Do ${formatDate(normalizedEnd)}`
 }
 
 const plannedTrips = computed(() => trips.value.filter((trip) => !isPastTrip(trip)))
@@ -91,8 +100,8 @@ const calendarDays = computed<Array<string | null>>(() => {
 })
 
 function tripDateRange(trip: Trip): [string, string] | null {
-  const start = trip.start_date?.slice(0, 10) ?? trip.end_date?.slice(0, 10)
-  const end = trip.end_date?.slice(0, 10) ?? trip.start_date?.slice(0, 10)
+  const start = dateOnly(trip.start_date) ?? dateOnly(trip.end_date)
+  const end = dateOnly(trip.end_date) ?? dateOnly(trip.start_date)
   if (!start || !end) return null
   return start <= end ? [start, end] : [end, start]
 }
@@ -261,16 +270,16 @@ onMounted(() => {
       >
         <section class="trip-calendar" aria-label="Kalendarz podróży">
           <div class="calendar-header">
-            <button type="button" class="calendar-nav-button" aria-label="Poprzedni miesiac" @click="changeMonth(-1)">
+            <button type="button" class="calendar-nav-button" aria-label="Poprzedni miesiąc" @click="changeMonth(-1)">
               <span aria-hidden="true">&lsaquo;</span>
             </button>
             <h4 class="calendar-month" aria-live="polite">{{ monthLabel }}</h4>
-            <button type="button" class="calendar-nav-button" aria-label="Nastepny miesiac" @click="changeMonth(1)">
+            <button type="button" class="calendar-nav-button" aria-label="Następny miesiąc" @click="changeMonth(1)">
               <span aria-hidden="true">&rsaquo;</span>
             </button>
           </div>
           <div class="calendar-grid" role="grid" :aria-label="monthLabel">
-            <span v-for="weekday in ['Pn', 'Wt', 'Sr', 'Cz', 'Pt', 'So', 'Nd']" :key="weekday" class="calendar-weekday" role="columnheader">
+            <span v-for="weekday in ['Pn', 'Wt', 'Śr', 'Cz', 'Pt', 'So', 'Nd']" :key="weekday" class="calendar-weekday" role="columnheader">
               {{ weekday }}
             </span>
             <template v-for="(date, index) in calendarDays" :key="date ?? `empty-${index}`">
@@ -279,8 +288,10 @@ onMounted(() => {
                 v-else
                 type="button"
                 class="calendar-day"
+                :data-date="date"
                 :class="{
-                  'calendar-day--scheduled': tripsOnDate(date).length > 0,
+                  'calendar-day--planned': tripsOnDate(date).some((trip) => !isPastTrip(trip)),
+                  'calendar-day--past': tripsOnDate(date).some(isPastTrip),
                   'calendar-day--selected': selectedCalendarDate === date,
                 }"
                 role="gridcell"
@@ -295,7 +306,7 @@ onMounted(() => {
               </button>
             </template>
           </div>
-          <p class="calendar-hint">Wybierz dzien z podroza, aby podswietlic ja na liscie. Kliknij termin na liscie, aby przejsc do jego miesiaca.</p>
+          <p class="calendar-hint">Wybierz dzień podróży, aby podświetlić ją na liście. Kliknij termin na liście, aby przejść do jego miesiąca.</p>
         </section>
         <header class="section-header">
           <div>
@@ -800,8 +811,12 @@ button.calendar-day:focus-visible {
   outline: none;
 }
 
-.calendar-day--scheduled {
+.calendar-day--planned {
   background: rgba(56, 106, 84, 0.08);
+}
+
+.calendar-day--past {
+  background: rgba(37, 99, 235, 0.1);
 }
 
 .calendar-day--selected {
@@ -1153,8 +1168,12 @@ button.calendar-day:focus-visible {
     color: #f3f4f6;
   }
 
-  .calendar-day--scheduled {
+  .calendar-day--planned {
     background: rgba(110, 231, 183, 0.1);
+  }
+
+  .calendar-day--past {
+    background: rgba(96, 165, 250, 0.16);
   }
 
   .calendar-day--selected {

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import { getAuthToken, setAuthToken, clearAuthToken } from '../token'
+import { getAuthToken, setAuthToken, clearAuthToken } from '@/api/token'
 
 describe('token storage helpers', () => {
   beforeEach(() => {

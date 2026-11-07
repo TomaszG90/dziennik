@@ -88,6 +88,23 @@ class LegApiTest extends TestCase
         ]);
     }
 
+    public function test_user_can_create_a_walking_leg_for_their_trip(): void
+    {
+        $user = User::factory()->create();
+        Sanctum::actingAs($user);
+
+        $trip = $this->createTrip($user);
+        $from = $this->createPlace($trip, ['position' => 1]);
+        $to = $this->createPlace($trip, ['position' => 2]);
+
+        $this->postJson("/api/v1/trips/{$trip->id}/legs", [
+            'from_place_id' => $from->id,
+            'to_place_id' => $to->id,
+            'transport' => 'walking',
+        ])->assertCreated()
+            ->assertJsonPath('data.transport', 'walking');
+    }
+
     public function test_user_can_show_update_and_delete_a_leg(): void
     {
         $user = User::factory()->create();
@@ -106,6 +123,11 @@ class LegApiTest extends TestCase
             'transport' => 'plane',
         ])->assertOk()
             ->assertJsonPath('data.transport', 'plane');
+
+        $this->patchJson("/api/v1/trips/{$trip->id}/legs/{$leg->id}", [
+            'transport' => 'walking',
+        ])->assertOk()
+            ->assertJsonPath('data.transport', 'walking');
 
         $this->deleteJson("/api/v1/trips/{$trip->id}/legs/{$leg->id}")
             ->assertNoContent();

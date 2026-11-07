@@ -1,7 +1,7 @@
 ﻿import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { ApiError, apiClient, clearAuthToken, getAuthToken, setAuthToken } from '@/api'
-import { useAuthStore, type AuthUser } from './auth'
+import { useAuthStore, type AuthUser } from '@/stores/auth'
 
 vi.mock('@/api', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/api')>()

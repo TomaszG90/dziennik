@@ -1,14 +1,14 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { AxiosError, type InternalAxiosRequestConfig, type AxiosResponse } from 'axios'
 
-vi.mock('../token', () => ({
+vi.mock('@/api/token', () => ({
   getAuthToken: vi.fn<() => string | null>(),
   clearAuthToken: vi.fn<() => void>(),
 }))
 
-import { getAuthToken, clearAuthToken } from '../token'
-import { apiClient } from '../client'
-import { ApiError } from '../types'
+import { getAuthToken, clearAuthToken } from '@/api/token'
+import { apiClient } from '@/api/client'
+import { ApiError } from '@/api/types'
 
 // ── helpers ───────────────────────────────────────────────────
 let lastConfig: InternalAxiosRequestConfig | undefined

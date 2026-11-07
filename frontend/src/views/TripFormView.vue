@@ -1,7 +1,14 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
-import { createTrip, deleteTrip, getTrip, updateTrip, type Trip, type TripPayload } from '@/api/trips'
+import { RouterLink, useRoute, useRouter } from 'vue-router'
+import {
+  createTrip,
+  deleteTrip,
+  getTrip,
+  updateTrip,
+  type Trip,
+  type TripPayload,
+} from '@/api/trips'
 import { ApiError } from '@/api/types'
 import ConfirmModal from '@/components/common/ConfirmModal.vue'
 
@@ -199,7 +206,15 @@ onMounted(() => {
           aria-label="Wróć do listy podróży"
           @click="handleCancel"
         >
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <svg
+            viewBox="0 0 24 24"
+            width="18"
+            height="18"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            aria-hidden="true"
+          >
             <path d="M19 12H5M12 19l-7-7 7-7" />
           </svg>
           <span>Powrót</span>
@@ -235,7 +250,15 @@ onMounted(() => {
       <!-- Formularz -->
       <div v-else class="form-card">
         <div v-if="formError" class="alert-banner" role="alert" data-testid="form-error-banner">
-          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <svg
+            viewBox="0 0 24 24"
+            width="20"
+            height="20"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            aria-hidden="true"
+          >
             <circle cx="12" cy="12" r="10" />
             <line x1="12" y1="8" x2="12" y2="12" />
             <line x1="12" y1="16" x2="12.01" y2="16" />
@@ -246,7 +269,9 @@ onMounted(() => {
         <form class="trip-form" @submit.prevent="handleSubmit">
           <!-- Nazwa podróży -->
           <div class="field" :class="{ 'field--invalid': errors.name.length > 0 }">
-            <label for="trip-name">Nazwa podróży <span class="required" aria-hidden="true">*</span></label>
+            <label for="trip-name"
+              >Nazwa podróży <span class="required" aria-hidden="true">*</span></label
+            >
             <input
               id="trip-name"
               v-model="formData.name"
@@ -259,7 +284,12 @@ onMounted(() => {
               :aria-describedby="errors.name.length > 0 ? 'name-error' : undefined"
               data-testid="trip-name-input"
             />
-            <p v-if="errors.name.length > 0" id="name-error" class="field-error" data-testid="name-error">
+            <p
+              v-if="errors.name.length > 0"
+              id="name-error"
+              class="field-error"
+              data-testid="name-error"
+            >
               {{ errors.name[0] }}
             </p>
           </div>
@@ -267,7 +297,9 @@ onMounted(() => {
           <!-- Daty: Rozpoczęcie i Zakończenie -->
           <div class="dates-grid">
             <div class="field" :class="{ 'field--invalid': errors.start_date.length > 0 }">
-              <label for="trip-start-date">Data rozpoczęcia <span class="required" aria-hidden="true">*</span></label>
+              <label for="trip-start-date"
+                >Data rozpoczęcia <span class="required" aria-hidden="true">*</span></label
+              >
               <input
                 id="trip-start-date"
                 v-model="formData.start_date"
@@ -278,13 +310,20 @@ onMounted(() => {
                 :aria-describedby="errors.start_date.length > 0 ? 'start-date-error' : undefined"
                 data-testid="trip-start-date-input"
               />
-              <p v-if="errors.start_date.length > 0" id="start-date-error" class="field-error" data-testid="start-date-error">
+              <p
+                v-if="errors.start_date.length > 0"
+                id="start-date-error"
+                class="field-error"
+                data-testid="start-date-error"
+              >
                 {{ errors.start_date[0] }}
               </p>
             </div>
 
             <div class="field" :class="{ 'field--invalid': errors.end_date.length > 0 }">
-              <label for="trip-end-date">Data zakończenia <span class="optional">(opcjonalnie)</span></label>
+              <label for="trip-end-date"
+                >Data zakończenia <span class="optional">(opcjonalnie)</span></label
+              >
               <input
                 id="trip-end-date"
                 v-model="formData.end_date"
@@ -295,7 +334,12 @@ onMounted(() => {
                 :aria-describedby="errors.end_date.length > 0 ? 'end-date-error' : undefined"
                 data-testid="trip-end-date-input"
               />
-              <p v-if="errors.end_date.length > 0" id="end-date-error" class="field-error" data-testid="end-date-error">
+              <p
+                v-if="errors.end_date.length > 0"
+                id="end-date-error"
+                class="field-error"
+                data-testid="end-date-error"
+              >
                 {{ errors.end_date[0] }}
               </p>
             </div>
@@ -303,7 +347,9 @@ onMounted(() => {
 
           <!-- Opis -->
           <div class="field" :class="{ 'field--invalid': errors.description.length > 0 }">
-            <label for="trip-description">Opis podróży <span class="optional">(opcjonalnie)</span></label>
+            <label for="trip-description"
+              >Opis podróży <span class="optional">(opcjonalnie)</span></label
+            >
             <textarea
               id="trip-description"
               v-model="formData.description"
@@ -314,13 +360,23 @@ onMounted(() => {
               :aria-describedby="errors.description.length > 0 ? 'description-error' : undefined"
               data-testid="trip-description-input"
             ></textarea>
-            <p v-if="errors.description.length > 0" id="description-error" class="field-error" data-testid="description-error">
+            <p
+              v-if="errors.description.length > 0"
+              id="description-error"
+              class="field-error"
+              data-testid="description-error"
+            >
               {{ errors.description[0] }}
             </p>
           </div>
 
           <div v-if="!isEditMode" class="invite-friends-row">
-            <button type="button" class="btn-secondary" disabled data-testid="invite-friends-button">
+            <button
+              type="button"
+              class="btn-secondary"
+              disabled
+              data-testid="invite-friends-button"
+            >
               Zaproś znajomych
             </button>
             <p class="invite-friends-hint">Ta opcja będzie dostępna w przyszłości.</p>
@@ -329,6 +385,14 @@ onMounted(() => {
           <!-- Przyciski akcji formularza -->
           <div class="form-actions-row">
             <div class="left-actions">
+              <RouterLink
+                v-if="isEditMode && targetTripId !== undefined"
+                :to="{ name: 'trip-details', params: { id: targetTripId } }"
+                class="btn-secondary"
+                data-testid="trip-details-button"
+              >
+                Szczegóły podróży
+              </RouterLink>
               <button
                 v-if="isEditMode"
                 type="button"
@@ -337,8 +401,18 @@ onMounted(() => {
                 data-testid="delete-trip-trigger"
                 @click="openDeleteModal"
               >
-                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                  <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                <svg
+                  viewBox="0 0 24 24"
+                  width="16"
+                  height="16"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  aria-hidden="true"
+                >
+                  <path
+                    d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"
+                  />
                 </svg>
                 <span>Usuń podróż</span>
               </button>
