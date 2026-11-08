@@ -1253,6 +1253,12 @@ button.calendar-day:focus-visible {
     border-color: #6ee7b7;
   }
 
+  .trip-item.trip-item--calendar-highlighted {
+    border-color: #6ee7b7;
+    background: #1a2e24;
+    box-shadow: 0 0 0 2px rgba(110, 231, 183, 0.18);
+  }
+
   .trip-name {
     color: #f3f4f6;
   }

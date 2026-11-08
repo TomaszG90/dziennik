@@ -96,12 +96,12 @@ Utwórz Issue, korzystając z szablonu funkcji w `.github/ISSUE_TEMPLATE/feature
 
 | ID | Zadanie | Obszar | Zależy od | Rozmiar |
 |---|---|---|---|---|
-| PR-27 | Serwis geokodowania (Nominatim/Photon) i endpoint wyszukiwania miejsc `GET /api/v1/geocode?q=` z cache i limitem zapytań | backend | PR-4, PR-7 | M |
-| PR-28 | Serwis dystansu "po kuli ziemskiej" (haversine) i "w linii prostej" + testy jednostkowe | backend | PR-2 | S |
+| ~~PR-27~~ | Serwis geokodowania (Nominatim/Photon) i endpoint wyszukiwania miejsc `GET /api/v1/geocode?q=` z cache i limitem zapytań | backend | PR-4, PR-7 | M |
+| ~~PR-28~~ | Serwis dystansu "po kuli ziemskiej" (haversine) i "w linii prostej" + testy jednostkowe | backend | PR-2 | S |
 | PR-29 | Serwis wyznaczania trasy samochodowej (OpenRouteService/OSRM): geometria trasy i dystans, obsługa błędów API | backend | PR-7 | L |
 | PR-30 | Automatyczne wyliczanie i zapis dystansu oraz geometrii odcinka zależnie od transportu | backend | PR-22, PR-28, PR-29 | M |
 | PR-31 | Ustalanie kraju dla punktu (kod ISO) na podstawie współrzędnych lub odpowiedzi geokodera i zapis przy punkcie | backend | PR-20, PR-27 | M |
-| PR-32 | Frontend: pole wyszukiwania miejsca z podpowiedziami (autocomplete) przy dodawaniu punktu | frontend | PR-26, PR-27 | M |
+| ~~PR-32~~ | Frontend: pole wyszukiwania miejsca z podpowiedziami (autocomplete) przy dodawaniu punktu | frontend | PR-26, PR-27 | M |
 
 ---
 
@@ -109,7 +109,7 @@ Utwórz Issue, korzystając z szablonu funkcji w `.github/ISSUE_TEMPLATE/feature
 
 | ID | Zadanie | Obszar | Zależy od | Rozmiar |
 |---|---|---|---|---|
-| **PR-33** | Bazowy komponent mapy (Leaflet lub MapLibre): kafelki, zoom, konfiguracja, test renderowania | frontend | PR-3, PR-7 | M |
+| ~~**PR-33**~~ | Bazowy komponent mapy (Leaflet lub MapLibre): kafelki, zoom, konfiguracja, test renderowania | frontend | PR-3, PR-7 | M |
 | PR-34 | Mapa jednej podróży: markery punktów i odcinki | frontend | PR-33, PR-25 | L |
 | PR-35 | Rozróżnienie transportu: kolory, ikony lub styl linii, legenda mapy | frontend | PR-34 | M |
 | PR-36 | Prezentacja samolotu jako łuku, trasy samochodowej po drogach, pociągu i "inne" jako linii prostej | frontend | PR-35, PR-30 | L |

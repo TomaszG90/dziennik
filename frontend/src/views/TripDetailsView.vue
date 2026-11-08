@@ -2,6 +2,7 @@
 import { computed, onMounted, onBeforeUnmount, ref, watch } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 import { searchPlaces, type GeocodeResult } from '@/api/geocoding'
+import MapView from '@/components/MapView.vue'
 import {
   createTripLeg,
   createTripPlace,
@@ -764,18 +765,13 @@ onBeforeUnmount(() => {
               </div>
               <span class="count-badge">{{ places.length }} punktów</span>
             </div>
-            <div
+            <MapView
               class="map-canvas"
               data-testid="route-map-canvas"
-              role="img"
-              aria-label="Obszar podglądu mapy podróży"
-            >
-              <span class="map-placeholder-marker" aria-hidden="true">⌖</span>
-              <p v-if="places.length === 0">Dodaj punkty, aby przygotować podgląd mapy.</p>
-              <p v-else>Podgląd mapy będzie wyświetlany tutaj.</p>
-            </div>
+              aria-label="Mapa podróży"
+            />
             <p class="map-panel-note">
-              Punkty i przebieg podróży będą widoczne na mapie po podłączeniu widoku mapowego.
+              Mapa bazowa. Markery punktów i przebieg trasy pojawią się w kolejnych etapach.
             </p>
           </aside>
         </div>
@@ -1040,42 +1036,13 @@ h1 {
   margin-bottom: 0.25rem;
 }
 .map-canvas {
-  display: grid;
-  min-height: 28rem;
-  place-content: center;
-  justify-items: center;
-  gap: 0.75rem;
+  display: block;
+  width: 100%;
+  height: clamp(20rem, 55vh, 34rem);
+  min-height: 20rem;
   overflow: hidden;
-  padding: 1.5rem;
   border: 1px solid #d5e0d7;
   border-radius: 0.9rem;
-  color: #53645a;
-  background-color: #edf3ee;
-  background-image:
-    linear-gradient(30deg, transparent 49%, #dce7de 50%, transparent 51%),
-    linear-gradient(150deg, transparent 49%, #dce7de 50%, transparent 51%);
-  background-size: 4.5rem 4.5rem;
-  text-align: center;
-}
-.map-canvas p {
-  max-width: 24rem;
-  margin: 0;
-  padding: 0.65rem 0.85rem;
-  border-radius: 0.6rem;
-  background: rgb(255 255 255 / 88%);
-  font-size: 0.9rem;
-}
-.map-placeholder-marker {
-  display: grid;
-  width: 3rem;
-  height: 3rem;
-  place-items: center;
-  border: 1px solid #c6d6c9;
-  border-radius: 50%;
-  color: #386a54;
-  background: #fff;
-  box-shadow: 0 4px 12px rgb(30 55 40 / 12%);
-  font-size: 1.6rem;
 }
 .map-panel-note {
   margin: 0;
@@ -1620,9 +1587,6 @@ h2 {
   .map-panel {
     position: static;
   }
-  .map-canvas {
-    min-height: 20rem;
-  }
 }
 @media (max-width: 560px) {
   .hero-title-row {
@@ -1741,22 +1705,6 @@ h2 {
   }
   .map-panel {
     background: #1f2937;
-  }
-  .map-canvas {
-    border-color: #37483d;
-    color: #a6b2a9;
-    background-color: #263329;
-    background-image:
-      linear-gradient(30deg, transparent 49%, #37483d 50%, transparent 51%),
-      linear-gradient(150deg, transparent 49%, #37483d 50%, transparent 51%);
-  }
-  .map-canvas p {
-    background: rgb(17 24 39 / 88%);
-  }
-  .map-placeholder-marker {
-    border-color: #4b5563;
-    color: #6ee7b7;
-    background: #111827;
   }
   .map-panel-note {
     color: #9ca3af;
