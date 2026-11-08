@@ -160,7 +160,7 @@ Utwórz Issue, korzystając z szablonu funkcji w `.github/ISSUE_TEMPLATE/feature
 | PR-53 [#118](https://github.com/TomaszG90/dziennik/issues/118) | Filtry ścieżek CI dla backendu, frontendu, kontraktu API i `mobile/` | devops | PR-51, PR-52 | M |
 | PR-54 [#119](https://github.com/TomaszG90/dziennik/issues/119) | Szkielet natywnej aplikacji Android w Kotlinie i Jetpack Compose, Gradle Wrapper, CI build oraz dokumentacja `mobile/README.md`; bez ekranów funkcjonalnych | mobile / devops / docs | PR-51, PR-53 | M |
 
-Decyzję stacku Android opisuje [ADR-002](docs/ADR-002-mobile-stack.md). Zmiany backendowego API są źródłem kontraktu wspólnego dla Vue i Androida; aplikacja mobilna nie kopiuje definicji endpointów ręcznie.
+Decyzję stacku Android opisuje [ADR-002](docs/ADR-002-mobile-stack.md). Szczegółowy plan rozwoju aplikacji mobilnej od PR-55 znajduje się w [TASK2.md](TASK2.md). Zmiany backendowego API są źródłem kontraktu wspólnego dla Vue i Androida; aplikacja mobilna nie kopiuje definicji endpointów ręcznie.
 
 Kryteria akceptacji nowych zadań:
 
@@ -184,5 +184,5 @@ Dzięki temu na początku każdy ma co robić, a zadania blokujące (pogrubione)
 ## Zasada utrzymania listy
 
 - Zrobione zadania oznaczaj w Issue (zamknięcie) i skreślaj w tabeli (`~~PR-1~~`).
-- Nowe pomysły dopisuj na końcu jako kolejne numery (`PR-51`, `PR-52`, ...), nie zmieniaj numeracji istniejących.
+- Nowe pomysły dopisuj na końcu jako kolejne numery (`PR-55`, `PR-56`, ...), nie zmieniaj numeracji istniejących. Zadania Androida opisuj w `TASK2.md`, zachowując globalną numerację.
 - Zadanie `L` większe niż 2 dni dziel na mniejsze, dodając nowe numery.
