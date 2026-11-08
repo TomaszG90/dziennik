@@ -5,6 +5,12 @@ import * as geocodingApi from '@/api/geocoding'
 import * as tripsApi from '@/api/trips'
 import TripDetailsView from '@/views/TripDetailsView.vue'
 
+vi.mock('@/components/MapView.vue', () => ({
+  default: {
+    template: '<div data-testid="route-map-canvas" role="application" aria-label="Mapa podróży" />',
+  },
+}))
+
 const trip: tripsApi.Trip = {
   id: 5,
   name: 'Podróż testowa',
@@ -70,13 +76,11 @@ describe('TripDetailsView route editing', () => {
     vi.useRealTimers()
   })
 
-  it('renders a responsive map area ready for a future map view', async () => {
+  it('renders the base map in the trip details view', async () => {
     const wrapper = await mountDetails([])
 
     expect(wrapper.get('#route-map-title').text()).toBe('Mapa podróży')
-    expect(wrapper.get('[data-testid="route-map-canvas"]').text()).toContain(
-      'Dodaj punkty, aby przygotować podgląd mapy.',
-    )
+    expect(wrapper.get('[data-testid="route-map-canvas"]').attributes('role')).toBe('application')
     expect(wrapper.get('.itinerary-layout').find('.map-panel').exists()).toBe(true)
   })
 
