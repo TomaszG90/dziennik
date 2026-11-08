@@ -36,6 +36,13 @@ jobs:
     needs: changes
     if: needs.changes.outputs.app == 'true'
     runs-on: ubuntu-latest
+    env:
+      DB_CONNECTION: pgsql
+      DB_HOST: 127.0.0.1
+      DB_PORT: 5432
+      DB_DATABASE: laravel
+      DB_USERNAME: laravel
+      DB_PASSWORD: secret
 
     services:
       postgres:
@@ -82,14 +89,11 @@ jobs:
 
       - name: Run tests
         working-directory: backend
-        env:
-          DB_CONNECTION: pgsql
-          DB_HOST: 127.0.0.1
-          DB_PORT: 5432
-          DB_DATABASE: laravel
-          DB_USERNAME: laravel
-          DB_PASSWORD: secret
         run: php artisan test
+
+      - name: Prepare database schema for OpenAPI export
+        working-directory: backend
+        run: php artisan migrate --force
 
       - name: Export OpenAPI JSON from Scramble
         working-directory: backend
