@@ -40,7 +40,9 @@ Sposób 2: Przez GitHub CLI (gh) – prosto z terminala
 3. Robisz **tylko to, co jest w zakresie zadania**. Pomysły na dodatki zapisz jako nowy Issue.
 4. Masz wątpliwość? **Pytaj przed pisaniem kodu**, nie po.
 5. Frontend rozmawia z backendem **wyłącznie przez API** (`/api/v1`). Mobilka użyje tych samych endpointów.
-6. Żadnych haseł, kluczy ani plików `.env` w repozytorium.
+6. Backend jest źródłem kontraktu OpenAPI (`shared/openapi.yaml`); nie utrzymuj osobnych ręcznych definicji API w Vue ani Androidzie.
+7. `mobile/` to natywna aplikacja Android w Kotlinie i Jetpack Compose; decyzja stacku jest w `docs/ADR-002-mobile-stack.md`.
+8. Żadnych haseł, kluczy ani plików `.env` w repozytorium.
 
 ---
 
@@ -123,6 +125,10 @@ git checkout -b feature/pr-19-tworzenie-podrozy
 **Dla obu**
 - Do każdej nowej funkcji **dodaj testy**.
 - Nie zostawiaj martwego kodu, `console.log` ani `dd()`.
+
+**Mobile (Android)**
+- Buduj projekt przez `cd mobile && ./gradlew assembleDebug` (PowerShell: `cd mobile; .\gradlew.bat assembleDebug`).
+- Nie dodawaj ekranów ani funkcji w zadaniu bootstrapu; realizuj je w osobnych PR-ach.
 
 ### 6. Praca nad zadaniami backend + frontend
 

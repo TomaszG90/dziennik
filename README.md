@@ -63,7 +63,7 @@ Aplikacja składa się z backendu Laravel i osobnej aplikacji SPA. Frontend korz
 ```
 backend/    # Laravel: REST API
 frontend/   # Vue 3 SPA
-mobile/     # Aplikacja mobilna (w planach)
+mobile/     # Natywna aplikacja Android (Kotlin + Jetpack Compose)
 docker/     # Konfiguracja środowiska kontenerowego (Nginx, PHP, Node)
 docs/       # Dokumentacja projektu
 ```
@@ -74,6 +74,8 @@ docs/       # Dokumentacja projektu
 |---|---|
 | Backend (API) | PHP 8.3+, Laravel 12, Laravel Sanctum |
 | Frontend (SPA) | Vue 3, Vite, Vue Router, Pinia, TypeScript |
+| Mobile (Android) | Kotlin, Jetpack Compose, AndroidX |
+| Kontrakt API | Laravel Scramble, OpenAPI 3.1 (`shared/openapi.yaml`) |
 | Baza danych | PostgreSQL 16 |
 | Konteneryzacja | Docker, Docker Compose |
 | Mapa | Leaflet lub MapLibre GL (do ustalenia) |
@@ -85,6 +87,8 @@ docs/       # Dokumentacja projektu
 | CI/CD | GitHub Actions |
 
 Zewnętrzne API i biblioteki mapowe zostaną wybrane i skonfigurowane w ramach zadań opisanych w backlogu.
+
+Stack mobilny opisuje [ADR-002](docs/ADR-002-mobile-stack.md), a instrukcja aplikacji Android znajduje się w [mobile/README.md](mobile/README.md).
 
 ## Wymagania
 
