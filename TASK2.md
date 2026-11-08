@@ -2,6 +2,20 @@
 
 Ten plik rozwija plan mobilny zapowiedziany w [TASK.md](TASK.md). Obowiązują te same zasady Ready/Done, Issue, branchy i review. Numeracja PR jest globalna dla repozytorium i kontynuuje się od PR-55. Jedno zadanie to jeden Issue, branch i Pull Request.
 
+## Wymagane narzędzia i wersje
+
+| Narzędzie | Wersja / ustawienie |
+|---|---|
+| IDE zalecane | Najnowsza stabilna wersja Android Studio — oficjalnego IDE Androida, opartego na IntelliJ IDEA ([Android Studio](https://developer.android.com/studio/intro)) |
+| IntelliJ IDEA (alternatywnie) | 2026.3; do obsługi Androida doinstaluj pluginy Android i Android Design Tools ([wydanie 2026.3](https://www.jetbrains.com/idea/whatsnew/2026-3/), [wsparcie Androida](https://www.jetbrains.com/help/idea/create-your-first-android-application.html)) |
+| JDK | 17 |
+| Android SDK | Platform 36 (API 36), Build Tools 36.0.0 |
+| Android Gradle Plugin | 8.13.2 |
+| Gradle Wrapper | 8.13 |
+| Kotlin | 2.2.21 |
+
+Wersje Gradle, pluginów i Kotlin są przypięte w konfiguracji projektu. Wersja IDE może być aktualizowana niezależnie; przy IntelliJ IDEA wymagane pluginy Android nie są dołączone domyślnie.
+
 ## Przygotowanie środowiska Android
 
 ### Co zainstalować
