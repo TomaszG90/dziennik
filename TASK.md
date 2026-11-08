@@ -14,11 +14,13 @@ Repozytorium zawiera backend Laravel 12 z Sanctum i PostgreSQL, wersjonowane API
 - [ ] Zadanie ma jasny tytuł z identyfikatorem `PR-X` i jednoznaczny opis.
 - [ ] Zadania z kolumny **Zależy od** są już zmergowane do `main`.
 - [ ] Zdefiniowano kryteria akceptacji (wiadomo dokładnie, co oznacza sukces).
+- [ ] Dla zmian klienta ustalono platformę i stack; zadania mobilne są zgodne z ADR-002 i kontraktem `shared/openapi.yaml`.
 - [ ] Oszacowano rozmiar zadania (S / M / L).
 
 ### Definition of Done (Kiedy zadanie jest zakończone)
-- [ ] Kod działa poprawnie w środowisku kontenerowym Docker.
-- [ ] Testy i kontrole jakości właściwe dla zmiany przechodzą (`php artisan test`, Pint; dla frontendu także lint, testy i build).
+- [ ] Zmiana działa w środowisku właściwym dla obszaru: Docker dla backendu/web, Gradle i emulator/urządzenie Android dla mobile.
+- [ ] Testy i kontrole jakości właściwe dla zmiany przechodzą: backend (`php artisan test`, Pint), frontend (lint, testy, build), Android (`lintDebug`, `testDebugUnitTest`, `assembleDebug`).
+- [ ] Zmiana API aktualizuje `shared/openapi.yaml` i wygenerowane typy Vue; zmiana mobile ma adekwatną weryfikację na Androidzie.
 - [ ] Pull Request używa szablonu `.github/PULL_REQUEST_TEMPLATE.md` i został zaakceptowany przez min. 1 osobę.
 - [ ] Kod został zmergowany metodą **squash** do `main`, a gałąź została usunięta.
 
