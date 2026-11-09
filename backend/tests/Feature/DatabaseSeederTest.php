@@ -29,4 +29,14 @@ class DatabaseSeederTest extends TestCase
         $this->assertNotNull($publicUser);
         $this->assertEquals('public', $publicUser->profile_visibility);
     }
+
+    public function test_seeder_is_idempotent(): void
+    {
+        $this->seed();
+        $this->seed();
+
+        $this->assertSame(1, User::where('email', 'test@example.com')->count());
+        $this->assertSame(1, User::where('email', 'public@example.com')->count());
+        $this->assertSame(2, User::count());
+    }
 }
