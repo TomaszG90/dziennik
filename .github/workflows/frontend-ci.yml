@@ -3,18 +3,36 @@ name: Frontend CI
 on:
   push:
     branches: [ "main" ]
-    paths:
-      - 'frontend/**'
-      - '.github/workflows/frontend-ci.yml'
   pull_request:
     branches: [ "main" ]
-    paths:
-      - 'frontend/**'
-      - '.github/workflows/frontend-ci.yml'
+
+permissions:
+  contents: read
+  pull-requests: read
 
 jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      frontend: ${{ steps.filter.outputs.frontend == 'true' }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Filter changed paths
+        uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            frontend:
+              - 'frontend/**'
+              - 'shared/**'
+              - '.github/workflows/frontend-ci.yml'
+
   test-and-build:
     name: Lint, Test & Build
+    needs: changes
+    if: needs.changes.outputs.frontend == 'true'
     runs-on: ubuntu-latest
 
     defaults:
@@ -34,6 +52,14 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Regenerate types from shared API contract
+        run: npm run api:types
+
+      - name: Check generated types are up to date
+        run: |
+          cd ..
+          git diff --exit-code -- frontend/src/api/generated
 
       - name: Run linter
         run: npm run lint
