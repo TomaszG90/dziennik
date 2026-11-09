@@ -627,6 +627,36 @@ paths:
           $ref: "#/components/responses/AuthenticationException"
         "422":
           $ref: "#/components/responses/ValidationException"
+  /stats:
+    get:
+      operationId: stats.index
+      tags:
+        - Stats
+      parameters:
+        - name: year
+          in: query
+          schema:
+            type:
+              - integer
+              - "null"
+            minimum: 1900
+            maximum: 2027
+      responses:
+        "200":
+          description: "`StatsResource`"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/StatsResource"
+                required:
+                  - data
+        "401":
+          $ref: "#/components/responses/AuthenticationException"
+        "422":
+          $ref: "#/components/responses/ValidationException"
   /trips:
     get:
       operationId: trips.index
@@ -999,6 +1029,26 @@ components:
         - password
         - password_confirmation
       title: ResetPasswordRequest
+    StatsResource:
+      type: object
+      properties:
+        trips_count:
+          type: string
+        countries:
+          type: string
+        total_distance:
+          type: string
+        distance_by_transport:
+          type: string
+        places_count:
+          type: string
+      required:
+        - trips_count
+        - countries
+        - total_distance
+        - distance_by_transport
+        - places_count
+      title: StatsResource
     StoreLegRequest:
       type: object
       properties:
