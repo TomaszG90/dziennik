@@ -48,8 +48,8 @@ class StatsTest extends TestCase
             ])
             ->assertJsonPath('data.trips_count', 1)
             ->assertJsonPath('data.countries', ['PL'])
-            ->assertJsonPath('data.total_distance', 100.0)
-            ->assertJsonPath('data.distance_by_transport.car', 100.0)
+            ->assertJsonPath('data.total_distance', 100)
+            ->assertJsonPath('data.distance_by_transport.car', 100)
             ->assertJsonPath('data.places_count', 1);
     }
 
