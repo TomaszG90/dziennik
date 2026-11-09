@@ -7,6 +7,17 @@ use Illuminate\Http\Resources\Json\JsonResource;
 
 class StatsResource extends JsonResource
 {
+    /**
+     * Transform the resource into an array.
+     *
+     * @return array{
+     *   trips_count: int,
+     *   countries: array<string>,
+     *   total_distance: float,
+     *   distance_by_transport: array<string, float>,
+     *   places_count: int
+     * }
+     */
     public function toArray(Request $request): array
     {
         return [
