@@ -96,6 +96,17 @@ export type ResetPasswordRequest = {
 };
 
 /**
+ * StatsResource
+ */
+export type StatsResource = {
+    trips_count: string;
+    countries: string;
+    total_distance: string;
+    distance_by_transport: string;
+    places_count: string;
+};
+
+/**
  * StoreLegRequest
  */
 export type StoreLegRequest = {
@@ -1220,6 +1231,55 @@ export type ProfileUpdateResponses = {
 };
 
 export type ProfileUpdateResponse = ProfileUpdateResponses[keyof ProfileUpdateResponses];
+
+export type StatsIndexData = {
+    body?: never;
+    path?: never;
+    query?: {
+        year?: number | null;
+    };
+    url: '/stats';
+};
+
+export type StatsIndexErrors = {
+    /**
+     * Unauthenticated
+     */
+    401: {
+        /**
+         * Error overview.
+         */
+        message: string;
+    };
+    /**
+     * Validation error
+     */
+    422: {
+        /**
+         * Errors overview.
+         */
+        message: string;
+        /**
+         * A detailed description of each field that failed validation.
+         */
+        errors: {
+            [key: string]: Array<string>;
+        };
+    };
+};
+
+export type StatsIndexError = StatsIndexErrors[keyof StatsIndexErrors];
+
+export type StatsIndexResponses = {
+    /**
+     * `StatsResource`
+     */
+    200: {
+        data: StatsResource;
+    };
+};
+
+export type StatsIndexResponse = StatsIndexResponses[keyof StatsIndexResponses];
 
 export type TripsIndexData = {
     body?: never;

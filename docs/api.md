@@ -589,6 +589,66 @@ Klient powinien traktować ten kod jako błąd przejściowy i ponowić żądanie
 }
 ```
 
+### `GET /api/v1/stats`
+
+Zwraca statystyki podróży zalogowanego użytkownika. Wymaga uwierzytelnienia (token w nagłówku `Authorization: Bearer {token}`).
+
+**Żądanie:**
+
+Parametry zapytania:
+- `year` (integer, opcjonalny): rok kalendarzowy do filtrowania statystyk, wartość między 1900 a bieżącym rokiem + 1
+
+Przykłady:
+- `GET /api/v1/stats` - statystyki dla całej historii
+- `GET /api/v1/stats?year=2026` - statystyki tylko dla roku 2026
+
+**Odpowiedź sukcesu `200 OK`:**
+
+```json
+{
+  "data": {
+    "trips_count": 5,
+    "countries": ["PL", "DE", "AT"],
+    "total_distance": 2500.5,
+    "distance_by_transport": {
+      "car": 1200.0,
+      "plane": 1000.0,
+      "train": 250.5,
+      "other": 50.0
+    },
+    "places_count": 15
+  }
+}
+```
+
+Pola odpowiedzi:
+- `trips_count` (integer): liczba podróży w wybranym okresie
+- `countries` (array<string>): lista unikalnych kodów krajów ISO 3166-1 alpha-2 odwiedzonych w punktach podróży
+- `total_distance` (number): łączny dystans w kilometrach ze wszystkich odcinków
+- `distance_by_transport` (object): dystans pogrupowany według środka transportu (car, plane, train, other)
+- `places_count` (integer): łączna liczba odwiedzonych miejsc
+
+Podróż jest wliczana do statystyk dla danego roku, jeśli jej `start_date` lub `end_date` przypada na ten rok. Oznacza to, że podróże obejmujące dwa lata mogą być liczone w statystykach obu lat.
+
+**Odpowiedź błędu walidacji `422 Unprocessable Entity`:**
+
+```json
+{
+  "message": "The year field must be at least 1900.",
+  "errors": {
+    "year": ["The year field must be at least 1900."]
+  }
+}
+```
+
+**Odpowiedź błędu autoryzacji `401 Unauthorized`:**
+
+```json
+{
+  "message": "Unauthenticated."
+}
+```
+
 ## Błędy
 
 Błędy tras API są zwracane jako JSON. Dla nieistniejącej trasy odpowiedź ma status `404 Not Found` i zawiera komunikat:
