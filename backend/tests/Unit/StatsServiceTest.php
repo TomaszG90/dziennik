@@ -182,24 +182,28 @@ class StatsServiceTest extends TestCase
             'trip_id' => $trip->id,
             'transport' => 'car',
             'distance' => 100.0,
+            'position' => 1,
         ]);
 
         Leg::factory()->create([
             'trip_id' => $trip->id,
             'transport' => 'car',
             'distance' => 50.0,
+            'position' => 2,
         ]);
 
         Leg::factory()->create([
             'trip_id' => $trip->id,
             'transport' => 'plane',
             'distance' => 500.0,
+            'position' => 3,
         ]);
 
         Leg::factory()->create([
             'trip_id' => $trip->id,
             'transport' => 'train',
             'distance' => 200.0,
+            'position' => 4,
         ]);
 
         $stats = $this->statsService->calculateStats($user);

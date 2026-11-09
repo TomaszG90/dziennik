@@ -15,8 +15,8 @@ class LegFactory extends Factory
     public function definition(): array
     {
         $trip = Trip::factory()->create();
-        $place1 = Place::factory()->create(['trip_id' => $trip->id]);
-        $place2 = Place::factory()->create(['trip_id' => $trip->id]);
+        $place1 = Place::factory()->create(['trip_id' => $trip->id, 'position' => 1]);
+        $place2 = Place::factory()->create(['trip_id' => $trip->id, 'position' => 2]);
 
         return [
             'trip_id' => $trip->id,
@@ -24,7 +24,7 @@ class LegFactory extends Factory
             'to_place_id' => $place2->id,
             'transport' => fake()->randomElement(['car', 'plane', 'train', 'other']),
             'distance' => fake()->randomFloat(2, 0, 5000),
-            'position' => fake()->numberBetween(1, 100),
+            'position' => 1,
         ];
     }
 }
