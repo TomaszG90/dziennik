@@ -15,16 +15,30 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        User::factory()->create([
+        $this->seedUser([
             'name' => 'Test User',
             'email' => 'test@example.com',
             'profile_visibility' => 'private',
         ]);
 
-        User::factory()->create([
+        $this->seedUser([
             'name' => 'Public User',
             'email' => 'public@example.com',
             'profile_visibility' => 'public',
         ]);
+    }
+
+    /**
+     * Create the demo user unless it already exists, so seeding is idempotent.
+     *
+     * @param  array{name: string, email: string, profile_visibility: string}  $attributes
+     */
+    private function seedUser(array $attributes): void
+    {
+        if (User::where('email', $attributes['email'])->exists()) {
+            return;
+        }
+
+        User::factory()->create($attributes);
     }
 }
