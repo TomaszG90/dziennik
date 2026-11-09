@@ -1,0 +1,1355 @@
+openapi: 3.1.2
+info:
+  title: Dziennik Podróży API
+  version: 1.0.0
+  description: Wersjonowane REST API aplikacji Dziennik Podróży.
+servers:
+  - url: http://localhost/api/v1
+security:
+  - http: []
+paths:
+  /health:
+    get:
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    const: ok
+                  timestamp:
+                    type: string
+                required:
+                  - status
+                  - timestamp
+      security: []
+  /auth/register:
+    post:
+      operationId: auth.register
+      summary: Register a new user
+      tags:
+        - Auth
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterRequest"
+      responses:
+        "201":
+          description: "`UserResource`"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/UserResource"
+                required:
+                  - data
+        "422":
+          $ref: "#/components/responses/ValidationException"
+      security: []
+  /auth/login:
+    post:
+      operationId: auth.login
+      summary: Login a user and return token
+      tags:
+        - Auth
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      user:
+                        $ref: "#/components/schemas/UserResource"
+                      token:
+                        type: string
+                    required:
+                      - user
+                      - token
+                required:
+                  - data
+        "422":
+          $ref: "#/components/responses/ValidationException"
+      security: []
+  /auth/logout:
+    post:
+      operationId: auth.logout
+      summary: Logout the current user
+      tags:
+        - Auth
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    const: Successfully logged out
+                required:
+                  - message
+        "401":
+          $ref: "#/components/responses/AuthenticationException"
+  /geocode:
+    get:
+      operationId: geocode
+      summary: Search for places using geocoding service
+      tags:
+        - Geocode
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+            minLength: 2
+            maxLength: 255
+      responses:
+        "200":
+          description: Array of `GeocodeResource`
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/GeocodeResource"
+                required:
+                  - data
+        "422":
+          $ref: "#/components/responses/ValidationException"
+      security: []
+  /trips/{trip}/legs:
+    get:
+      operationId: leg.index
+      tags:
+        - Leg
+      parameters:
+        - name: trip
+          in: path
+          required: true
+          description: The trip ID
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Array of `LegResource`
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/LegResource"
+                required:
+                  - data
+        "401":
+          $ref: "#/components/responses/AuthenticationException"
+        "403":
+          $ref: "#/components/responses/AuthorizationException"
+        "404":
+          $ref: "#/components/responses/ModelNotFoundException"
+    post:
+      operationId: leg.store
+      tags:
+        - Leg
+      parameters:
+        - name: trip
+          in: path
+          required: true
+          description: The trip ID
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StoreLegRequest"
+      responses:
+        "201":
+          description: "`LegResource`"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/LegResource"
+                required:
+                  - data
+        "401":
+          $ref: "#/components/responses/AuthenticationException"
+        "403":
+          $ref: "#/components/responses/AuthorizationException"
+        "404":
+          $ref: "#/components/responses/ModelNotFoundException"
+        "422":
+          $ref: "#/components/responses/ValidationException"
+  /trips/{trip}/legs/{leg}:
+    get:
+      operationId: leg.show
+      tags:
+        - Leg
+      parameters:
+        - name: trip
+          in: path
+          required: true
+          description: The trip ID
+          schema:
+            type: integer
+        - name: leg
+          in: path
+          required: true
+          description: The leg ID
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: "`LegResource`"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/LegResource"
+                required:
+                  - data
+        "401":
+          $ref: "#/components/responses/AuthenticationException"
+        "403":
+          $ref: "#/components/responses/AuthorizationException"
+        "404":
+          $ref: "#/components/responses/ModelNotFoundException"
+    patch:
+      operationId: leg.update
+      tags:
+        - Leg
+      parameters:
+        - name: trip
+          in: path
+          required: true
+          description: The trip ID
+          schema:
+            type: integer
+        - name: leg
+          in: path
+          required: true
+          description: The leg ID
+          schema:
+            type: integer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateLegRequest"
+      responses:
+        "200":
+          description: "`LegResource`"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/LegResource"
+                required:
+                  - data
+        "401":
+          $ref: "#/components/responses/AuthenticationException"
+        "403":
+          $ref: "#/components/responses/AuthorizationException"
+        "404":
+          $ref: "#/components/responses/ModelNotFoundException"
+        "422":
+          $ref: "#/components/responses/ValidationException"
+    delete:
+      operationId: leg.destroy
+      tags:
+        - Leg
+      parameters:
+        - name: trip
+          in: path
+          required: true
+          description: The trip ID
+          schema:
+            type: integer
+        - name: leg
+          in: path
+          required: true
+          description: The leg ID
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: No content
+        "401":
+          $ref: "#/components/responses/AuthenticationException"
+        "403":
+          $ref: "#/components/responses/AuthorizationException"
+        "404":
+          $ref: "#/components/responses/ModelNotFoundException"
+  /forgot-password:
+    post:
+      operationId: passwordReset.sendResetLink
+      tags:
+        - PasswordReset
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ForgotPasswordRequest"
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    const: Jeśli konto z podanym adresem istnieje, otrzymasz wiadomość z linkiem do zmiany hasła.
+                required:
+                  - message
+        "422":
+          $ref: "#/components/responses/ValidationException"
+      security: []
+  /reset-password:
+    post:
+      operationId: passwordReset.reset
+      tags:
+        - PasswordReset
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ResetPasswordRequest"
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    const: Hasło zostało zmienione.
+                required:
+                  - message
+        "422":
+          $ref: "#/components/responses/ValidationException"
+      security: []
+  /trips/{trip}/places:
+    get:
+      operationId: place.index
+      tags:
+        - Place
+      parameters:
+        - name: trip
+          in: path
+          required: true
+          description: The trip ID
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Array of `PlaceResource`
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/PlaceResource"
+                required:
+                  - data
+        "401":
+          $ref: "#/components/responses/AuthenticationException"
+        "403":
+          $ref: "#/components/responses/AuthorizationException"
+        "404":
+          $ref: "#/components/responses/ModelNotFoundException"
+    post:
+      operationId: place.store
+      tags:
+        - Place
+      parameters:
+        - name: trip
+          in: path
+          required: true
+          description: The trip ID
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StorePlaceRequest"
+      responses:
+        "201":
+          description: "`PlaceResource`"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/PlaceResource"
+                required:
+                  - data
+        "401":
+          $ref: "#/components/responses/AuthenticationException"
+        "403":
+          $ref: "#/components/responses/AuthorizationException"
+        "404":
+          $ref: "#/components/responses/ModelNotFoundException"
+        "422":
+          $ref: "#/components/responses/ValidationException"
+  /trips/{trip}/places/reorder:
+    patch:
+      operationId: place.reorder
+      tags:
+        - Place
+      parameters:
+        - name: trip
+          in: path
+          required: true
+          description: The trip ID
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReorderPlacesRequest"
+      responses:
+        "200":
+          description: Array of `PlaceResource`
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/PlaceResource"
+                required:
+                  - data
+        "401":
+          $ref: "#/components/responses/AuthenticationException"
+        "403":
+          $ref: "#/components/responses/AuthorizationException"
+        "404":
+          $ref: "#/components/responses/ModelNotFoundException"
+        "422":
+          $ref: "#/components/responses/ValidationException"
+  /trips/{trip}/places/{place}:
+    get:
+      operationId: place.show
+      tags:
+        - Place
+      parameters:
+        - name: trip
+          in: path
+          required: true
+          description: The trip ID
+          schema:
+            type: integer
+        - name: place
+          in: path
+          required: true
+          description: The place ID
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: "`PlaceResource`"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/PlaceResource"
+                required:
+                  - data
+        "401":
+          $ref: "#/components/responses/AuthenticationException"
+        "403":
+          $ref: "#/components/responses/AuthorizationException"
+        "404":
+          $ref: "#/components/responses/ModelNotFoundException"
+    patch:
+      operationId: place.update
+      tags:
+        - Place
+      parameters:
+        - name: trip
+          in: path
+          required: true
+          description: The trip ID
+          schema:
+            type: integer
+        - name: place
+          in: path
+          required: true
+          description: The place ID
+          schema:
+            type: integer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdatePlaceRequest"
+      responses:
+        "200":
+          description: "`PlaceResource`"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/PlaceResource"
+                required:
+                  - data
+        "401":
+          $ref: "#/components/responses/AuthenticationException"
+        "403":
+          $ref: "#/components/responses/AuthorizationException"
+        "404":
+          $ref: "#/components/responses/ModelNotFoundException"
+        "422":
+          $ref: "#/components/responses/ValidationException"
+    delete:
+      operationId: place.destroy
+      tags:
+        - Place
+      parameters:
+        - name: trip
+          in: path
+          required: true
+          description: The trip ID
+          schema:
+            type: integer
+        - name: place
+          in: path
+          required: true
+          description: The place ID
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: No content
+        "401":
+          $ref: "#/components/responses/AuthenticationException"
+        "403":
+          $ref: "#/components/responses/AuthorizationException"
+        "404":
+          $ref: "#/components/responses/ModelNotFoundException"
+  /me:
+    get:
+      operationId: profile.show
+      summary: Get the authenticated user's profile
+      tags:
+        - Profile
+      responses:
+        "200":
+          description: "`UserResource`"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/UserResource"
+                required:
+                  - data
+        "401":
+          $ref: "#/components/responses/AuthenticationException"
+    patch:
+      operationId: profile.update
+      summary: Update the authenticated user's profile
+      tags:
+        - Profile
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateProfileRequest"
+      responses:
+        "200":
+          description: "`UserResource`"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/UserResource"
+                required:
+                  - data
+        "401":
+          $ref: "#/components/responses/AuthenticationException"
+        "422":
+          $ref: "#/components/responses/ValidationException"
+  /trips:
+    get:
+      operationId: trips.index
+      summary: List trips belonging to the authenticated user
+      tags:
+        - Trip
+      responses:
+        "200":
+          description: Array of `TripResource`
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/TripResource"
+                required:
+                  - data
+        "401":
+          $ref: "#/components/responses/AuthenticationException"
+        "403":
+          $ref: "#/components/responses/AuthorizationException"
+    post:
+      operationId: trips.store
+      summary: Create a trip for the authenticated user
+      tags:
+        - Trip
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StoreTripRequest"
+      responses:
+        "201":
+          description: "`TripResource`"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/TripResource"
+                required:
+                  - data
+        "401":
+          $ref: "#/components/responses/AuthenticationException"
+        "403":
+          $ref: "#/components/responses/AuthorizationException"
+        "422":
+          $ref: "#/components/responses/ValidationException"
+  /trips/{trip}:
+    get:
+      operationId: trips.show
+      summary: Show a trip
+      tags:
+        - Trip
+      parameters:
+        - name: trip
+          in: path
+          required: true
+          description: The trip ID
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: "`TripResource`"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/TripResource"
+                required:
+                  - data
+        "401":
+          $ref: "#/components/responses/AuthenticationException"
+        "403":
+          $ref: "#/components/responses/AuthorizationException"
+        "404":
+          $ref: "#/components/responses/ModelNotFoundException"
+    put:
+      operationId: trips.update
+      summary: Update a trip
+      tags:
+        - Trip
+      parameters:
+        - name: trip
+          in: path
+          required: true
+          description: The trip ID
+          schema:
+            type: integer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateTripRequest"
+      responses:
+        "200":
+          description: "`TripResource`"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/TripResource"
+                required:
+                  - data
+        "401":
+          $ref: "#/components/responses/AuthenticationException"
+        "403":
+          $ref: "#/components/responses/AuthorizationException"
+        "404":
+          $ref: "#/components/responses/ModelNotFoundException"
+        "422":
+          $ref: "#/components/responses/ValidationException"
+    delete:
+      operationId: trips.destroy
+      summary: Delete a trip
+      tags:
+        - Trip
+      parameters:
+        - name: trip
+          in: path
+          required: true
+          description: The trip ID
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: No content
+        "401":
+          $ref: "#/components/responses/AuthenticationException"
+        "403":
+          $ref: "#/components/responses/AuthorizationException"
+        "404":
+          $ref: "#/components/responses/ModelNotFoundException"
+components:
+  securitySchemes:
+    http:
+      type: http
+      scheme: bearer
+  schemas:
+    ForgotPasswordRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+          maxLength: 255
+      required:
+        - email
+      title: ForgotPasswordRequest
+    GeocodeResource:
+      type: object
+      properties:
+        name:
+          type:
+            - string
+            - "null"
+        latitude:
+          type:
+            - string
+            - "null"
+        longitude:
+          type:
+            - string
+            - "null"
+        street:
+          type:
+            - string
+            - "null"
+        housenumber:
+          type:
+            - string
+            - "null"
+        postcode:
+          type:
+            - string
+            - "null"
+        city:
+          type:
+            - string
+            - "null"
+        district:
+          type:
+            - string
+            - "null"
+        county:
+          type:
+            - string
+            - "null"
+        state:
+          type:
+            - string
+            - "null"
+        country:
+          type:
+            - string
+            - "null"
+        country_code:
+          type:
+            - string
+            - "null"
+      required:
+        - name
+        - latitude
+        - longitude
+        - street
+        - housenumber
+        - postcode
+        - city
+        - district
+        - county
+        - state
+        - country
+        - country_code
+      title: GeocodeResource
+    LegResource:
+      type: object
+      properties:
+        id:
+          type: integer
+        trip_id:
+          type: integer
+        from_place_id:
+          type: integer
+        to_place_id:
+          type: integer
+        transport:
+          type: string
+        distance:
+          type:
+            - string
+            - "null"
+        position:
+          type: integer
+        created_at:
+          type:
+            - string
+            - "null"
+          format: date-time
+        updated_at:
+          type:
+            - string
+            - "null"
+          format: date-time
+      required:
+        - id
+        - trip_id
+        - from_place_id
+        - to_place_id
+        - transport
+        - distance
+        - position
+        - created_at
+        - updated_at
+      title: LegResource
+    LoginRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+      required:
+        - email
+        - password
+      title: LoginRequest
+    PlaceResource:
+      type: object
+      properties:
+        id:
+          type: integer
+        trip_id:
+          type: integer
+        name:
+          type: string
+        latitude:
+          type: string
+        longitude:
+          type: string
+        position:
+          type: integer
+        country_code:
+          type:
+            - string
+            - "null"
+        created_at:
+          type:
+            - string
+            - "null"
+          format: date-time
+        updated_at:
+          type:
+            - string
+            - "null"
+          format: date-time
+      required:
+        - id
+        - trip_id
+        - name
+        - latitude
+        - longitude
+        - position
+        - country_code
+        - created_at
+        - updated_at
+      title: PlaceResource
+    RegisterRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 255
+        email:
+          type: string
+          format: email
+          maxLength: 255
+        password:
+          type: string
+        profile_visibility:
+          type: string
+          enum:
+            - public
+            - private
+        password_confirmation:
+          type: string
+      required:
+        - name
+        - email
+        - password
+        - profile_visibility
+        - password_confirmation
+      title: RegisterRequest
+    ReorderPlacesRequest:
+      type: object
+      properties:
+        place_ids:
+          type: array
+          items:
+            type: integer
+          minItems: 1
+          uniqueItems: true
+      required:
+        - place_ids
+      title: ReorderPlacesRequest
+    ResetPasswordRequest:
+      type: object
+      properties:
+        token:
+          type: string
+        email:
+          type: string
+          format: email
+          maxLength: 255
+        password:
+          type: string
+        password_confirmation:
+          type: string
+      required:
+        - token
+        - email
+        - password
+        - password_confirmation
+      title: ResetPasswordRequest
+    StoreLegRequest:
+      type: object
+      properties:
+        from_place_id:
+          type: integer
+        to_place_id:
+          type: integer
+        transport:
+          type: string
+          enum:
+            - walking
+            - car
+            - plane
+            - train
+            - other
+        distance:
+          type:
+            - number
+            - "null"
+          minimum: 0
+      required:
+        - from_place_id
+        - to_place_id
+        - transport
+      title: StoreLegRequest
+    StorePlaceRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 255
+        latitude:
+          type: number
+          minimum: -90
+          maximum: 90
+        longitude:
+          type: number
+          minimum: -180
+          maximum: 180
+        country_code:
+          type:
+            - string
+            - "null"
+          minLength: 2
+          maxLength: 2
+      required:
+        - name
+        - latitude
+        - longitude
+      title: StorePlaceRequest
+    StoreTripRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 255
+        start_date:
+          type: string
+          format: date-time
+        end_date:
+          type:
+            - string
+            - "null"
+          format: date-time
+        description:
+          type:
+            - string
+            - "null"
+      required:
+        - name
+        - start_date
+      title: StoreTripRequest
+    TripResource:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        start_date:
+          type: string
+        end_date:
+          type:
+            - string
+            - "null"
+        description:
+          type:
+            - string
+            - "null"
+        created_at:
+          type:
+            - string
+            - "null"
+          format: date-time
+        updated_at:
+          type:
+            - string
+            - "null"
+          format: date-time
+      required:
+        - id
+        - name
+        - start_date
+        - end_date
+        - description
+        - created_at
+        - updated_at
+      title: TripResource
+    UpdateLegRequest:
+      type: object
+      properties:
+        from_place_id:
+          type: integer
+        to_place_id:
+          type: integer
+        transport:
+          type: string
+          enum:
+            - walking
+            - car
+            - plane
+            - train
+            - other
+        distance:
+          type:
+            - number
+            - "null"
+          minimum: 0
+      title: UpdateLegRequest
+    UpdatePlaceRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 255
+        latitude:
+          type: number
+          minimum: -90
+          maximum: 90
+        longitude:
+          type: number
+          minimum: -180
+          maximum: 180
+        country_code:
+          type:
+            - string
+            - "null"
+          minLength: 2
+          maxLength: 2
+      title: UpdatePlaceRequest
+    UpdateProfileRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 255
+        email:
+          type: string
+          format: email
+          maxLength: 255
+        password:
+          type: string
+        profile_visibility:
+          type: string
+          enum:
+            - public
+            - private
+        first_name:
+          type:
+            - string
+            - "null"
+          maxLength: 255
+        last_name:
+          type:
+            - string
+            - "null"
+          maxLength: 255
+        city:
+          type:
+            - string
+            - "null"
+          maxLength: 255
+        birth_date:
+          type:
+            - string
+            - "null"
+          format: date-time
+        avatar_path:
+          type: string
+          enum:
+            - 1.png
+            - 2.png
+            - 3.png
+            - 4.png
+            - 5.png
+            - 6.png
+            - 7.png
+            - 8.png
+            - 9.png
+            - 10.png
+        privacy_settings:
+          type: object
+          properties:
+            name:
+              type: boolean
+            email:
+              type: boolean
+            firstName:
+              type: boolean
+            lastName:
+              type: boolean
+            city:
+              type: boolean
+            birthDate:
+              type: boolean
+            avatar:
+              type: boolean
+        password_confirmation:
+          type: string
+      title: UpdateProfileRequest
+    UpdateTripRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 255
+        start_date:
+          type: string
+          format: date-time
+        end_date:
+          type:
+            - string
+            - "null"
+          format: date-time
+        description:
+          type:
+            - string
+            - "null"
+      title: UpdateTripRequest
+    UserResource:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        email:
+          type: string
+        first_name:
+          type:
+            - string
+            - "null"
+        last_name:
+          type:
+            - string
+            - "null"
+        city:
+          type:
+            - string
+            - "null"
+        birth_date:
+          type:
+            - string
+            - "null"
+        avatar_path:
+          type:
+            - string
+            - "null"
+        profile_visibility:
+          type: string
+        privacy_settings:
+          type: array
+          items: {}
+        created_at:
+          type:
+            - string
+            - "null"
+          format: date-time
+        updated_at:
+          type:
+            - string
+            - "null"
+          format: date-time
+      required:
+        - id
+        - name
+        - email
+        - first_name
+        - last_name
+        - city
+        - birth_date
+        - avatar_path
+        - profile_visibility
+        - privacy_settings
+        - created_at
+        - updated_at
+      title: UserResource
+  responses:
+    ValidationException:
+      description: Validation error
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              message:
+                type: string
+                description: Errors overview.
+              errors:
+                type: object
+                description: A detailed description of each field that failed validation.
+                additionalProperties:
+                  type: array
+                  items:
+                    type: string
+            required:
+              - message
+              - errors
+    AuthenticationException:
+      description: Unauthenticated
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              message:
+                type: string
+                description: Error overview.
+            required:
+              - message
+    AuthorizationException:
+      description: Authorization error
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              message:
+                type: string
+                description: Error overview.
+            required:
+              - message
+    ModelNotFoundException:
+      description: Not found
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              message:
+                type: string
+                description: Error overview.
+            required:
+              - message

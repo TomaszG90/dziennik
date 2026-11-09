@@ -4,6 +4,7 @@ Ta instrukcja opisuje, **jak krok po kroku wykonać zadanie** od wybrania go z l
 
 Powiązane pliki:
 - [TASK.md](TASK.md): lista zadań oraz definicje Ready / Done
+- [TASK2.md](TASK2.md): szczegółowa faza rozwoju aplikacji Android
 - [CONTRIBUTING.md](CONTRIBUTING.md): zasady Git, commity, styl kodu
 - [README.md](README.md): opis projektu i uruchomienie w Dockerze
 
@@ -14,7 +15,7 @@ git checkout main && git pull
 git checkout -b feature/pr-x-krotki-opis
 
 # praca
-git add .
+git add path/to/file path/to/other-file
 git commit -m "feat: krótki opis"
 
 # przed PR (sprawdzenie w kontenerach)
@@ -24,9 +25,16 @@ docker compose exec frontend npm run lint
 docker compose exec frontend npm run test
 docker compose exec frontend npm run build
 
+# Android
+cd mobile
+./gradlew lintDebug testDebugUnitTest assembleDebug
+cd ..
+
 # wysyłka
 git push -u origin feature/pr-x-krotki-opis
 # → otwórz Pull Request do main
+
+W PowerShell Android uruchom poleceniem `Set-Location mobile; .\gradlew.bat lintDebug testDebugUnitTest assembleDebug; Set-Location ..`.
 
 Sposób 1: Przez interfejs GitHub (najpopularniejszy)
 Sposób 2: Przez GitHub CLI (gh) – prosto z terminala
@@ -40,7 +48,9 @@ Sposób 2: Przez GitHub CLI (gh) – prosto z terminala
 3. Robisz **tylko to, co jest w zakresie zadania**. Pomysły na dodatki zapisz jako nowy Issue.
 4. Masz wątpliwość? **Pytaj przed pisaniem kodu**, nie po.
 5. Frontend rozmawia z backendem **wyłącznie przez API** (`/api/v1`). Mobilka użyje tych samych endpointów.
-6. Żadnych haseł, kluczy ani plików `.env` w repozytorium.
+6. Backend jest źródłem kontraktu OpenAPI (`shared/openapi.yaml`); nie utrzymuj osobnych ręcznych definicji API w Vue ani Androidzie.
+7. `mobile/` to natywna aplikacja Android w Kotlinie i Jetpack Compose; decyzja stacku jest w `docs/ADR-002-mobile-stack.md`.
+8. Żadnych haseł, kluczy ani plików `.env` w repozytorium.
 
 ---
 
@@ -124,6 +134,16 @@ git checkout -b feature/pr-19-tworzenie-podrozy
 - Do każdej nowej funkcji **dodaj testy**.
 - Nie zostawiaj martwego kodu, `console.log` ani `dd()`.
 
+**Mobile (Android)**
+- Sprawdź kolejność, zależności i kryteria PR-55+ w [TASK2.md](TASK2.md); stosuj Kotlin, Jetpack Compose i decyzje z `docs/ADR-002-mobile-stack.md`.
+- Nie dodawaj zależności bez uzasadnienia w zadaniu; wersje zapisuj w `mobile/gradle/libs.versions.toml`.
+- Zachowuj podział UI, ViewModel i data/repository. Nie wywołuj API ani nie umieszczaj logiki biznesowej bezpośrednio w composable.
+- Korzystaj z `/api/v1` i kontraktu `shared/openapi.yaml`; token Sanctum wysyłaj jako Bearer. Nie utrzymuj typów request/response niezgodnych z kontraktem.
+- Tokeny przechowuj przez Android Keystore lub zatwierdzoną bibliotekę, nie w zwykłym `SharedPreferences`.
+- Adres API konfiguruj dla środowiska; emulator Androida łączy się z hostem przez `10.0.2.2`, urządzenie fizyczne przez adres hosta w sieci lokalnej.
+- Nową logikę pokrywaj testami jednostkowymi; przepływy UI/API weryfikuj testami odpowiedniego poziomu. Przed PR uruchom `./gradlew lintDebug testDebugUnitTest assembleDebug` z `mobile/`.
+- Nie dodawaj ekranów ani funkcji w zadaniu bootstrapu; realizuj je w osobnych PR-ach.
+
 ### 6. Praca nad zadaniami backend + frontend
 
 Gdy funkcja wymaga obu części:
@@ -133,17 +153,32 @@ Gdy funkcja wymaga obu części:
 3. Frontend nie czeka na gotowy backend, jeśli kontrakt jest jasny (można użyć danych testowych).
 4. Zmiana kontraktu = powiadom drugą stronę w komentarzu pod Issue.
 
+### Zmiana kontraktu API
+
+Jeśli zmieniasz endpoint, request lub response:
+
+1. Zaktualizuj backend i wygeneruj kontrakt Scramble:
+   ```bash
+   docker compose exec backend php artisan scramble:export --path=storage/app/openapi.json
+   cp backend/storage/app/openapi.json shared/openapi.json
+   cd frontend && npm run api:generate
+   ```
+2. Dołącz `shared/openapi.yaml` i typy z `frontend/src/api/generated/` do tego samego PR-a.
+3. Sprawdź zmiany w wygenerowanych plikach. Nie edytuj ich ręcznie.
+4. Android korzysta z tego samego kontraktu; nie twórz osobnego API mobilnego.
+
 ### 7. Sprawdź przed Pull Requestem
 
-Uruchom odpowiednie kontrole **w kontenerach lokalnie**:
+Uruchom kontrole właściwe dla obszaru. Backend i frontend sprawdzaj w kontenerach, Androida przez Gradle Wrapper:
 
 - [ ] `docker compose exec backend php artisan test`
 - [ ] `docker compose exec backend ./vendor/bin/pint --test`
 - [ ] `docker compose exec frontend npm run lint`
 - [ ] `docker compose exec frontend npm run test`
 - [ ] `docker compose exec frontend npm run build`
+- [ ] `cd mobile && ./gradlew lintDebug testDebugUnitTest assembleDebug` (jeśli zmieniono `mobile/`; PowerShell: `cd mobile; .\gradlew.bat lintDebug testDebugUnitTest assembleDebug`)
 - [ ] Zmiany działają lokalnie (sprawdź ręcznie kryteria akceptacji)
-- [ ] Dokumentacja API zaktualizowana (jeśli zmieniły się endpointy)
+- [ ] `shared/openapi.yaml` i typy Vue zaktualizowane (jeśli zmieniły się endpointy lub schematy)
 - [ ] Brak sekretów i plików `.env` w commitach
 
 ### 8. Wypchnij branch i otwórz Pull Request
@@ -222,13 +257,13 @@ git branch -d feature/pr-x-krotki-opis
 
 ## Kontrole automatyczne
 
-Pull Request uruchamia workflow GitHub Actions: testy backendu i build frontendu (`ci.yml`) oraz kontrolę formatowania backendu (`lint.yml`). Zmiany w `frontend/` uruchamiają dodatkowo lint, testy i build (`frontend-ci.yml`). Workflow bezpieczeństwa audytuje zależności Composera, CodeQL analizuje JavaScript/TypeScript, a Dependabot sprawdza aktualizacje co tydzień. Uruchom lokalnie wszystkie kontrole przed wysłaniem PR.
+Pull Request uruchamia workflow GitHub Actions: testy backendu i build frontendu (`ci.yml`), kontrolę formatowania backendu (`lint.yml`) oraz lint/test/build Vue przy zmianach frontendu (`frontend-ci.yml`). Zmiany w `mobile/` uruchamiają `assembleDebug` w `android-ci.yml`. Android Lint i testy jednostkowe uruchamiaj lokalnie; dodaj je do CI wraz z pierwszymi zadaniami funkcjonalnymi. Workflow bezpieczeństwa audytuje zależności Composera, CodeQL analizuje JavaScript/TypeScript, a Dependabot sprawdza aktualizacje co tydzień.
 
 ## Najczęstsze błędy (unikaj)
 
 - Praca bezpośrednio na `main`.
 - Jeden wielki PR z wieloma niezwiązanymi zmianami.
-- Logika biznesowa w kontrolerze lub wywołania API w komponencie Vue.
+- Logika biznesowa w kontrolerze/composable lub wywołania API bezpośrednio z komponentu.
 - Brak testów "bo działa u mnie".
 - Commit pliku `.env` lub kluczy API.
 - Zmiana endpointu bez aktualizacji dokumentacji i informacji dla frontendu.

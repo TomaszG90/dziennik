@@ -5,10 +5,44 @@ on:
     branches: [main, master, develop]
   pull_request:
 
+permissions:
+  contents: read
+  pull-requests: read
+
 jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      app: ${{ steps.filter.outputs.backend == 'true' || steps.filter.outputs.frontend == 'true' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Filter changed paths
+        uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            backend:
+              - 'backend/**'
+              - '.github/workflows/ci.yml'
+            frontend:
+              - 'frontend/**'
+              - 'shared/**'
+              - '.github/workflows/ci.yml'
+
   backend:
     name: Backend + Frontend CI
+    needs: changes
+    if: needs.changes.outputs.app == 'true'
     runs-on: ubuntu-latest
+    env:
+      DB_CONNECTION: pgsql
+      DB_HOST: 127.0.0.1
+      DB_PORT: 5432
+      DB_DATABASE: laravel
+      DB_USERNAME: laravel
+      DB_PASSWORD: secret
 
     services:
       postgres:
@@ -55,18 +89,30 @@ jobs:
 
       - name: Run tests
         working-directory: backend
-        env:
-          DB_CONNECTION: pgsql
-          DB_HOST: 127.0.0.1
-          DB_PORT: 5432
-          DB_DATABASE: laravel
-          DB_USERNAME: laravel
-          DB_PASSWORD: secret
         run: php artisan test
+
+      - name: Prepare database schema for OpenAPI export
+        working-directory: backend
+        run: php artisan migrate --force
+
+      - name: Export OpenAPI JSON from Scramble
+        working-directory: backend
+        run: php artisan scramble:export --path=../shared/openapi.json
 
       - name: Install frontend dependencies
         working-directory: frontend
         run: npm ci
+
+      - name: Generate OpenAPI YAML and Vue types
+        working-directory: frontend
+        run: npm run api:generate
+
+      - name: Check generated API artifacts are up to date
+        run: |
+          test -s shared/openapi.yaml
+          test -n "$(git ls-files shared/openapi.yaml)"
+          test -n "$(git ls-files frontend/src/api/generated)"
+          git diff --exit-code -- shared/openapi.yaml frontend/src/api/generated
 
       - name: Build frontend
         working-directory: frontend

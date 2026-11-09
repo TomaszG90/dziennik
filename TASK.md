@@ -6,7 +6,7 @@ Jak wykonać zadanie krok po kroku: [TASK_ins.md](TASK_ins.md).
 
 ## Aktualny stan
 
-Repozytorium zawiera podstawowy szkielet Laravel 12 z Sanctum, PostgreSQL i testami PHPUnit oraz aplikację Vue 3/Vite. W backendzie jest obecnie przykładowa chroniona trasa `/api/user`; wersjonowane API `/api/v1` i funkcje dziennika podróży są celem kolejnych zadań, a nie ukończonymi funkcjami. Przed rozpoczęciem zadania sprawdź zależności i kryteria akceptacji z Issue.
+Repozytorium zawiera backend Laravel 12 z Sanctum i PostgreSQL, wersjonowane API `/api/v1` (konta, profil, podróże, punkty i geokodowanie) oraz frontend Vue 3/Vite. Interaktywna mapa, dystanse i trasy, statystyki oraz profile publiczne pozostają w backlogu. Rozpoczęto bootstrap natywnej aplikacji Android w Kotlinie; zakres nowych zadań opisują PR-51–PR-54. Przed rozpoczęciem zadania sprawdź zależności i kryteria akceptacji z Issue.
 
 ## Definicje Ready i Done
 
@@ -14,11 +14,13 @@ Repozytorium zawiera podstawowy szkielet Laravel 12 z Sanctum, PostgreSQL i test
 - [ ] Zadanie ma jasny tytuł z identyfikatorem `PR-X` i jednoznaczny opis.
 - [ ] Zadania z kolumny **Zależy od** są już zmergowane do `main`.
 - [ ] Zdefiniowano kryteria akceptacji (wiadomo dokładnie, co oznacza sukces).
+- [ ] Dla zmian klienta ustalono platformę i stack; zadania mobilne są zgodne z ADR-002 i kontraktem `shared/openapi.yaml`.
 - [ ] Oszacowano rozmiar zadania (S / M / L).
 
 ### Definition of Done (Kiedy zadanie jest zakończone)
-- [ ] Kod działa poprawnie w środowisku kontenerowym Docker.
-- [ ] Testy i kontrole jakości właściwe dla zmiany przechodzą (`php artisan test`, Pint; dla frontendu także lint, testy i build).
+- [ ] Zmiana działa w środowisku właściwym dla obszaru: Docker dla backendu/web, Gradle i emulator/urządzenie Android dla mobile.
+- [ ] Testy i kontrole jakości właściwe dla zmiany przechodzą: backend (`php artisan test`, Pint), frontend (lint, testy, build), Android (`lintDebug`, `testDebugUnitTest`, `assembleDebug`).
+- [ ] Zmiana API aktualizuje `shared/openapi.yaml` i wygenerowane typy Vue; zmiana mobile ma adekwatną weryfikację na Androidzie.
 - [ ] Pull Request używa szablonu `.github/PULL_REQUEST_TEMPLATE.md` i został zaakceptowany przez min. 1 osobę.
 - [ ] Kod został zmergowany metodą **squash** do `main`, a gałąź została usunięta.
 
@@ -149,6 +151,24 @@ Utwórz Issue, korzystając z szablonu funkcji w `.github/ISSUE_TEMPLATE/feature
 | PR-49 | Testy end-to-end kluczowej ścieżki (rejestracja, dodanie podróży, mapa, statystyki) | frontend | PR-42 | L |
 | PR-50 | Dokumentacja końcowa: aktualizacja README, opis API, instrukcja wdrożenia | docs | wszystkie | M |
 
+## Faza 8: Kontrakt API i platforma Android
+
+| ID | Zadanie | Obszar | Zależy od | Rozmiar |
+|---|---|---|---|---|
+| PR-51 [#116](https://github.com/TomaszG90/dziennik/issues/116) | Scramble jako źródło kontraktu OpenAPI 3.1; eksport do `shared/openapi.yaml` i reguły jego aktualizacji | backend / API | PR-4 | M |
+| PR-52 [#117](https://github.com/TomaszG90/dziennik/issues/117) | Generowanie typów TypeScript frontendu z `shared/openapi.yaml` i kontrola aktualności wygenerowanych plików w CI | frontend | PR-51 | S |
+| PR-53 [#118](https://github.com/TomaszG90/dziennik/issues/118) | Filtry ścieżek CI dla backendu, frontendu, kontraktu API i `mobile/` | devops | PR-51, PR-52 | M |
+| PR-54 [#119](https://github.com/TomaszG90/dziennik/issues/119) | Szkielet natywnej aplikacji Android w Kotlinie i Jetpack Compose, Gradle Wrapper, CI build oraz dokumentacja `mobile/README.md`; bez ekranów funkcjonalnych | mobile / devops / docs | PR-51, PR-53 | M |
+
+Decyzję stacku Android opisuje [ADR-002](docs/ADR-002-mobile-stack.md). Szczegółowy plan rozwoju aplikacji mobilnej od PR-55 znajduje się w [TASK2.md](TASK2.md). Zmiany backendowego API są źródłem kontraktu wspólnego dla Vue i Androida; aplikacja mobilna nie kopiuje definicji endpointów ręcznie.
+
+Kryteria akceptacji nowych zadań:
+
+- **PR-51:** Scramble eksportuje aktualny kontrakt OpenAPI do YAML; endpointy API v1 i schematy request/response są obecne; instrukcja aktualizacji jest opisana.
+- **PR-52:** typy TypeScript są generowane z `shared/openapi.yaml`; regeneracja bez zmian źródła nie zmienia plików; CI wykrywa nieaktualne artefakty.
+- **PR-53:** workflow uruchamia właściwe kontrole przy zmianie backendu, frontendu, kontraktu i mobile; lockfile i pliki workflow są uwzględnione w filtrach.
+- **PR-54:** Gradle Wrapper i pusty projekt Android w Kotlinie budują wariant debug w CI; README opisuje wymagania i stack; brak funkcji produktowych.
+
 ---
 
 ## Co można zacząć równolegle na starcie
@@ -164,5 +184,5 @@ Dzięki temu na początku każdy ma co robić, a zadania blokujące (pogrubione)
 ## Zasada utrzymania listy
 
 - Zrobione zadania oznaczaj w Issue (zamknięcie) i skreślaj w tabeli (`~~PR-1~~`).
-- Nowe pomysły dopisuj na końcu jako kolejne numery (`PR-51`, `PR-52`, ...), nie zmieniaj numeracji istniejących.
+- Nowe pomysły dopisuj na końcu jako kolejne numery (`PR-55`, `PR-56`, ...), nie zmieniaj numeracji istniejących. Zadania Androida opisuj w `TASK2.md`, zachowując globalną numerację.
 - Zadanie `L` większe niż 2 dni dziel na mniejsze, dodając nowe numery.
