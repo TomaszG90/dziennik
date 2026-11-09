@@ -10,6 +10,8 @@
     "test": "vitest run",
     "test:unit": "vitest",
     "build-only": "vite build",
+    "api:generate": "node scripts/generate-api.mjs && openapi-ts",
+    "api:types": "openapi-ts",
     "type-check": "vue-tsc --build",
     "lint": "run-s \"lint:*\"",
     "lint:oxlint": "oxlint . --fix",
@@ -24,6 +26,7 @@
     "vue-router": "^5.3.1"
   },
   "devDependencies": {
+    "@hey-api/openapi-ts": "0.99.0",
     "@tsconfig/node24": "^24.0.5",
     "@types/jsdom": "^30.0.0",
     "@types/leaflet": "^1.9.22",
@@ -47,7 +50,8 @@
     "vite-plugin-vue-devtools": "^8.2.1",
     "vitest": "^4.1.11",
     "vue-eslint-parser": "^10.4.1",
-    "vue-tsc": "^3.3.11"
+    "vue-tsc": "^3.3.11",
+    "yaml": "2.9.1"
   },
   "engines": {
     "node": "^22.18.0 || >=24.12.0"

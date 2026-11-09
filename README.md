@@ -18,7 +18,8 @@ Po kilku latach korzystania z aplikacji można otworzyć mapę i zobaczyć wszys
 - Dodawanie, edycja, usuwanie i wyświetlanie podróży przez API
 - Nazwa, data lub zakres dat, opcjonalny opis
 - Dodawanie, edycja, usuwanie i zmiana kolejności punktów podróży przez API
-- Obsługa odcinków i wybór środka transportu — w planach
+- Dodawanie, edycja i usuwanie odcinków oraz wybór transportu przez API
+- Automatyczne wyznaczanie geometrii tras i dystansu odcinków — w planach
 
 Przykład podróży:
 
@@ -58,12 +59,12 @@ Dla całej historii oraz dla wybranego roku kalendarzowego:
 
 ## Architektura
 
-Aplikacja składa się z backendu Laravel i osobnej aplikacji SPA. Frontend korzysta ze wspólnego REST API (`/api/v1`); backend udostępnia m.in. funkcje kont, profilu, podróży, punktów podróży i geokodowania. Interfejs zarządzania podróżami, mapa i statystyki są w planach.
+Aplikacja składa się z backendu Laravel, aplikacji Vue SPA i rozwijanej natywnej aplikacji Android. Vue korzysta ze wspólnego REST API (`/api/v1`); aplikacja Android będzie korzystać z tego samego API. Backend udostępnia m.in. funkcje kont, profilu, podróży, punktów, odcinków i geokodowania. Interfejs zarządzania podróżami, mapa i statystyki są w planach. Aplikacja Android jest na etapie pustego szkieletu i nie ma jeszcze funkcji użytkowych.
 
 ```
 backend/    # Laravel: REST API
 frontend/   # Vue 3 SPA
-mobile/     # Aplikacja mobilna (w planach)
+mobile/     # Natywna aplikacja Android (Kotlin + Jetpack Compose)
 docker/     # Konfiguracja środowiska kontenerowego (Nginx, PHP, Node)
 docs/       # Dokumentacja projektu
 ```
@@ -74,6 +75,8 @@ docs/       # Dokumentacja projektu
 |---|---|
 | Backend (API) | PHP 8.3+, Laravel 12, Laravel Sanctum |
 | Frontend (SPA) | Vue 3, Vite, Vue Router, Pinia, TypeScript |
+| Mobile (Android) | Kotlin, Jetpack Compose, AndroidX |
+| Kontrakt API | Laravel Scramble, OpenAPI 3.1 (`shared/openapi.yaml`) |
 | Baza danych | PostgreSQL 16 |
 | Konteneryzacja | Docker, Docker Compose |
 | Mapa | Leaflet lub MapLibre GL (do ustalenia) |
@@ -86,12 +89,29 @@ docs/       # Dokumentacja projektu
 
 Zewnętrzne API i biblioteki mapowe zostaną wybrane i skonfigurowane w ramach zadań opisanych w backlogu.
 
+Stack mobilny opisuje [ADR-002](docs/ADR-002-mobile-stack.md), a instrukcja aplikacji Android znajduje się w [mobile/README.md](mobile/README.md).
+
+## Praca nad Androidem
+
+`mobile/` to osobna aplikacja natywna w Kotlinie. Na tym etapie zawiera tylko szkielet Compose, bez ekranów i funkcji. Pierwszy build uruchomisz z katalogu repozytorium:
+
+```bash
+cd mobile
+./gradlew assembleDebug
+```
+
+W PowerShell użyj `cd mobile; .\gradlew.bat assembleDebug`. W emulatorze Androida hostowy backend dostępny pod `localhost:8000` jest osiągalny przez `10.0.2.2:8000`; adres bazowy API konfiguruj zależnie od środowiska, nie wpisuj go na stałe w ekranach lub repozytoriach.
+
+Nowe funkcje mobilne powinny konsumować `/api/v1` na podstawie [`shared/openapi.yaml`](shared/openapi.yaml). Tokeny uwierzytelniające przechowuj z użyciem bezpiecznego mechanizmu Androida, a kluczy serwisów zewnętrznych nie umieszczaj w aplikacji.
+
 ## Wymagania
 
 - [Docker Desktop](https://www.docker.com/products/docker-desktop/) (z obsługą Docker Compose v2)
 - Git
 
 *(Opcjonalnie do pracy bez kontenerów: PHP >= 8.3 i Composer, Node.js 22.18+ (lub 24.12+) i npm, PostgreSQL 16).*
+
+Do pracy nad Androidem potrzebne są również JDK 17+ i Android Studio z Android SDK. Wersję SDK i polecenia builda opisuje [mobile/README.md](mobile/README.md).
 
 ## Uruchomienie lokalne (Docker)
 
@@ -194,7 +214,15 @@ docker compose exec frontend npm run test
 docker compose exec frontend npm run build
 ```
 
-GitHub Actions uruchamia testy backendu i build frontendu dla PR. Zmiany w `frontend/` uruchamiają dodatkowo workflow lint/test/build frontendu; osobny workflow sprawdza formatowanie backendu. Mimo to przed wysłaniem PR uruchom lokalnie wszystkie kontrole z powyższej listy.
+Kontrole aplikacji Android uruchamiaj z katalogu `mobile/`:
+
+```bash
+./gradlew lintDebug testDebugUnitTest assembleDebug
+```
+
+W PowerShell: `cd mobile; .\gradlew.bat lintDebug testDebugUnitTest assembleDebug`.
+
+GitHub Actions uruchamia testy backendu i build frontendu dla zmian w backendzie, frontendzie lub kontrakcie; osobny workflow sprawdza lint/test/build frontendu, a zmiany w `mobile/` uruchamiają build debug Androida. Obecny workflow Android CI nie uruchamia jeszcze `lintDebug` ani `testDebugUnitTest`; dodaj je do CI wraz z pierwszymi zadaniami funkcjonalnymi.
 
 ## Współpraca
 
