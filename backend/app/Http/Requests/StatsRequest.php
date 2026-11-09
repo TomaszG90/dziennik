@@ -14,7 +14,7 @@ class StatsRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'year' => 'nullable|integer|min:1900|max:' . (date('Y') + 1),
+            'year' => 'nullable|integer|min:1900|max:'.(date('Y') + 1),
         ];
     }
 }

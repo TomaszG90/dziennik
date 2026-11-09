@@ -19,7 +19,7 @@ class StatsServiceTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->statsService = new StatsService();
+        $this->statsService = new StatsService;
     }
 
     public function test_calculate_stats_for_all_time(): void
