@@ -769,9 +769,14 @@ onBeforeUnmount(() => {
               class="map-canvas"
               data-testid="route-map-canvas"
               aria-label="Mapa podróży"
+              :places="places"
+              :legs="legs"
             />
-            <p class="map-panel-note">
-              Mapa bazowa. Markery punktów i przebieg trasy pojawią się w kolejnych etapach.
+            <p v-if="places.length === 0" class="map-panel-note">
+              Dodaj punkty do podróży, aby zobaczyć markery i przebieg trasy na mapie.
+            </p>
+            <p v-else class="map-panel-note">
+              Trasa na mapie: {{ places.length }} {{ places.length === 1 ? 'punkt' : (places.length >= 2 && places.length <= 4 ? 'punkty' : 'punktów') }}, {{ legs.length }} {{ legs.length === 1 ? 'odcinek' : (legs.length >= 2 && legs.length <= 4 ? 'odcinki' : 'odcinków') }}.
             </p>
           </aside>
         </div>

@@ -7,6 +7,8 @@ import TripDetailsView from '@/views/TripDetailsView.vue'
 
 vi.mock('@/components/MapView.vue', () => ({
   default: {
+    name: 'MapView',
+    props: ['places', 'legs', 'center', 'zoom', 'tileUrl', 'attribution'],
     template: '<div data-testid="route-map-canvas" role="application" aria-label="Mapa podróży" />',
   },
 }))
@@ -82,6 +84,24 @@ describe('TripDetailsView route editing', () => {
     expect(wrapper.get('#route-map-title').text()).toBe('Mapa podróży')
     expect(wrapper.get('[data-testid="route-map-canvas"]').attributes('role')).toBe('application')
     expect(wrapper.get('.itinerary-layout').find('.map-panel').exists()).toBe(true)
+  })
+
+  it('passes places and legs to the MapView component', async () => {
+    const leg: tripsApi.TripLeg = {
+      id: 20,
+      trip_id: trip.id,
+      from_place_id: placeA.id,
+      to_place_id: placeB.id,
+      transport: 'train',
+      distance: 400,
+      position: 1,
+    }
+    const wrapper = await mountDetails([placeA, placeB], [leg])
+    const mapCanvas = wrapper.findComponent({ name: 'MapView' })
+
+    expect(mapCanvas.exists()).toBe(true)
+    expect(mapCanvas.props('places')).toEqual([placeA, placeB])
+    expect(mapCanvas.props('legs')).toEqual([leg])
   })
 
   it('shows distinct visited country codes and invited guests in the trip summary', async () => {
