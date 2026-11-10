@@ -357,8 +357,10 @@ onMounted(() => {
 
   L.tileLayer(props.tileUrl, { attribution: props.attribution, maxZoom: 19 }).addTo(map)
 
-  linesLayer = L.featureGroup().addTo(map)
-  markersLayer = L.featureGroup().addTo(map)
+  linesLayer = L.featureGroup()
+  markersLayer = L.featureGroup()
+  linesLayer.addTo(map)
+  markersLayer.addTo(map)
 
   renderPlacesAndLegs()
 })
