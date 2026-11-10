@@ -39,6 +39,13 @@ export type LegResource = {
     to_place_id: number;
     transport: string;
     distance: string | null;
+    geometry: {
+        type: 'LineString';
+        coordinates: Array<[
+            number,
+            number
+        ]>;
+    } | null;
     position: number;
     created_at: string | null;
     updated_at: string | null;
@@ -113,7 +120,6 @@ export type StoreLegRequest = {
     from_place_id: number;
     to_place_id: number;
     transport: 'walking' | 'car' | 'plane' | 'train' | 'other';
-    distance?: number | null;
 };
 
 /**
@@ -156,7 +162,6 @@ export type UpdateLegRequest = {
     from_place_id?: number;
     to_place_id?: number;
     transport?: 'walking' | 'car' | 'plane' | 'train' | 'other';
-    distance?: number | null;
 };
 
 /**

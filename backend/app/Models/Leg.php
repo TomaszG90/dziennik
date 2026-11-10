@@ -6,6 +6,13 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * @property array{
+ *     type: 'LineString',
+ *     coordinates: list<array{0: float, 1: float}>
+ * }|null $geometry
+ */
+
 class Leg extends Model
 {
     use HasFactory;
