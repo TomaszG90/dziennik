@@ -166,14 +166,18 @@ describe('MapView', () => {
       expect.objectContaining({ color: '#059669', dashArray: '12, 6' }),
     )
 
-    // Plane leg: violet with dashed style
-    expect(leafletMocks.polyline).toHaveBeenCalledWith(
-      [
-        [51.1, 17.03],
-        [48.85, 2.35],
-      ],
+    // Plane leg: violet dashed arc with the original endpoints
+    const planeCall = leafletMocks.polyline.mock.calls[1]
+    expect(planeCall).toBeDefined()
+    const planeCoordinates = planeCall![0] as [number, number][]
+    expect(planeCall![1]).toEqual(
       expect.objectContaining({ color: '#7c3aed', dashArray: '8, 8' }),
     )
+    expect(planeCoordinates).toHaveLength(33)
+    expect(planeCoordinates[0]).toEqual([51.1, 17.03])
+    expect(planeCoordinates[32]![0]).toBeCloseTo(48.85)
+    expect(planeCoordinates[32]![1]).toBeCloseTo(2.35)
+    expect(planeCoordinates[16]![0]).toBeGreaterThan((51.1 + 48.85) / 2)
 
     // Car leg: blue solid line
     expect(leafletMocks.polyline).toHaveBeenCalledWith(
