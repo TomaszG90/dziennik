@@ -12,7 +12,6 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  *     coordinates: list<array{0: float, 1: float}>
  * }|null $geometry
  */
-
 class Leg extends Model
 {
     use HasFactory;

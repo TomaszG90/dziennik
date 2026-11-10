@@ -2,13 +2,13 @@
 
 namespace App\Http\Resources;
 
+use App\Models\Leg;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 /**
- * @mixin \App\Models\Leg
+ * @mixin Leg
  */
-
 class LegResource extends JsonResource
 {
     public function toArray(Request $request): array
