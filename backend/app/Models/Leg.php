@@ -6,6 +6,12 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * @property array{
+ *     type: 'LineString',
+ *     coordinates: list<array{0: float, 1: float}>
+ * }|null $geometry
+ */
 class Leg extends Model
 {
     use HasFactory;
@@ -16,6 +22,7 @@ class Leg extends Model
         'to_place_id',
         'transport',
         'distance',
+        'geometry',
         'position',
     ];
 
@@ -23,6 +30,7 @@ class Leg extends Model
     {
         return [
             'distance' => 'decimal:2',
+            'geometry' => 'array',
             'position' => 'integer',
         ];
     }
