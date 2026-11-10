@@ -140,7 +140,52 @@ describe('MapView', () => {
     expect(leafletMocks.fitBounds).toHaveBeenCalled()
   })
 
-  it('renders polylines for explicit legs connecting places', () => {
+  it('distinguishes transport types with specific colors and line styles', () => {
+    const places = [
+      { id: 1, name: 'Gdańsk', latitude: 54.35, longitude: 18.64, position: 1 },
+      { id: 2, name: 'Wrocław', latitude: 51.1, longitude: 17.03, position: 2 },
+      { id: 3, name: 'Paryż', latitude: 48.85, longitude: 2.35, position: 3 },
+      { id: 4, name: 'Rzym', latitude: 41.9, longitude: 12.5, position: 4 },
+    ]
+    const legs = [
+      { id: 10, from_place_id: 1, to_place_id: 2, transport: 'train', distance: 480 },
+      { id: 11, from_place_id: 2, to_place_id: 3, transport: 'plane', distance: 1200 },
+      { id: 12, from_place_id: 3, to_place_id: 4, transport: 'car', distance: 1400 },
+    ]
+
+    mount(MapView, {
+      props: { places, legs },
+    })
+
+    // Train leg: green with dashed style
+    expect(leafletMocks.polyline).toHaveBeenCalledWith(
+      [
+        [54.35, 18.64],
+        [51.1, 17.03],
+      ],
+      expect.objectContaining({ color: '#059669', dashArray: '12, 6' }),
+    )
+
+    // Plane leg: violet with dashed style
+    expect(leafletMocks.polyline).toHaveBeenCalledWith(
+      [
+        [51.1, 17.03],
+        [48.85, 2.35],
+      ],
+      expect.objectContaining({ color: '#7c3aed', dashArray: '8, 8' }),
+    )
+
+    // Car leg: blue solid line
+    expect(leafletMocks.polyline).toHaveBeenCalledWith(
+      [
+        [48.85, 2.35],
+        [41.9, 12.5],
+      ],
+      expect.objectContaining({ color: '#2563eb' }),
+    )
+  })
+
+  it('renders a transport legend with all modes and highlights used transports', async () => {
     const places = [
       { id: 1, name: 'Gdańsk', latitude: 54.35, longitude: 18.64, position: 1 },
       { id: 2, name: 'Wrocław', latitude: 51.1, longitude: 17.03, position: 2 },
@@ -149,17 +194,31 @@ describe('MapView', () => {
       { id: 10, from_place_id: 1, to_place_id: 2, transport: 'train', distance: 480 },
     ]
 
-    mount(MapView, {
-      props: { places, legs },
+    const wrapper = mount(MapView, {
+      props: { places, legs, showLegend: true },
     })
 
-    expect(leafletMocks.polyline).toHaveBeenCalledWith(
-      [
-        [54.35, 18.64],
-        [51.1, 17.03],
-      ],
-      expect.objectContaining({ color: '#2563eb' }),
-    )
+    expect(wrapper.find('.map-legend').exists()).toBe(true)
+    expect(wrapper.text()).toContain('Legenda transportu')
+    expect(wrapper.text()).toContain('Samochód')
+    expect(wrapper.text()).toContain('Samolot')
+    expect(wrapper.text()).toContain('Pociąg')
+    expect(wrapper.text()).toContain('Pieszo')
+    expect(wrapper.text()).toContain('Inny')
+
+    // Train is used
+    const trainItem = wrapper.get('[data-testid="legend-item-train"]')
+    expect(trainItem.classes()).toContain('is-used')
+    expect(trainItem.text()).toContain('w trasie')
+
+    // Car is not used
+    const carItem = wrapper.get('[data-testid="legend-item-car"]')
+    expect(carItem.classes()).not.toContain('is-used')
+
+    // Toggle legend accordion
+    const toggleButton = wrapper.get('.legend-header')
+    await toggleButton.trigger('click')
+    expect(wrapper.find('.legend-list').attributes('style')).toContain('display: none')
   })
 
   it('skips places with invalid or empty coordinates', () => {

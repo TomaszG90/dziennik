@@ -51,6 +51,21 @@ const transports: Array<{ value: TripTransport; label: string }> = [
   { value: 'other', label: 'Inny' },
 ]
 
+function getTransportIcon(transport?: string | null): string {
+  switch (transport) {
+    case 'car':
+      return '🚗'
+    case 'plane':
+      return '✈️'
+    case 'train':
+      return '🚆'
+    case 'walking':
+      return '🚶'
+    default:
+      return '🧭'
+  }
+}
+
 watch(
   () => placeForm.value.name,
   (query) => {
@@ -680,7 +695,7 @@ onBeforeUnmount(() => {
                     class="leg-card"
                     data-testid="route-leg"
                   >
-                    <div class="leg-icon" aria-hidden="true">↗</div>
+                    <div class="leg-icon" aria-hidden="true">{{ getTransportIcon(leg.transport) }}</div>
                     <div class="leg-copy">
                       <label class="sr-only" :for="`transport-${leg.id}`">Środek transportu</label>
                       <select
@@ -694,7 +709,7 @@ onBeforeUnmount(() => {
                           :key="transport.value"
                           :value="transport.value"
                         >
-                          {{ transport.label }}
+                          {{ getTransportIcon(transport.value) }} {{ transport.label }}
                         </option>
                       </select>
                       <span
@@ -741,7 +756,7 @@ onBeforeUnmount(() => {
                         :key="transport.value"
                         :value="transport.value"
                       >
-                        {{ transport.label }}
+                        {{ getTransportIcon(transport.value) }} {{ transport.label }}
                       </option>
                     </select>
                     <button class="add-button" type="submit" :disabled="isSavingRoute">
