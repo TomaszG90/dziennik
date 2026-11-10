@@ -114,10 +114,13 @@ Utwórz Issue, korzystając z szablonu funkcji w `.github/ISSUE_TEMPLATE/feature
 | ~~**PR-33**~~ | Bazowy komponent mapy (Leaflet lub MapLibre): kafelki, zoom, konfiguracja, test renderowania | frontend | PR-3, PR-7 | M |
 | ~~PR-34~~ | Mapa jednej podróży: markery punktów i odcinki | frontend | PR-33, PR-25 | L |
 | ~~PR-35~~ | Rozróżnienie transportu: kolory, ikony lub styl linii, legenda mapy | frontend | PR-34 | M |
-| ~~PR-36~~ | Prezentacja samolotu jako łuku, trasy samochodowej po drogach, pociągu i "inne" jako linii prostej | frontend | PR-35, PR-30 | L |
+| PR-36 | Prezentacja samolotu jako łuku, trasy samochodowej po drogach, pociągu i "inne" jako linii prostej | frontend | PR-35, PR-30 | L |
 | PR-37 | Mapa wszystkich podróży użytkownika (endpoint zbiorczy `GET /api/v1/map` + widok) | backend + frontend | PR-34, PR-30 | L |
+
 | PR-38 | Warstwa odwiedzonych państw: dane GeoJSON (np. Natural Earth), wyróżnienie krajów na mapie | frontend | PR-37, PR-31 | L |
 | PR-39 | Szczegóły trasy: popup/panel po kliknięciu w punkt lub odcinek, płynne przybliżanie do wybranej trasy | frontend | PR-37 | M |
+
+**Status PR-36:** frontend rysuje łuk lotniczy i obsługuje geometrię samochodową z API; pociąg i pozostałe środki są liniami prostymi. Trasa samochodowa po drogach pozostaje do podłączenia po stronie backendu zgodnie z [ADR-001](docs/ADR-001-map-routing-geocoding.md); geometria musi być wyznaczana i zapisywana przez backend.
 
 ---
 
