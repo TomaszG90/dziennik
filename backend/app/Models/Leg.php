@@ -16,6 +16,7 @@ class Leg extends Model
         'to_place_id',
         'transport',
         'distance',
+        'geometry',
         'position',
     ];
 
@@ -23,6 +24,7 @@ class Leg extends Model
     {
         return [
             'distance' => 'decimal:2',
+            'geometry' => 'array',
             'position' => 'integer',
         ];
     }

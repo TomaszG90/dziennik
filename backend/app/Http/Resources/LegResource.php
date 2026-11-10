@@ -16,6 +16,7 @@ class LegResource extends JsonResource
             'to_place_id' => $this->to_place_id,
             'transport' => $this->transport,
             'distance' => $this->distance,
+            'geometry' => $this->geometry,
             'position' => $this->position,
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
