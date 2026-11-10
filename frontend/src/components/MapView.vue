@@ -15,6 +15,10 @@ export interface MapLeg {
   transport?: string
   distance?: string | number | null
   position?: number
+  geometry?: {
+    type: 'LineString'
+    coordinates: Array<[number, number]>
+  } | null
 }
 
 export interface TransportStyle {
@@ -154,6 +158,44 @@ function escapeHtml(str: string): string {
     .replace(/'/g, '&#039;')
 }
 
+function createPlaneArc(from: [number, number], to: [number, number]): [number, number][] {
+  const longitudeDelta = ((to[1] - from[1] + 540) % 360) - 180
+  const distance = Math.hypot(to[0] - from[0], longitudeDelta)
+  const arcHeight = Math.min(24, distance * 0.18)
+  const points: [number, number][] = []
+
+  for (let step = 0; step <= 32; step += 1) {
+    const progress = step / 32
+    const latitude = from[0] + (to[0] - from[0]) * progress
+    const longitude = from[1] + longitudeDelta * progress
+    const arc = Math.sin(Math.PI * progress) * arcHeight
+    points.push([Math.max(-85, Math.min(85, latitude + arc)), longitude])
+  }
+
+  return points
+}
+
+function getCarGeometry(leg: MapLeg): [number, number][] | null {
+  if (leg.geometry?.type !== 'LineString' || leg.geometry.coordinates.length < 2) return null
+
+  const points: [number, number][] = []
+  for (const coordinate of leg.geometry.coordinates) {
+    const longitude = parseCoordinate(coordinate[0])
+    const latitude = parseCoordinate(coordinate[1])
+    if (
+      longitude === null ||
+      latitude === null ||
+      Math.abs(longitude) > 180 ||
+      Math.abs(latitude) > 90
+    ) {
+      return null
+    }
+    points.push([latitude, longitude])
+  }
+
+  return points
+}
+
 function renderPlacesAndLegs() {
   const currentMap = map
   const currentMarkersLayer = markersLayer
@@ -223,7 +265,13 @@ function renderPlacesAndLegs() {
         polylineOptions.dashArray = style.dashArray
       }
 
-      const polyline = L.polyline([fromCoord, toCoord], polylineOptions)
+      const routeCoordinates =
+        leg.transport === 'plane'
+          ? createPlaneArc(fromCoord, toCoord)
+          : leg.transport === 'car'
+            ? (getCarGeometry(leg) ?? [fromCoord, toCoord])
+            : [fromCoord, toCoord]
+      const polyline = L.polyline(routeCoordinates, polylineOptions)
 
       const fromPlace = props.places.find((p) => p.id === leg.from_place_id)
       const toPlace = props.places.find((p) => p.id === leg.to_place_id)

@@ -49,6 +49,10 @@ export interface TripLeg {
   to_place_id: number
   transport: string
   distance: string | number | null
+  geometry?: {
+    type: 'LineString'
+    coordinates: Array<[number, number]>
+  } | null
   position: number
 }
 
