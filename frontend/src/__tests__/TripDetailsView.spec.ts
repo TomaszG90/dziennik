@@ -294,4 +294,37 @@ describe('TripDetailsView route editing', () => {
     expect(wrapper.get('.leg-distance').text()).toContain('331,8 km')
     expect(wrapper.get('.trip-stats').text()).toContain('331,8 km')
   })
+
+  it('waits for confirmation before opening an external photo link', async () => {
+    const openSpy = vi.spyOn(window, 'open').mockImplementation(() => null)
+    const wrapper = await mountDetails([])
+
+    // Add a photo link
+    await wrapper.get('#photo-link').setValue('https://photos.app.goo.gl/test12345')
+    await wrapper.findAll('.extra-card form')[1]!.trigger('submit')
+    await flushPromises()
+
+    const link = wrapper.get('.photo-list a.portal-link')
+    expect(link.text()).toContain('photos.app.goo.gl')
+
+    // Clicking the link intercepts navigation and opens warning modal
+    await link.trigger('click')
+    await flushPromises()
+
+    expect(openSpy).not.toHaveBeenCalled()
+    expect(document.body.querySelector('[data-testid="external-link-modal-backdrop"]')).not.toBeNull()
+    expect(document.body.textContent).toContain('Opuszczasz naszą stronę')
+    expect(document.body.textContent).toContain('https://photos.app.goo.gl/test12345')
+
+    expect(document.body.textContent).toContain('Otwórz link')
+    expect(document.body.textContent).not.toContain('Automatyczne przejście')
+    expect(openSpy).not.toHaveBeenCalled()
+
+    document.body
+      .querySelector<HTMLButtonElement>('[data-testid="external-link-proceed-btn"]')
+      ?.click()
+    await flushPromises()
+
+    expect(openSpy).toHaveBeenCalledWith('https://photos.app.goo.gl/test12345', '_blank', 'noopener,noreferrer')
+  })
 })
