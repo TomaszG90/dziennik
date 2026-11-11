@@ -2,11 +2,12 @@
 import HomeView from '../views/HomeView.vue'
 import { useAuthStore } from '../stores/auth'
 import { createAuthGuard } from './authGuard'
-import RoutePlaceholderView from '../views/RoutePlaceholderView.vue'
 import MeView from '../views/MeView.vue'
 import AuthView from '../views/AuthView.vue'
 import TripFormView from '../views/TripFormView.vue'
 import TripDetailsView from '../views/TripDetailsView.vue'
+import UserMapView from '../views/UserMapView.vue'
+import DashboardView from '../views/DashboardView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -44,11 +45,13 @@ const router = createRouter({
     {
       path: '/dashboard',
       name: 'dashboard',
-      component: RoutePlaceholderView,
-      props: {
-        title: 'MĂłj dziennik',
-        message: 'Tutaj pojawiÄ… siÄ™ Twoje podrĂłĹĽe.',
-      },
+      component: DashboardView,
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/map',
+      name: 'user-map',
+      component: UserMapView,
       meta: { requiresAuth: true },
     },
     {

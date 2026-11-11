@@ -23,6 +23,7 @@ async function mountHeader(authenticated = false) {
       { path: '/', name: 'home', component: Placeholder },
       { path: '/auth', name: 'auth', component: Placeholder },
       { path: '/dashboard', name: 'dashboard', component: Placeholder },
+      { path: '/map', name: 'user-map', component: Placeholder },
       { path: '/me', name: 'me', component: Placeholder },
     ],
   })
@@ -51,6 +52,7 @@ describe('AppHeader', () => {
     expect(wrapper.find('button').text()).toBe('Wyloguj')
     expect(wrapper.find('a[href="/auth"]').exists()).toBe(false)
     expect(wrapper.get('a[href="/dashboard"]').text()).toBe('Mój dziennik')
+    expect(wrapper.get('a[href="/map"]').text()).toBe('Mapa podróży')
   })
 
   it('logs out and redirects to home on logout button click', async () => {

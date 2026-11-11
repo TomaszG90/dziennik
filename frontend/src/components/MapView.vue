@@ -6,6 +6,7 @@ export interface MapPlace {
   longitude: string | number | null
   position?: number
   country_code?: string | null
+  trip_name?: string
 }
 
 export interface MapLeg {
@@ -15,6 +16,7 @@ export interface MapLeg {
   transport?: string
   distance?: string | number | null
   position?: number
+  trip_name?: string
   geometry?: {
     type: 'LineString'
     coordinates: Array<[number, number]>
@@ -237,10 +239,14 @@ function renderPlacesAndLegs() {
     const countryInfo = place.country_code
       ? `<span class="trip-marker-popup-country">Kraj: ${escapeHtml(place.country_code)}</span>`
       : ''
+    const tripInfo = place.trip_name
+      ? `<span class="trip-marker-popup-country">Podróż: ${escapeHtml(place.trip_name)}</span>`
+      : ''
     marker.bindPopup(
       `<div class="trip-marker-popup">` +
         `<div class="trip-marker-popup-num">Punkt ${pos}</div>` +
         `<h3 class="trip-marker-popup-title">${escapeHtml(place.name)}</h3>` +
+        tripInfo +
         countryInfo +
         `</div>`,
     )
@@ -287,6 +293,7 @@ function renderPlacesAndLegs() {
               `<strong>${escapeHtml(style.label)}</strong>` +
             `</div>` +
             `<div class="trip-leg-popup-route">${escapeHtml(fromPlace.name)} &rarr; ${escapeHtml(toPlace.name)}</div>` +
+            (leg.trip_name ? `<div class="trip-leg-popup-distance">Podróż: ${escapeHtml(leg.trip_name)}</div>` : '') +
             dist +
           `</div>`,
         )

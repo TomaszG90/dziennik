@@ -314,6 +314,144 @@ paths:
           $ref: "#/components/responses/AuthorizationException"
         "404":
           $ref: "#/components/responses/ModelNotFoundException"
+  /map:
+    get:
+      operationId: map
+      summary: Return all map data for the authenticated user's trips
+      tags:
+        - Map
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      trips:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            id:
+                              type: integer
+                            name:
+                              type: string
+                            start_date:
+                              type:
+                                - string
+                                - "null"
+                            end_date:
+                              type:
+                                - string
+                                - "null"
+                          required:
+                            - id
+                            - name
+                            - start_date
+                            - end_date
+                      places:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            id:
+                              type: integer
+                            trip_id:
+                              type: integer
+                            trip_name:
+                              type: string
+                            name:
+                              type: string
+                            latitude:
+                              type:
+                                - string
+                                - "null"
+                            longitude:
+                              type:
+                                - string
+                                - "null"
+                            position:
+                              type: integer
+                            country_code:
+                              type:
+                                - string
+                                - "null"
+                          required:
+                            - id
+                            - trip_id
+                            - trip_name
+                            - name
+                            - latitude
+                            - longitude
+                            - position
+                            - country_code
+                      legs:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            id:
+                              type: integer
+                            trip_id:
+                              type: integer
+                            trip_name:
+                              type: string
+                            from_place_id:
+                              type: integer
+                            to_place_id:
+                              type: integer
+                            transport:
+                              type: string
+                            distance:
+                              type:
+                                - string
+                                - "null"
+                            geometry:
+                              type:
+                                - object
+                                - "null"
+                              properties:
+                                type:
+                                  type: string
+                                  const: LineString
+                                coordinates:
+                                  type: array
+                                  items:
+                                    type: array
+                                    prefixItems:
+                                      - type: number
+                                      - type: number
+                                    minItems: 2
+                                    maxItems: 2
+                              required:
+                                - type
+                                - coordinates
+                            position:
+                              type: integer
+                          required:
+                            - id
+                            - trip_id
+                            - trip_name
+                            - from_place_id
+                            - to_place_id
+                            - transport
+                            - distance
+                            - geometry
+                            - position
+                    required:
+                      - trips
+                      - places
+                      - legs
+                required:
+                  - data
+        "401":
+          $ref: "#/components/responses/AuthenticationException"
+        "403":
+          $ref: "#/components/responses/AuthorizationException"
   /forgot-password:
     post:
       operationId: passwordReset.sendResetLink
