@@ -189,6 +189,37 @@ describe('MapView', () => {
     )
   })
 
+  it('uses the saved plane geometry when the API provides it', () => {
+    const places = [
+      { id: 1, name: 'Warszawa', latitude: 52.23, longitude: 21.01 },
+      { id: 2, name: 'Paryż', latitude: 48.85, longitude: 2.35 },
+    ]
+    const geometry = {
+      type: 'LineString' as const,
+      coordinates: [
+        [21.01, 52.23] as [number, number],
+        [12, 56] as [number, number],
+        [2.35, 48.85] as [number, number],
+      ],
+    }
+
+    mount(MapView, {
+      props: {
+        places,
+        legs: [{ id: 1, from_place_id: 1, to_place_id: 2, transport: 'plane', geometry }],
+      },
+    })
+
+    expect(leafletMocks.polyline).toHaveBeenCalledWith(
+      [
+        [52.23, 21.01],
+        [56, 12],
+        [48.85, 2.35],
+      ],
+      expect.objectContaining({ color: '#7c3aed' }),
+    )
+  })
+
   it('renders a transport legend with all modes and highlights used transports', async () => {
     const places = [
       { id: 1, name: 'Gdańsk', latitude: 54.35, longitude: 18.64, position: 1 },

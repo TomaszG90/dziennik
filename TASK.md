@@ -101,7 +101,7 @@ Utwórz Issue, korzystając z szablonu funkcji w `.github/ISSUE_TEMPLATE/feature
 | ~~PR-27~~ | Serwis geokodowania (Nominatim/Photon) i endpoint wyszukiwania miejsc `GET /api/v1/geocode?q=` z cache i limitem zapytań | backend | PR-4, PR-7 | M |
 | ~~PR-28~~ | Serwis dystansu "po kuli ziemskiej" (haversine) i "w linii prostej" + testy jednostkowe | backend | PR-2 | S |
 | ~~PR-29~~ | Serwis wyznaczania trasy samochodowej (OpenRouteService/OSRM): geometria trasy i dystans, obsługa błędów API | backend | PR-7 | L |
-| PR-30 | Automatyczne wyliczanie i zapis dystansu oraz geometrii odcinka zależnie od transportu | backend | PR-22, PR-28, PR-29 | M |
+| ~~PR-30~~ | Automatyczne wyliczanie i zapis dystansu oraz geometrii odcinka zależnie od transportu | backend | PR-22, PR-28, PR-29 | M |
 | ~~PR-31~~ | Ustalanie kraju dla punktu (kod ISO) na podstawie współrzędnych lub odpowiedzi geokodera i zapis przy punkcie | backend | PR-20, PR-27 | M |
 | ~~PR-32~~ | Frontend: pole wyszukiwania miejsca z podpowiedziami (autocomplete) przy dodawaniu punktu | frontend | PR-26, PR-27 | M |
 
@@ -114,13 +114,9 @@ Utwórz Issue, korzystając z szablonu funkcji w `.github/ISSUE_TEMPLATE/feature
 | ~~**PR-33**~~ | Bazowy komponent mapy (Leaflet lub MapLibre): kafelki, zoom, konfiguracja, test renderowania | frontend | PR-3, PR-7 | M |
 | ~~PR-34~~ | Mapa jednej podróży: markery punktów i odcinki | frontend | PR-33, PR-25 | L |
 | ~~PR-35~~ | Rozróżnienie transportu: kolory, ikony lub styl linii, legenda mapy | frontend | PR-34 | M |
-| PR-36 | Prezentacja samolotu jako łuku, trasy samochodowej po drogach, pociągu i "inne" jako linii prostej | frontend | PR-35, PR-30 | L |
+| ~~PR-36~~<br/> | Prezentacja samolotu jako łuku, trasy samochodowej po drogach, pociągu i "inne" jako linii prostej | frontend | PR-35, PR-30 | L |
 | PR-37 | Mapa wszystkich podróży użytkownika (endpoint zbiorczy `GET /api/v1/map` + widok) | backend + frontend | PR-34, PR-30 | L |
 
-| PR-38 | Warstwa odwiedzonych państw: dane GeoJSON (np. Natural Earth), wyróżnienie krajów na mapie | frontend | PR-37, PR-31 | L |
-| PR-39 | Szczegóły trasy: popup/panel po kliknięciu w punkt lub odcinek, płynne przybliżanie do wybranej trasy | frontend | PR-37 | M |
-
-**Status PR-36:** frontend rysuje łuk lotniczy i obsługuje geometrię samochodową z API; pociąg i pozostałe środki są liniami prostymi. Trasa samochodowa po drogach pozostaje do podłączenia po stronie backendu zgodnie z [ADR-001](docs/ADR-001-map-routing-geocoding.md); geometria musi być wyznaczana i zapisywana przez backend.
 
 ---
 

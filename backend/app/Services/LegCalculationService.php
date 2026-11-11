@@ -64,15 +64,56 @@ class LegCalculationService
             ),
         };
 
+        $coordinates = $transport === 'plane'
+            ? $this->createPlaneArc(
+                $fromLatitude,
+                $fromLongitude,
+                $toLatitude,
+                $toLongitude
+            )
+            : [
+                [$fromLongitude, $fromLatitude],
+                [$toLongitude, $toLatitude],
+            ];
+
         return [
             'distance' => $distance,
             'geometry' => [
                 'type' => 'LineString',
-                'coordinates' => [
-                    [$fromLongitude, $fromLatitude],
-                    [$toLongitude, $toLatitude],
-                ],
+                'coordinates' => $coordinates,
             ],
         ];
+    }
+
+    /**
+     * Create a sampled visual arc for flight legs, using [longitude, latitude]
+     * GeoJSON coordinates and the shortest path across the date line.
+     *
+     * @return list<array{0: float, 1: float}>
+     */
+    private function createPlaneArc(
+        float $fromLatitude,
+        float $fromLongitude,
+        float $toLatitude,
+        float $toLongitude
+    ): array {
+        $longitudeDelta = fmod($toLongitude - $fromLongitude + 540, 360) - 180;
+        $distance = hypot($toLatitude - $fromLatitude, $longitudeDelta);
+        $arcHeight = min(24, $distance * 0.18);
+        $coordinates = [];
+
+        for ($step = 0; $step <= 32; $step++) {
+            $progress = $step / 32;
+            $latitude = $fromLatitude + ($toLatitude - $fromLatitude) * $progress;
+            $longitude = $fromLongitude + $longitudeDelta * $progress;
+            $arc = sin(M_PI * $progress) * $arcHeight;
+
+            $coordinates[] = [
+                $longitude,
+                max(-85, min(85, $latitude + $arc)),
+            ];
+        }
+
+        return $coordinates;
     }
 }

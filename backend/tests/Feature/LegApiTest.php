@@ -305,18 +305,31 @@ class LegApiTest extends TestCase
 
         $response->assertJsonPath('data.transport', 'plane')
             ->assertJsonPath('data.geometry.type', 'LineString');
+
+        $coordinates = $response->json('data.geometry.coordinates');
+        $this->assertCount(33, $coordinates);
+        $this->assertEquals([17.0, 51.1], $coordinates[0]);
+        $this->assertEquals([18.0, 52.0], $coordinates[32]);
+        $this->assertGreaterThan(
+            (51.1 + 52.0) / 2,
+            $coordinates[16][1]
+        );
+
+        $savedGeometry = Leg::findOrFail($response->json('data.id'))->geometry;
+        $this->assertCount(33, $savedGeometry['coordinates']);
+        $this->assertEquals($coordinates, $savedGeometry['coordinates']);
     }
 
     public function test_creating_car_leg_uses_routing_service_and_saves_geometry(): void
     {
         config([
-            'services.routing.url' => 'https://api.openrouteservice.org/v2/directions/driving-car',
+            'services.routing.url' => 'https://api.heigit.org/openrouteservice/v2/directions/driving-car',
             'services.routing.api_key' => 'test-api-key',
             'services.routing.timeout' => 10,
         ]);
 
         Http::fake([
-            'api.openrouteservice.org/*' => Http::response([
+            'api.heigit.org/*' => Http::response([
                 'type' => 'FeatureCollection',
                 'features' => [
                     [
@@ -542,13 +555,13 @@ class LegApiTest extends TestCase
     public function test_car_leg_is_not_saved_when_routing_provider_fails(): void
     {
         config([
-            'services.routing.url' => 'https://api.openrouteservice.org/v2/directions/driving-car',
+            'services.routing.url' => 'https://api.heigit.org/openrouteservice/v2/directions/driving-car',
             'services.routing.api_key' => 'test-api-key',
             'services.routing.timeout' => 10,
         ]);
 
         Http::fake([
-            'api.openrouteservice.org/*' => Http::response([
+            'api.heigit.org/*' => Http::response([
                 'error' => 'Internal server error',
             ], 500),
         ]);
