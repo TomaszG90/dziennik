@@ -56,6 +56,17 @@ export interface TripLeg {
   position: number
 }
 
+export interface UserMapData {
+  trips: Array<Pick<Trip, 'id' | 'name' | 'start_date' | 'end_date'>>
+  places: Array<TripPlace & { trip_name: string }>
+  legs: Array<TripLeg & { trip_name: string }>
+}
+
+export async function getUserMap(): Promise<UserMapData> {
+  const response = await apiClient.get<{ data: UserMapData }>('/map')
+  return response.data.data
+}
+
 export type TripTransport = 'walking' | 'car' | 'plane' | 'train' | 'other'
 
 export interface TripLegPayload {

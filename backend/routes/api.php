@@ -3,6 +3,7 @@
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\GeocodeController;
 use App\Http\Controllers\LegController;
+use App\Http\Controllers\MapController;
 use App\Http\Controllers\PasswordResetController;
 use App\Http\Controllers\PlaceController;
 use App\Http\Controllers\ProfileController;
@@ -37,6 +38,7 @@ Route::prefix('v1')->group(function () {
         Route::patch('/me', [ProfileController::class, 'update']);
 
         Route::get('/stats', [StatsController::class, 'index']);
+        Route::get('/map', MapController::class);
 
         Route::apiResource('trips', TripController::class);
 

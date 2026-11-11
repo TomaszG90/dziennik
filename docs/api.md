@@ -349,6 +349,24 @@ Pola:
 
 Wszystkie trasy podróży wymagają uwierzytelnienia tokenem Sanctum. Użytkownik może przeglądać i modyfikować wyłącznie własne podróże.
 
+#### `GET /api/v1/map`
+
+Zwraca dane mapowe wszystkich podróży zalogowanego użytkownika w jednym żądaniu. Odpowiedź zawiera listę podróży oraz płaskie listy miejsc i odcinków. Miejsca i odcinki zawierają `trip_id` i `trip_name`, aby można je było rozróżnić na mapie. Geometria odcinka jest GeoJSON `LineString` albo `null`.
+
+**Odpowiedź sukcesu `200 OK`:**
+
+```json
+{
+  "data": {
+    "trips": [{ "id": 1, "name": "Wakacje w Austrii", "start_date": "2026-10-29", "end_date": "2026-11-05" }],
+    "places": [{ "id": 1, "trip_id": 1, "trip_name": "Wakacje w Austrii", "name": "Wiedeń", "latitude": "48.2082000", "longitude": "16.3738000", "position": 1, "country_code": "AT" }],
+    "legs": []
+  }
+}
+```
+
+Brak uwierzytelnienia zwraca `401 Unauthorized`. Dane obejmują wyłącznie podróże należące do zalogowanego użytkownika.
+
 #### `GET /api/v1/trips`
 
 Zwraca podróże zalogowanego użytkownika, posortowane rosnąco według `start_date`.

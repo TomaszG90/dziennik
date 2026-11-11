@@ -21,6 +21,7 @@ async function handleLogout() {
 
       <template v-if="auth.isAuthenticated">
         <RouterLink to="/dashboard">Mój dziennik</RouterLink>
+        <RouterLink :to="{ name: 'user-map' }">Mapa podróży</RouterLink>
 
         <span>{{ auth.user?.name }}</span>
         <button class="logout-button" type="button" @click="handleLogout">Wyloguj</button>
