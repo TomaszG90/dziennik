@@ -41,4 +41,9 @@ return [
         'reverse_lookups_per_minute' => env('PHOTON_REVERSE_LOOKUPS_PER_MINUTE', 60),
     ],
 
+    'routing' => [
+        'url' => env('ROUTING_API_URL', 'https://api.heigit.org/openrouteservice/v2/directions/driving-car'),
+        'api_key' => env('ROUTING_API_KEY'),
+        'timeout' => (int) env('ROUTING_TIMEOUT', 10),
+    ],
 ];

@@ -2,9 +2,13 @@
 
 namespace App\Http\Resources;
 
+use App\Models\Leg;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
+/**
+ * @mixin Leg
+ */
 class LegResource extends JsonResource
 {
     public function toArray(Request $request): array
@@ -16,6 +20,7 @@ class LegResource extends JsonResource
             'to_place_id' => $this->to_place_id,
             'transport' => $this->transport,
             'distance' => $this->distance,
+            'geometry' => $this->geometry,
             'position' => $this->position,
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,

@@ -897,6 +897,26 @@ components:
           type:
             - string
             - "null"
+        geometry:
+          type:
+            - object
+            - "null"
+          properties:
+            type:
+              type: string
+              const: LineString
+            coordinates:
+              type: array
+              items:
+                type: array
+                prefixItems:
+                  - type: number
+                  - type: number
+                minItems: 2
+                maxItems: 2
+          required:
+            - type
+            - coordinates
         position:
           type: integer
         created_at:
@@ -916,6 +936,7 @@ components:
         - to_place_id
         - transport
         - distance
+        - geometry
         - position
         - created_at
         - updated_at
@@ -1064,11 +1085,6 @@ components:
             - plane
             - train
             - other
-        distance:
-          type:
-            - number
-            - "null"
-          minimum: 0
       required:
         - from_place_id
         - to_place_id
@@ -1172,11 +1188,6 @@ components:
             - plane
             - train
             - other
-        distance:
-          type:
-            - number
-            - "null"
-          minimum: 0
       title: UpdateLegRequest
     UpdatePlaceRequest:
       type: object

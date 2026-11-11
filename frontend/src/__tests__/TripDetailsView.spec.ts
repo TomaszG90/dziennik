@@ -7,6 +7,8 @@ import TripDetailsView from '@/views/TripDetailsView.vue'
 
 vi.mock('@/components/MapView.vue', () => ({
   default: {
+    name: 'MapView',
+    props: ['places', 'legs', 'center', 'zoom', 'tileUrl', 'attribution'],
     template: '<div data-testid="route-map-canvas" role="application" aria-label="Mapa podróży" />',
   },
 }))
@@ -82,6 +84,24 @@ describe('TripDetailsView route editing', () => {
     expect(wrapper.get('#route-map-title').text()).toBe('Mapa podróży')
     expect(wrapper.get('[data-testid="route-map-canvas"]').attributes('role')).toBe('application')
     expect(wrapper.get('.itinerary-layout').find('.map-panel').exists()).toBe(true)
+  })
+
+  it('passes places and legs to the MapView component', async () => {
+    const leg: tripsApi.TripLeg = {
+      id: 20,
+      trip_id: trip.id,
+      from_place_id: placeA.id,
+      to_place_id: placeB.id,
+      transport: 'train',
+      distance: 400,
+      position: 1,
+    }
+    const wrapper = await mountDetails([placeA, placeB], [leg])
+    const mapCanvas = wrapper.findComponent({ name: 'MapView' })
+
+    expect(mapCanvas.exists()).toBe(true)
+    expect(mapCanvas.props('places')).toEqual([placeA, placeB])
+    expect(mapCanvas.props('legs')).toEqual([leg])
   })
 
   it('shows distinct visited country codes and invited guests in the trip summary', async () => {
@@ -273,5 +293,38 @@ describe('TripDetailsView route editing', () => {
 
     expect(wrapper.get('.leg-distance').text()).toContain('331,8 km')
     expect(wrapper.get('.trip-stats').text()).toContain('331,8 km')
+  })
+
+  it('waits for confirmation before opening an external photo link', async () => {
+    const openSpy = vi.spyOn(window, 'open').mockImplementation(() => null)
+    const wrapper = await mountDetails([])
+
+    // Add a photo link
+    await wrapper.get('#photo-link').setValue('https://photos.app.goo.gl/test12345')
+    await wrapper.findAll('.extra-card form')[1]!.trigger('submit')
+    await flushPromises()
+
+    const link = wrapper.get('.photo-list a.portal-link')
+    expect(link.text()).toContain('photos.app.goo.gl')
+
+    // Clicking the link intercepts navigation and opens warning modal
+    await link.trigger('click')
+    await flushPromises()
+
+    expect(openSpy).not.toHaveBeenCalled()
+    expect(document.body.querySelector('[data-testid="external-link-modal-backdrop"]')).not.toBeNull()
+    expect(document.body.textContent).toContain('Opuszczasz naszą stronę')
+    expect(document.body.textContent).toContain('https://photos.app.goo.gl/test12345')
+
+    expect(document.body.textContent).toContain('Otwórz link')
+    expect(document.body.textContent).not.toContain('Automatyczne przejście')
+    expect(openSpy).not.toHaveBeenCalled()
+
+    document.body
+      .querySelector<HTMLButtonElement>('[data-testid="external-link-proceed-btn"]')
+      ?.click()
+    await flushPromises()
+
+    expect(openSpy).toHaveBeenCalledWith('https://photos.app.goo.gl/test12345', '_blank', 'noopener,noreferrer')
   })
 })

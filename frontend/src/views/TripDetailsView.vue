@@ -51,6 +51,21 @@ const transports: Array<{ value: TripTransport; label: string }> = [
   { value: 'other', label: 'Inny' },
 ]
 
+function getTransportIcon(transport?: string | null): string {
+  switch (transport) {
+    case 'car':
+      return '🚗'
+    case 'plane':
+      return '✈️'
+    case 'train':
+      return '🚆'
+    case 'walking':
+      return '🚶'
+    default:
+      return '🧭'
+  }
+}
+
 watch(
   () => placeForm.value.name,
   (query) => {
@@ -171,6 +186,31 @@ function photoPortalLabel(url: string): string {
     return new URL(url).hostname.replace(/^www\./, '')
   } catch {
     return url
+  }
+}
+
+const externalLinkModal = ref({
+  isOpen: false,
+  url: '',
+})
+
+function openExternalLinkModal(url: string) {
+  externalLinkModal.value = {
+    isOpen: true,
+    url,
+  }
+}
+
+function closeExternalLinkModal() {
+  externalLinkModal.value.isOpen = false
+  externalLinkModal.value.url = ''
+}
+
+function confirmExternalLink() {
+  const target = externalLinkModal.value.url
+  closeExternalLinkModal()
+  if (target && typeof window !== 'undefined') {
+    window.open(target, '_blank', 'noopener,noreferrer')
   }
 }
 
@@ -527,10 +567,7 @@ onBeforeUnmount(() => {
         <div class="itinerary-layout">
           <section class="itinerary" aria-labelledby="itinerary-title">
             <div class="section-heading">
-              <div>
-                <p class="eyebrow">Plan trasy</p>
-                <h2 id="itinerary-title">Punkty i odcinki</h2>
-              </div>
+              <h2 id="itinerary-title">Plan trasy</h2>
               <span class="count-badge"
                 >{{ places.length }} {{ places.length === 1 ? 'punkt' : 'punktów' }}</span
               >
@@ -645,7 +682,18 @@ onBeforeUnmount(() => {
                       :disabled="isSavingRoute || index === 0"
                       @click="movePlace(index, -1)"
                     >
-                      ↑
+                      <svg
+                        viewBox="0 0 20 20"
+                        fill="currentColor"
+                        class="arrow-icon"
+                        aria-hidden="true"
+                      >
+                        <path
+                          fill-rule="evenodd"
+                          d="M10 17a.75.75 0 0 1-.75-.75V5.56l-3.72 3.72a.75.75 0 1 1-1.06-1.06l5-5a.75.75 0 0 1 1.06 0l5 5a.75.75 0 1 1-1.06 1.06l-3.72-3.72v10.69A.75.75 0 0 1 10 17Z"
+                          clip-rule="evenodd"
+                        />
+                      </svg>
                     </button>
                     <button
                       type="button"
@@ -654,7 +702,18 @@ onBeforeUnmount(() => {
                       :disabled="isSavingRoute || index === places.length - 1"
                       @click="movePlace(index, 1)"
                     >
-                      ↓
+                      <svg
+                        viewBox="0 0 20 20"
+                        fill="currentColor"
+                        class="arrow-icon"
+                        aria-hidden="true"
+                      >
+                        <path
+                          fill-rule="evenodd"
+                          d="M10 3a.75.75 0 0 1 .75.75v10.69l3.72-3.72a.75.75 0 1 1 1.06 1.06l-5 5a.75.75 0 0 1-1.06 0l-5-5a.75.75 0 1 1 1.06-1.06l3.72 3.72V3.75A.75.75 0 0 1 10 3Z"
+                          clip-rule="evenodd"
+                        />
+                      </svg>
                     </button>
                     <button
                       type="button"
@@ -680,7 +739,7 @@ onBeforeUnmount(() => {
                     class="leg-card"
                     data-testid="route-leg"
                   >
-                    <div class="leg-icon" aria-hidden="true">↗</div>
+                    <div class="leg-icon" aria-hidden="true">{{ getTransportIcon(leg.transport) }}</div>
                     <div class="leg-copy">
                       <label class="sr-only" :for="`transport-${leg.id}`">Środek transportu</label>
                       <select
@@ -694,7 +753,7 @@ onBeforeUnmount(() => {
                           :key="transport.value"
                           :value="transport.value"
                         >
-                          {{ transport.label }}
+                          {{ getTransportIcon(transport.value) }} {{ transport.label }}
                         </option>
                       </select>
                       <span
@@ -741,7 +800,7 @@ onBeforeUnmount(() => {
                         :key="transport.value"
                         :value="transport.value"
                       >
-                        {{ transport.label }}
+                        {{ getTransportIcon(transport.value) }} {{ transport.label }}
                       </option>
                     </select>
                     <button class="add-button" type="submit" :disabled="isSavingRoute">
@@ -769,9 +828,14 @@ onBeforeUnmount(() => {
               class="map-canvas"
               data-testid="route-map-canvas"
               aria-label="Mapa podróży"
+              :places="places"
+              :legs="legs"
             />
-            <p class="map-panel-note">
-              Mapa bazowa. Markery punktów i przebieg trasy pojawią się w kolejnych etapach.
+            <p v-if="places.length === 0" class="map-panel-note">
+              Dodaj punkty do podróży, aby zobaczyć markery i przebieg trasy na mapie.
+            </p>
+            <p v-else class="map-panel-note">
+              Trasa na mapie: {{ places.length }} {{ places.length === 1 ? 'punkt' : (places.length >= 2 && places.length <= 4 ? 'punkty' : 'punktów') }}, {{ legs.length }} {{ legs.length === 1 ? 'odcinek' : (legs.length >= 2 && legs.length <= 4 ? 'odcinki' : 'odcinków') }}.
             </p>
           </aside>
         </div>
@@ -840,6 +904,7 @@ onBeforeUnmount(() => {
                   :href="url"
                   target="_blank"
                   rel="noopener noreferrer"
+                  @click.prevent="openExternalLinkModal(url)"
                   >{{ photoPortalLabel(url)
                   }}<span class="sr-only"> (otwiera się w nowej karcie)</span></a
                 >
@@ -861,6 +926,59 @@ onBeforeUnmount(() => {
         </section>
       </template>
     </div>
+
+    <!-- Modal ostrzeżenia o linku zewnętrznym -->
+    <Teleport to="body">
+      <div
+        v-if="externalLinkModal.isOpen"
+        class="external-link-backdrop"
+        data-testid="external-link-modal-backdrop"
+        @click.self="closeExternalLinkModal"
+      >
+        <div
+          class="external-link-modal"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="external-link-modal-title"
+        >
+          <div class="external-link-modal-header">
+            <span class="external-link-warning-icon" aria-hidden="true">⚠️</span>
+            <h3 id="external-link-modal-title">Opuszczasz naszą stronę</h3>
+          </div>
+
+          <p class="external-link-modal-text">
+            Ten link prowadzi do zewnętrznego serwisu. Otworzy się w nowej karcie dopiero po
+            wybraniu „Otwórz link”.
+          </p>
+
+          <div class="external-link-url-box">
+            <span class="external-link-url-label">Zewnętrzny link:</span>
+            <span class="external-link-url" :title="externalLinkModal.url">{{
+              externalLinkModal.url
+            }}</span>
+          </div>
+
+          <div class="external-link-modal-actions">
+            <button
+              type="button"
+              class="modal-btn modal-btn--secondary"
+              data-testid="external-link-cancel-btn"
+              @click="closeExternalLinkModal"
+            >
+              Anuluj
+            </button>
+            <button
+              type="button"
+              class="modal-btn modal-btn--primary"
+              data-testid="external-link-proceed-btn"
+              @click="confirmExternalLink"
+            >
+              Otwórz link
+            </button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
   </main>
 </template>
 
@@ -873,7 +991,7 @@ onBeforeUnmount(() => {
 .details-container {
   display: grid;
   gap: 1.25rem;
-  width: min(100% - 2rem, 84rem);
+  width: min(100% - 2rem, 92rem);
   margin: 0 auto;
 }
 .back-link {
@@ -1006,13 +1124,14 @@ h1 {
   font-weight: 800;
 }
 .itinerary {
-  padding: clamp(1.25rem, 5vw, 2rem);
+  padding: clamp(1rem, 2vw, 1.5rem);
+  font-size: 0.85rem;
 }
 .itinerary-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1.1fr) minmax(20rem, 0.9fr);
+  grid-template-columns: minmax(20rem, 450px) minmax(0, 1fr);
   align-items: start;
-  gap: 1.25rem;
+  gap: 1.5rem;
 }
 .map-panel {
   position: sticky;
@@ -1038,8 +1157,8 @@ h1 {
 .map-canvas {
   display: block;
   width: 100%;
-  height: clamp(20rem, 55vh, 34rem);
-  min-height: 20rem;
+  height: clamp(24rem, 65vh, 42rem);
+  min-height: 24rem;
   overflow: hidden;
   border: 1px solid #d5e0d7;
   border-radius: 0.9rem;
@@ -1055,57 +1174,57 @@ h1 {
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  margin-bottom: 1.5rem;
+  margin-bottom: 1.25rem;
 }
 .section-heading .eyebrow {
   margin-bottom: 0.25rem;
 }
 h2 {
   margin: 0;
-  font-size: 1.5rem;
+  font-size: 1.25rem;
 }
 .count-badge {
-  padding: 0.4rem 0.7rem;
+  padding: 0.3rem 0.6rem;
   border-radius: 2rem;
   color: #386a54;
   background: #e9f5ef;
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   font-weight: 700;
 }
 .place-form {
   display: grid;
-  gap: 0.75rem;
-  margin-bottom: 1.5rem;
-  padding: 1rem;
+  gap: 0.65rem;
+  margin-bottom: 1.25rem;
+  padding: 0.85rem;
   border: 1px solid #e5ebe6;
-  border-radius: 0.9rem;
+  border-radius: 0.8rem;
   background: #f8faf8;
 }
 .place-form h3 {
   margin: 0;
-  font-size: 1rem;
+  font-size: 0.92rem;
 }
 .place-form-fields {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.65rem;
+  gap: 0.5rem;
 }
 .place-form-fields label {
   display: grid;
-  gap: 0.3rem;
+  gap: 0.25rem;
   color: #53645a;
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   font-weight: 600;
 }
 .place-search-field {
   display: grid;
-  gap: 0.3rem;
+  gap: 0.25rem;
   position: relative;
   grid-column: 1 / -1;
 }
 .field-help {
   color: #6b786e;
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   font-weight: 400;
 }
 .place-search-results {
@@ -1222,23 +1341,23 @@ h2 {
   z-index: 1;
   display: flex;
   align-items: center;
-  gap: 1rem;
-  min-height: 6rem;
-  padding: 1rem;
+  gap: 0.75rem;
+  min-height: 4.8rem;
+  padding: 0.75rem 0.85rem;
   border: 1px solid #e5ebe6;
-  border-radius: 0.9rem;
+  border-radius: 0.8rem;
   background: #fff;
 }
 .stop-marker {
   display: grid;
-  flex: 0 0 2.65rem;
+  flex: 0 0 2.25rem;
   place-items: center;
-  width: 2.65rem;
-  height: 2.65rem;
+  width: 2.25rem;
+  height: 2.25rem;
   border-radius: 50%;
   color: #fff;
   background: #386a54;
-  font-size: 0.78rem;
+  font-size: 0.72rem;
   font-weight: 800;
 }
 .place-copy {
@@ -1247,20 +1366,20 @@ h2 {
 }
 .place-label {
   color: #77847a;
-  font-size: 0.72rem;
+  font-size: 0.68rem;
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
 .place-copy h3 {
-  margin: 0.15rem 0 0;
-  font-size: 1.1rem;
+  margin: 0.1rem 0 0;
+  font-size: 0.95rem;
   overflow-wrap: anywhere;
 }
 .country-code {
-  margin: 0.2rem 0 0;
+  margin: 0.15rem 0 0;
   color: #738078;
-  font-size: 0.8rem;
+  font-size: 0.72rem;
   text-transform: uppercase;
 }
 .place-icon {
@@ -1273,16 +1392,33 @@ h2 {
   gap: 0.3rem;
 }
 .icon-button {
-  display: grid;
-  width: 2rem;
-  height: 2rem;
-  place-items: center;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.1rem;
+  height: 2.1rem;
+  padding: 0;
   border: 1px solid #cbd9ce;
   border-radius: 0.5rem;
   color: #386a54;
   background: #fff;
   font: inherit;
   cursor: pointer;
+  transition: all 0.15s ease-in-out;
+}
+.icon-button:hover:not(:disabled) {
+  background: #e9f5ef;
+  border-color: #386a54;
+  color: #274d3d;
+  transform: translateY(-1px);
+}
+.icon-button:active:not(:disabled) {
+  transform: translateY(0);
+}
+.arrow-icon {
+  width: 1.15rem;
+  height: 1.15rem;
+  display: block;
 }
 .icon-button:disabled,
 .remove-button:disabled,
@@ -1296,14 +1432,14 @@ h2 {
   position: relative;
   display: flex;
   align-items: center;
-  min-height: 5rem;
-  padding: 0.6rem 0 0.6rem 3.25rem;
+  min-height: 4.5rem;
+  padding: 0.5rem 0 0.5rem 2.85rem;
 }
 .route-line {
   position: absolute;
   top: 0;
   bottom: 0;
-  left: 1.3rem;
+  left: 1.12rem;
   width: 2px;
   background: #cbd9ce;
 }
@@ -1311,49 +1447,50 @@ h2 {
   z-index: 1;
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.6rem;
   width: 100%;
-  padding: 0.75rem 1rem;
+  padding: 0.6rem 0.8rem;
   border: 1px solid #e8ede9;
-  border-radius: 0.8rem;
+  border-radius: 0.75rem;
   background: #f8faf8;
 }
 .leg-card select {
-  min-height: 2rem;
-  padding: 0.2rem 0.4rem;
-  font-size: 0.85rem;
-  font-weight: 700;
+  min-height: 1.85rem;
+  padding: 0.15rem 0.35rem;
+  font-size: 0.78rem;
+  font-weight: 600;
 }
 .leg-icon {
   display: grid;
-  flex: 0 0 2rem;
+  flex: 0 0 1.85rem;
   place-items: center;
-  width: 2rem;
-  height: 2rem;
+  width: 1.85rem;
+  height: 1.85rem;
   border-radius: 50%;
   color: #386a54;
   background: #e5f1e9;
   font-weight: 800;
+  font-size: 0.85rem;
 }
 .leg-copy {
   display: grid;
   flex: 1;
-  gap: 0.2rem;
+  gap: 0.15rem;
   min-width: 0;
 }
 .leg-copy strong {
-  font-size: 0.88rem;
+  font-size: 0.82rem;
 }
 .leg-copy span {
   overflow: hidden;
   color: #77847a;
-  font-size: 0.78rem;
+  font-size: 0.74rem;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 .leg-distance {
   color: #386a54;
-  font-size: 0.82rem;
+  font-size: 0.78rem;
   font-weight: 800;
   white-space: nowrap;
 }
@@ -1364,11 +1501,12 @@ h2 {
   align-items: center;
   gap: 0.5rem;
   margin: 0;
-  padding: 0.65rem 0.85rem;
+  padding: 0.55rem 0.75rem;
+  border: 1px dashed #cbd9ce;
   border-radius: 0.7rem;
   color: #78847b;
   background: #f5f7f5;
-  font-size: 0.82rem;
+  font-size: 0.78rem;
 }
 .missing-leg select {
   min-height: 2.1rem;
@@ -1770,6 +1908,143 @@ h2 {
     color: #6ee7b7;
     background: #1f2937;
     border-color: #496454;
+  }
+  .icon-button:hover:not(:disabled) {
+    background: #283548;
+    border-color: #6ee7b7;
+    color: #a7f3d0;
+  }
+}
+
+/* Modal linku zewnetrznego */
+.external-link-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: rgb(23 37 30 / 48%);
+  backdrop-filter: blur(3px);
+  animation: fadeIn 0.2s ease-out;
+}
+
+.external-link-modal {
+  width: min(100%, 30rem);
+  padding: 1.5rem;
+  border: 1px solid #e2e9e3;
+  border-radius: 1.25rem;
+  background: #ffffff;
+  color: #17251e;
+  box-shadow: 0 12px 32px rgb(30 55 40 / 15%);
+  display: grid;
+  gap: 1rem;
+  animation: slideUp 0.2s ease-out;
+}
+
+.external-link-modal-header {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.external-link-warning-icon {
+  font-size: 1.5rem;
+  line-height: 1;
+}
+
+.external-link-modal-header h3 {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: inherit;
+}
+
+.external-link-modal-text {
+  margin: 0;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: #526157;
+}
+
+.external-link-url-box {
+  display: grid;
+  gap: 0.25rem;
+  padding: 0.75rem;
+  border-radius: 0.65rem;
+  background: #f5f8f5;
+  border: 1px solid #e2e9e3;
+  overflow: hidden;
+}
+
+.external-link-url-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #617066;
+}
+
+.external-link-url {
+  font-family: monospace;
+  font-size: 0.8125rem;
+  color: #386a54;
+  word-break: break-all;
+  overflow-wrap: anywhere;
+}
+
+
+.external-link-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.modal-btn {
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.modal-btn--secondary {
+  border: 1px solid #cbd9ce;
+  background: #ffffff;
+  color: #386a54;
+}
+
+.modal-btn--secondary:hover {
+  background: #f5f8f5;
+  border-color: #9aafa0;
+}
+
+.modal-btn--primary {
+  border: 1px solid #386a54;
+  background: #386a54;
+  color: #ffffff;
+}
+
+.modal-btn--primary:hover {
+  background: #2d5744;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
   }
 }
 </style>
