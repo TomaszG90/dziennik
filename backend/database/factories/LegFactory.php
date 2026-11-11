@@ -14,17 +14,10 @@ class LegFactory extends Factory
 {
     public function definition(): array
     {
-        $trip = Trip::factory()->create();
-        $place1 = Place::factory()->create(['trip_id' => $trip->id, 'position' => 1]);
-        $place2 = Place::factory()->create(['trip_id' => $trip->id, 'position' => 2]);
-
         return [
-            'trip_id' => $trip->id,
-            'from_place_id' => $place1->id,
-            'to_place_id' => $place2->id,
             'transport' => fake()->randomElement(['car', 'plane', 'train', 'other']),
             'distance' => fake()->randomFloat(2, 0, 5000),
-            'position' => 1,
+            'position' => fake()->numberBetween(1, 100),
         ];
     }
 }
