@@ -2,7 +2,6 @@
 
 namespace App\Services;
 
-use App\Models\Leg;
 use App\Models\Trip;
 use App\Models\User;
 
@@ -61,7 +60,7 @@ class StatsService
             $totalDistance += $distance;
 
             $transport = $leg->transport;
-            if (!isset($distanceByTransport[$transport])) {
+            if (! isset($distanceByTransport[$transport])) {
                 $distanceByTransport[$transport] = 0;
             }
             $distanceByTransport[$transport] += $distance;

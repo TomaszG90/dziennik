@@ -3,8 +3,6 @@
 namespace Database\Factories;
 
 use App\Models\Leg;
-use App\Models\Place;
-use App\Models\Trip;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
