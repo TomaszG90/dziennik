@@ -23,13 +23,15 @@ class StatsTest extends TestCase
             'start_date' => '2026-01-01',
         ]);
 
-        Place::factory()->create([
+        $place = Place::factory()->create([
             'trip_id' => $trip->id,
             'country_code' => 'PL',
         ]);
 
         Leg::factory()->create([
             'trip_id' => $trip->id,
+            'from_place_id' => $place->id,
+            'to_place_id' => $place->id,
             'transport' => 'car',
             'distance' => 100.0,
         ]);

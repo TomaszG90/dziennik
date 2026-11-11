@@ -7,6 +7,10 @@ use App\Models\User;
 
 class StatsService
 {
+    public function __construct(
+        private readonly LegCalculationService $legCalculationService,
+    ) {}
+
     public function calculateStats(User $user, ?int $year = null): array
     {
         $tripsQuery = $user->trips();
@@ -31,12 +35,36 @@ class StatsService
 
         $legs = $trips->flatMap(fn (Trip $trip) => $trip->legs);
 
-        $totalDistance = $legs->sum('distance');
+        $totalDistance = 0;
+        $distanceByTransport = [];
 
-        $distanceByTransport = $legs
-            ->groupBy('transport')
-            ->map(fn ($legsGroup) => $legsGroup->sum('distance'))
-            ->toArray();
+        foreach ($legs as $leg) {
+            $distance = $leg->distance;
+
+            if ($distance === null) {
+                $fromPlace = $leg->fromPlace;
+                $toPlace = $leg->toPlace;
+
+                if ($fromPlace && $toPlace) {
+                    $calculated = $this->legCalculationService->calculate(
+                        $fromPlace,
+                        $toPlace,
+                        $leg->transport
+                    );
+                    $distance = $calculated['distance'];
+                } else {
+                    $distance = 0;
+                }
+            }
+
+            $totalDistance += $distance;
+
+            $transport = $leg->transport;
+            if (! isset($distanceByTransport[$transport])) {
+                $distanceByTransport[$transport] = 0;
+            }
+            $distanceByTransport[$transport] += $distance;
+        }
 
         $placesCount = $trips->sum(fn (Trip $trip) => $trip->places->count());
 

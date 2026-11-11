@@ -19,7 +19,7 @@ class StatsServiceTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->statsService = new StatsService;
+        $this->statsService = app(StatsService::class);
     }
 
     public function test_calculate_stats_for_all_time(): void
@@ -50,12 +50,16 @@ class StatsServiceTest extends TestCase
 
         Leg::factory()->create([
             'trip_id' => $trip1->id,
+            'from_place_id' => $place1->id,
+            'to_place_id' => $place1->id,
             'transport' => 'car',
             'distance' => 100.5,
         ]);
 
         Leg::factory()->create([
             'trip_id' => $trip2->id,
+            'from_place_id' => $place2->id,
+            'to_place_id' => $place2->id,
             'transport' => 'plane',
             'distance' => 500.0,
         ]);
@@ -87,24 +91,28 @@ class StatsServiceTest extends TestCase
             'end_date' => '2026-06-10',
         ]);
 
-        Place::factory()->create([
+        $place1 = Place::factory()->create([
             'trip_id' => $trip2025->id,
             'country_code' => 'PL',
         ]);
 
-        Place::factory()->create([
+        $place2 = Place::factory()->create([
             'trip_id' => $trip2026->id,
             'country_code' => 'DE',
         ]);
 
         Leg::factory()->create([
             'trip_id' => $trip2025->id,
+            'from_place_id' => $place1->id,
+            'to_place_id' => $place1->id,
             'transport' => 'car',
             'distance' => 100.0,
         ]);
 
         Leg::factory()->create([
             'trip_id' => $trip2026->id,
+            'from_place_id' => $place2->id,
+            'to_place_id' => $place2->id,
             'transport' => 'plane',
             'distance' => 500.0,
         ]);
@@ -151,13 +159,15 @@ class StatsServiceTest extends TestCase
             'end_date' => '2026-01-05',
         ]);
 
-        Place::factory()->create([
+        $place1 = Place::factory()->create([
             'trip_id' => $tripSpanningYears->id,
             'country_code' => 'PL',
         ]);
 
         Leg::factory()->create([
             'trip_id' => $tripSpanningYears->id,
+            'from_place_id' => $place1->id,
+            'to_place_id' => $place1->id,
             'transport' => 'train',
             'distance' => 200.0,
         ]);
@@ -178,8 +188,12 @@ class StatsServiceTest extends TestCase
             'start_date' => '2026-01-01',
         ]);
 
+        $place = Place::factory()->create(['trip_id' => $trip->id]);
+
         Leg::factory()->create([
             'trip_id' => $trip->id,
+            'from_place_id' => $place->id,
+            'to_place_id' => $place->id,
             'transport' => 'car',
             'distance' => 100.0,
             'position' => 1,
@@ -187,6 +201,8 @@ class StatsServiceTest extends TestCase
 
         Leg::factory()->create([
             'trip_id' => $trip->id,
+            'from_place_id' => $place->id,
+            'to_place_id' => $place->id,
             'transport' => 'car',
             'distance' => 50.0,
             'position' => 2,
@@ -194,6 +210,8 @@ class StatsServiceTest extends TestCase
 
         Leg::factory()->create([
             'trip_id' => $trip->id,
+            'from_place_id' => $place->id,
+            'to_place_id' => $place->id,
             'transport' => 'plane',
             'distance' => 500.0,
             'position' => 3,
@@ -201,6 +219,8 @@ class StatsServiceTest extends TestCase
 
         Leg::factory()->create([
             'trip_id' => $trip->id,
+            'from_place_id' => $place->id,
+            'to_place_id' => $place->id,
             'transport' => 'train',
             'distance' => 200.0,
             'position' => 4,
@@ -211,5 +231,62 @@ class StatsServiceTest extends TestCase
         $this->assertEquals(150.0, $stats['distance_by_transport']['car']);
         $this->assertEquals(500.0, $stats['distance_by_transport']['plane']);
         $this->assertEquals(200.0, $stats['distance_by_transport']['train']);
+    }
+
+    public function test_calculate_stats_calculates_distance_for_legs_with_null_distance(): void
+    {
+        $user = User::factory()->create();
+
+        $trip = Trip::factory()->create([
+            'user_id' => $user->id,
+            'start_date' => '2026-01-01',
+        ]);
+
+        $place1 = Place::factory()->create([
+            'trip_id' => $trip->id,
+            'latitude' => 52.23,
+            'longitude' => 21.01,
+        ]);
+
+        $place2 = Place::factory()->create([
+            'trip_id' => $trip->id,
+            'latitude' => 48.85,
+            'longitude' => 2.35,
+        ]);
+
+        Leg::factory()->create([
+            'trip_id' => $trip->id,
+            'from_place_id' => $place1->id,
+            'to_place_id' => $place2->id,
+            'transport' => 'plane',
+            'distance' => null,
+        ]);
+
+        $stats = $this->statsService->calculateStats($user);
+
+        $this->assertGreaterThan(0, $stats['total_distance']);
+        $this->assertArrayHasKey('plane', $stats['distance_by_transport']);
+        $this->assertGreaterThan(0, $stats['distance_by_transport']['plane']);
+    }
+
+    public function test_calculate_stats_uses_country_code_set_by_pr31(): void
+    {
+        $user = User::factory()->create();
+
+        $trip = Trip::factory()->create([
+            'user_id' => $user->id,
+            'start_date' => '2026-01-01',
+        ]);
+
+        $place = Place::factory()->create([
+            'trip_id' => $trip->id,
+            'latitude' => 52.23,
+            'longitude' => 21.01,
+            'country_code' => 'PL',
+        ]);
+
+        $stats = $this->statsService->calculateStats($user);
+
+        $this->assertContains('PL', $stats['countries']);
     }
 }

@@ -484,7 +484,7 @@ Wszystkie trasy odcinków wymagają uwierzytelnienia. Odcinki należą do podró
 
 #### `GET /api/v1/trips/{trip}/legs`
 
-Zwraca odcinki podróży posortowane rosnąco według `position`. **Odpowiedź `200 OK`:** tablica obiektów w polu `data`. Każdy obiekt zawiera `id`, `trip_id`, `from_place_id`, `to_place_id`, `transport`, `distance`, `position`, `created_at` i `updated_at`.
+Zwraca odcinki podróży posortowane rosnąco według `position`. **Odpowiedź `200 OK`:** tablica obiektów w polu `data`. Każdy obiekt zawiera `id`, `trip_id`, `from_place_id`, `to_place_id`, `transport`, `distance`, `geometry`, `position`, `created_at` i `updated_at`.
 
 #### `POST /api/v1/trips/{trip}/legs`
 
@@ -501,9 +501,34 @@ Dodaje odcinek na końcu kolejności podróży; `position` przypisywane jest aut
 }
 ```
 
-`from_place_id` i `to_place_id` (identyfikatory miejsc z tej podróży, wymagane i różne), `transport` (wymagany; `walking`, `car`, `plane`, `train` lub `other`), `distance` (opcjonalna, liczba nieujemna lub null).
+`from_place_id` i `to_place_id` (identyfikatory miejsc z tej podróży, wymagane i różne), `transport` (wymagany; `walking`, `car`, `plane`, `train` lub `other`), `distance` (opcjonalna, liczba nieujemna lub null). Pole `distance` jest ignorowane w żądaniu i wyliczane automatycznie przez backend na podstawie środka transportu.
 
 **Odpowiedź sukcesu `201 Created`:** utworzony odcinek w polu `data`.
+
+```json
+{
+  "data": {
+    "id": 1,
+    "trip_id": 1,
+    "from_place_id": 1,
+    "to_place_id": 2,
+    "transport": "train",
+    "distance": 250.5,
+    "geometry": {
+      "type": "LineString",
+      "coordinates": [
+        [17.0, 51.1],
+        [18.0, 52.0]
+      ]
+    },
+    "position": 1,
+    "created_at": "2026-11-10T18:00:00+00:00",
+    "updated_at": "2026-11-10T18:00:00+00:00"
+  }
+}
+```
+
+Pole `geometry` zawiera geometrię trasy w formacie GeoJSON. Dla samolotów jest to łuk obliczony przez backend, dla samochodów - rzeczywista trasa drogowa z OpenRouteService, dla pociągów i "innych" - linia prosta. Współrzędne są w formacie `[longitude, latitude]`.
 
 #### `GET /api/v1/trips/{trip}/legs/{leg}`
 
