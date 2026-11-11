@@ -10,7 +10,15 @@ use Illuminate\Support\Facades\Gate;
 
 class MapController extends Controller
 {
-    /** Return all map data for the authenticated user's trips. */
+    /**
+     * Return all map data for the authenticated user's trips.
+     *
+     * @response array{data: array{
+     *   trips: list<array{id: int, name: string, start_date: string|null, end_date: string|null}>,
+     *   places: list<array{id: int, trip_id: int, trip_name: string, name: string, latitude: string|null, longitude: string|null, position: int, country_code: string|null}>,
+     *   legs: list<array{id: int, trip_id: int, trip_name: string, from_place_id: int, to_place_id: int, transport: string, distance: string|null, geometry: array{type: 'LineString', coordinates: list<array{0: float, 1: float}>}|null, position: int}>
+     * }}
+     */
     public function __invoke(Request $request): JsonResponse
     {
         Gate::authorize('viewAny', Trip::class);

@@ -4,42 +4,6 @@ export type ClientOptions = {
     baseUrl: 'http://localhost/api/v1' | (string & {});
 };
 
-export type UserMapResource = {
-    trips: Array<{
-        id: number;
-        name: string;
-        start_date: string | null;
-        end_date: string | null;
-    }>;
-    places: Array<{
-        id: number;
-        trip_id: number;
-        trip_name: string;
-        name: string;
-        latitude: string | null;
-        longitude: string | null;
-        position: number;
-        country_code: string | null;
-    }>;
-    legs: Array<{
-        id: number;
-        trip_id: number;
-        trip_name: string;
-        from_place_id: number;
-        to_place_id: number;
-        transport: string;
-        distance: string | null;
-        geometry: null | {
-            type: 'LineString';
-            coordinates: Array<[
-                number,
-                number
-            ]>;
-        };
-        position: number;
-    }>;
-};
-
 /**
  * ForgotPasswordRequest
  */
@@ -739,6 +703,78 @@ export type LegUpdateResponses = {
 
 export type LegUpdateResponse = LegUpdateResponses[keyof LegUpdateResponses];
 
+export type MapData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/map';
+};
+
+export type MapErrors = {
+    /**
+     * Unauthenticated
+     */
+    401: {
+        /**
+         * Error overview.
+         */
+        message: string;
+    };
+    /**
+     * Authorization error
+     */
+    403: {
+        /**
+         * Error overview.
+         */
+        message: string;
+    };
+};
+
+export type MapError = MapErrors[keyof MapErrors];
+
+export type MapResponses = {
+    200: {
+        data: {
+            trips: Array<{
+                id: number;
+                name: string;
+                start_date: string | null;
+                end_date: string | null;
+            }>;
+            places: Array<{
+                id: number;
+                trip_id: number;
+                trip_name: string;
+                name: string;
+                latitude: string | null;
+                longitude: string | null;
+                position: number;
+                country_code: string | null;
+            }>;
+            legs: Array<{
+                id: number;
+                trip_id: number;
+                trip_name: string;
+                from_place_id: number;
+                to_place_id: number;
+                transport: string;
+                distance: string | null;
+                geometry: {
+                    type: 'LineString';
+                    coordinates: Array<[
+                        number,
+                        number
+                    ]>;
+                } | null;
+                position: number;
+            }>;
+        };
+    };
+};
+
+export type MapResponse = MapResponses[keyof MapResponses];
+
 export type PasswordResetSendResetLinkData = {
     body: ForgotPasswordRequest;
     path?: never;
@@ -1272,38 +1308,6 @@ export type ProfileUpdateResponses = {
 };
 
 export type ProfileUpdateResponse = ProfileUpdateResponses[keyof ProfileUpdateResponses];
-
-export type MapIndexData = {
-    body?: never;
-    path?: never;
-    query?: never;
-    url: '/map';
-};
-
-export type MapIndexErrors = {
-    /**
-     * Unauthenticated
-     */
-    401: {
-        /**
-         * Error overview.
-         */
-        message: string;
-    };
-};
-
-export type MapIndexError = MapIndexErrors[keyof MapIndexErrors];
-
-export type MapIndexResponses = {
-    /**
-     * Trips, places, and legs for the authenticated user
-     */
-    200: {
-        data: UserMapResource;
-    };
-};
-
-export type MapIndexResponse = MapIndexResponses[keyof MapIndexResponses];
 
 export type StatsIndexData = {
     body?: never;
