@@ -175,7 +175,7 @@ function createPlaneArc(from: [number, number], to: [number, number]): [number, 
   return points
 }
 
-function getCarGeometry(leg: MapLeg): [number, number][] | null {
+function getLegGeometry(leg: MapLeg): [number, number][] | null {
   if (leg.geometry?.type !== 'LineString' || leg.geometry.coordinates.length < 2) return null
 
   const points: [number, number][] = []
@@ -267,9 +267,9 @@ function renderPlacesAndLegs() {
 
       const routeCoordinates =
         leg.transport === 'plane'
-          ? createPlaneArc(fromCoord, toCoord)
+          ? (getLegGeometry(leg) ?? createPlaneArc(fromCoord, toCoord))
           : leg.transport === 'car'
-            ? (getCarGeometry(leg) ?? [fromCoord, toCoord])
+            ? (getLegGeometry(leg) ?? [fromCoord, toCoord])
             : [fromCoord, toCoord]
       const polyline = L.polyline(routeCoordinates, polylineOptions)
 

@@ -16,7 +16,7 @@ class RoutingServiceTest extends TestCase
         parent::setUp();
 
         config([
-            'services.routing.url' => 'https://api.openrouteservice.org/v2/directions/driving-car',
+            'services.routing.url' => 'https://api.heigit.org/openrouteservice/v2/directions/driving-car',
             'services.routing.api_key' => 'test-api-key',
             'services.routing.timeout' => 10,
         ]);
@@ -51,7 +51,7 @@ class RoutingServiceTest extends TestCase
     public function test_calculate_car_route_returns_distance_and_geojson_geometry(): void
     {
         Http::fake([
-            'api.openrouteservice.org/*' => Http::response(
+            'api.heigit.org/*' => Http::response(
                 $this->validResponse()
             ),
         ]);
@@ -75,7 +75,7 @@ class RoutingServiceTest extends TestCase
     public function test_calculate_car_route_sends_coordinates_in_longitude_latitude_order(): void
     {
         Http::fake([
-            'api.openrouteservice.org/*' => Http::response(
+            'api.heigit.org/*' => Http::response(
                 $this->validResponse()
             ),
         ]);
@@ -88,7 +88,7 @@ class RoutingServiceTest extends TestCase
         );
 
         Http::assertSent(function ($request) {
-            return $request->url() === 'https://api.openrouteservice.org/v2/directions/driving-car/geojson'
+            return $request->url() === 'https://api.heigit.org/openrouteservice/v2/directions/driving-car/geojson'
                 && $request->method() === 'POST'
                 && $request->hasHeader('Authorization', 'test-api-key')
                 && $request['coordinates'] === [
@@ -117,7 +117,7 @@ class RoutingServiceTest extends TestCase
     public function test_calculate_car_route_throws_when_provider_returns_server_error(): void
     {
         Http::fake([
-            'api.openrouteservice.org/*' => Http::response(
+            'api.heigit.org/*' => Http::response(
                 ['error' => 'Internal server error'],
                 500
             ),
@@ -136,7 +136,7 @@ class RoutingServiceTest extends TestCase
     public function test_calculate_car_route_throws_when_provider_rate_limit_is_exceeded(): void
     {
         Http::fake([
-            'api.openrouteservice.org/*' => Http::response(
+            'api.heigit.org/*' => Http::response(
                 ['error' => 'Rate limit exceeded'],
                 429
             ),
@@ -180,7 +180,7 @@ class RoutingServiceTest extends TestCase
     public function test_calculate_car_route_throws_on_invalid_provider_response(): void
     {
         Http::fake([
-            'api.openrouteservice.org/*' => Http::response([
+            'api.heigit.org/*' => Http::response([
                 'invalid' => 'response',
             ]),
         ]);
@@ -204,7 +204,7 @@ class RoutingServiceTest extends TestCase
         ];
 
         Http::fake([
-            'api.openrouteservice.org/*' => Http::response($response),
+            'api.heigit.org/*' => Http::response($response),
         ]);
 
         $this->expectException(RoutingProviderException::class);
@@ -223,7 +223,7 @@ class RoutingServiceTest extends TestCase
         $response['features'][0]['properties']['summary']['distance'] = -100;
 
         Http::fake([
-            'api.openrouteservice.org/*' => Http::response($response),
+            'api.heigit.org/*' => Http::response($response),
         ]);
 
         $this->expectException(RoutingProviderException::class);
