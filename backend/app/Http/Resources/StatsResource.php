@@ -12,7 +12,7 @@ class StatsResource extends JsonResource
      *
      * @return array{
      *   trips_count: int,
-     *   countries: array<string>,
+     *   countries: list<string>,
      *   total_distance: float,
      *   distance_by_transport: array<string, float>,
      *   places_count: int

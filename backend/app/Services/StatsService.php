@@ -22,7 +22,9 @@ class StatsService
             });
         }
 
-        $trips = $tripsQuery->get();
+        $trips = $tripsQuery
+            ->with(['places', 'legs.fromPlace', 'legs.toPlace'])
+            ->get();
 
         $tripsCount = $trips->count();
 
@@ -39,7 +41,7 @@ class StatsService
         $distanceByTransport = [];
 
         foreach ($legs as $leg) {
-            $distance = $leg->distance;
+            $distance = $leg->distance === null ? null : (float) $leg->distance;
 
             if ($distance === null) {
                 $fromPlace = $leg->fromPlace;
@@ -51,7 +53,7 @@ class StatsService
                         $toPlace,
                         $leg->transport
                     );
-                    $distance = $calculated['distance'];
+                    $distance = (float) $calculated['distance'];
                 } else {
                     $distance = 0;
                 }
@@ -71,7 +73,7 @@ class StatsService
         return [
             'trips_count' => $tripsCount,
             'countries' => $countries,
-            'total_distance' => $totalDistance,
+            'total_distance' => (float) $totalDistance,
             'distance_by_transport' => $distanceByTransport,
             'places_count' => $placesCount,
         ];

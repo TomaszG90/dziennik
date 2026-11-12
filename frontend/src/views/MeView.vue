@@ -1,13 +1,26 @@
 <script setup lang="ts">
 import { computed, reactive, ref } from 'vue'
 import { apiClient, ApiError, updateMyProfile } from '@/api'
+import { getTravelStats, type TravelStats } from '@/api/stats'
 import type { UpdateProfilePayload } from '@/api/auth'
 import type { ProfilePrivacySettings } from '@/api/types'
+import { getTrips } from '@/api/trips'
 import { useAuthStore } from '@/stores/auth'
 import UserTripsList from '@/components/trips/UserTripsList.vue'
 
-type ProfileTab = 'trips' | 'friends' | 'stats'
+type ProfileTab = 'trips' | 'friends' | 'stats' | 'badges'
+type StatsLoadState = 'idle' | 'loading' | 'loaded' | 'error'
 type ProfileFieldKey = 'name' | 'email' | 'first_name' | 'last_name' | 'city' | 'birth_date'
+
+interface BadgeProgress {
+  id: string
+  icon: string
+  name: string
+  description: string
+  current: number
+  target: number
+  progress: string
+}
 
 interface ProfileForm {
   name: string
@@ -29,9 +42,17 @@ interface ProfileField {
 
 const auth = useAuthStore()
 const activeTab = ref<ProfileTab>('trips')
-const profileVisibility = ref<'private' | 'public'>(
-  auth.user?.profile_visibility ?? 'private',
-)
+const travelStats = ref<TravelStats | null>(null)
+const statsLoadState = ref<StatsLoadState>('idle')
+const statsError = ref('')
+const selectedYear = ref<number | null>(null)
+const availableYears = ref<number[]>([])
+const yearsLoading = ref(false)
+const yearsLoaded = ref(false)
+const yearsError = ref(false)
+let statsRequestId = 0
+const statsCache = new Map<number | null, TravelStats>()
+const profileVisibility = ref<'private' | 'public'>(auth.user?.profile_visibility ?? 'private')
 const defaultPrivacySettings: ProfilePrivacySettings = {
   name: false,
   email: false,
@@ -109,9 +130,226 @@ const friendsCountLabel = computed(() => {
   if (friendsCount === 1) return '1 znajomy'
   return `${friendsCount} znajomych`
 })
+const transportLabels: Record<string, string> = {
+  walking: 'Pieszo',
+  car: 'Samochodem',
+  plane: 'Samolotem',
+  train: 'Pociągiem',
+  other: 'Innym środkiem',
+}
+const transportColors: Record<string, string> = {
+  walking: '#2f855a',
+  car: '#d97706',
+  plane: '#2563eb',
+  train: '#7c3aed',
+  other: '#64748b',
+}
+const transportDistances = computed(() =>
+  Object.entries(travelStats.value?.distance_by_transport ?? {})
+    .filter(([, distance]) => distance > 0)
+    .sort((first, second) => second[1] - first[1]),
+)
+const totalTransportDistance = computed(() =>
+  transportDistances.value.reduce((total, [, distance]) => total + distance, 0),
+)
+const maxTransportDistance = computed(() =>
+  Math.max(0, ...transportDistances.value.map(([, distance]) => distance)),
+)
+const transportChartSegments = computed(() => {
+  const circumference = 2 * Math.PI * 44
+  let offset = 0
+
+  return transportDistances.value.map(([transport, distance]) => {
+    const length = (distance / totalTransportDistance.value) * circumference
+    const segment = {
+      transport,
+      color: transportColors[transport] ?? '#386a54',
+      percentage: (distance / totalTransportDistance.value) * 100,
+      dashArray: `${length} ${circumference - length}`,
+      dashOffset: `${-offset}`,
+    }
+    offset += length
+    return segment
+  })
+})
+const badgeProgress = computed<BadgeProgress[]>(() => {
+  const stats = travelStats.value
+  if (!stats) return []
+
+  const transportCount = transportDistances.value.length
+  const countriesCount = stats.countries.length
+
+  return [
+    {
+      id: 'first-trip',
+      icon: '🧭',
+      name: 'Pierwsza podróż',
+      description: 'Zapisz swoją pierwszą podróż.',
+      current: stats.trips_count,
+      target: 1,
+      progress: `${stats.trips_count} / 1 podróż`,
+    },
+    {
+      id: 'five-trips',
+      icon: '🎒',
+      name: 'W drodze',
+      description: 'Zapisz pięć podróży.',
+      current: stats.trips_count,
+      target: 5,
+      progress: `${stats.trips_count} / 5 podróży`,
+    },
+    {
+      id: 'first-country',
+      icon: '🌍',
+      name: 'Nowy kraj',
+      description: 'Odwiedź swoje pierwsze państwo.',
+      current: countriesCount,
+      target: 1,
+      progress: `${countriesCount} / 1 kraj`,
+    },
+    {
+      id: 'five-countries',
+      icon: '🗺️',
+      name: 'Odkrywca',
+      description: 'Odwiedź pięć różnych państw.',
+      current: countriesCount,
+      target: 5,
+      progress: `${countriesCount} / 5 krajów`,
+    },
+    {
+      id: 'thousand-km',
+      icon: '✈️',
+      name: 'Tysiąc kilometrów',
+      description: 'Przebyj łącznie 1000 km.',
+      current: stats.total_distance,
+      target: 1000,
+      progress: `${formatDistance(stats.total_distance)} / 1 000 km`,
+    },
+    {
+      id: 'twenty-five-places',
+      icon: '📍',
+      name: 'Ciekawość świata',
+      description: 'Odwiedź 25 miejsc.',
+      current: stats.places_count,
+      target: 25,
+      progress: `${stats.places_count} / 25 miejsc`,
+    },
+    {
+      id: 'transport-mix',
+      icon: '🚆',
+      name: 'Różne drogi',
+      description: 'Podróżuj trzema różnymi środkami transportu.',
+      current: transportCount,
+      target: 3,
+      progress: `${transportCount} / 3 środki transportu`,
+    },
+  ]
+})
+const unlockedBadgesCount = computed(
+  () => badgeProgress.value.filter((badge) => badge.current >= badge.target).length,
+)
 
 const avatarUrl = (filename: string) =>
   new URL(`/avatars/${filename}`, apiClient.defaults.baseURL).toString()
+
+function formatDistance(distance: number): string {
+  return new Intl.NumberFormat('pl-PL', { maximumFractionDigits: 1 }).format(distance)
+}
+
+function countryName(countryCode: string): string {
+  try {
+    return new Intl.DisplayNames(['pl'], { type: 'region' }).of(countryCode) ?? countryCode
+  } catch {
+    return countryCode
+  }
+}
+
+async function loadStats() {
+  const year = selectedYear.value
+  const requestId = ++statsRequestId
+  const cachedStats = statsCache.get(year)
+  if (cachedStats) {
+    travelStats.value = cachedStats
+    statsLoadState.value = 'loaded'
+    statsError.value = ''
+    return
+  }
+
+  statsLoadState.value = 'loading'
+  statsError.value = ''
+
+  try {
+    const stats = await getTravelStats(year ?? undefined)
+    statsCache.set(year, stats)
+    if (requestId !== statsRequestId) return
+    travelStats.value = stats
+    statsLoadState.value = 'loaded'
+  } catch (error) {
+    if (requestId !== statsRequestId) return
+    statsError.value = error instanceof ApiError ? error.message : 'Nie udało się pobrać statystyk.'
+    statsLoadState.value = 'error'
+  }
+}
+
+function yearFromDate(date: string | null): number | null {
+  const match = date?.match(/^(\d{4})-\d{2}-\d{2}/)
+  return match ? Number(match[1]) : null
+}
+
+async function loadAvailableYears() {
+  if (yearsLoading.value || yearsLoaded.value) return
+
+  yearsLoading.value = true
+  yearsError.value = false
+  try {
+    const trips = await getTrips()
+    const years = new Set<number>()
+    for (const trip of trips) {
+      const startYear = yearFromDate(trip.start_date)
+      const endYear = yearFromDate(trip.end_date)
+      if (startYear !== null) years.add(startYear)
+      if (endYear !== null) years.add(endYear)
+    }
+    availableYears.value = [...years].sort((first, second) => second - first)
+    yearsLoaded.value = true
+  } catch {
+    yearsError.value = true
+  } finally {
+    yearsLoading.value = false
+  }
+}
+
+function selectTab(tab: ProfileTab) {
+  activeTab.value = tab
+  if (tab === 'stats' || tab === 'badges') {
+    void loadStats()
+  }
+  if (tab === 'stats') void loadAvailableYears()
+}
+
+function selectStatsYear(event: Event) {
+  const value = (event.target as HTMLSelectElement).value
+  selectedYear.value = value === '' ? null : Number(value)
+  void loadStats()
+}
+
+function retryAvailableYears() {
+  yearsError.value = false
+  void loadAvailableYears()
+}
+
+function transportBarWidth(distance: number): string {
+  if (maxTransportDistance.value === 0) return '0%'
+  return `${Math.max(2, (distance / maxTransportDistance.value) * 100)}%`
+}
+
+function badgeIsUnlocked(badge: BadgeProgress): boolean {
+  return badge.current >= badge.target
+}
+
+function badgeProgressPercent(badge: BadgeProgress): number {
+  return Math.min(100, Math.round((badge.current / badge.target) * 100))
+}
 
 function toggleProfileVisibility() {
   profileVisibility.value = profileVisibility.value === 'public' ? 'private' : 'public'
@@ -158,7 +396,7 @@ async function saveProfile() {
   } catch (error) {
     saveError.value =
       error instanceof ApiError
-        ? Object.values(error.validationErrors ?? {})[0]?.[0] ?? error.message
+        ? (Object.values(error.validationErrors ?? {})[0]?.[0] ?? error.message)
         : 'Nie udało się zapisać profilu. Spróbuj ponownie.'
   } finally {
     isSaving.value = false
@@ -204,7 +442,12 @@ async function saveProfile() {
                 <path d="M12 11v5m0-8h.01" />
               </svg>
             </button>
-            <p v-if="showVisibilityInfo" id="visibility-info" class="visibility-info" role="tooltip">
+            <p
+              v-if="showVisibilityInfo"
+              id="visibility-info"
+              class="visibility-info"
+              role="tooltip"
+            >
               Profil prywatny jest ukryty dla innych. Profil publiczny udostępnia tylko pola
               oznaczone jako publiczne. Ustawienia poszczególnych pól pozostają zapisane po
               przełączeniu profilu na prywatny.
@@ -303,7 +546,7 @@ async function saveProfile() {
             type="button"
             role="tab"
             :aria-selected="activeTab === 'trips'"
-            @click="activeTab = 'trips'"
+            @click="selectTab('trips')"
           >
             Wycieczki
           </button>
@@ -312,7 +555,7 @@ async function saveProfile() {
             type="button"
             role="tab"
             :aria-selected="activeTab === 'friends'"
-            @click="activeTab = 'friends'"
+            @click="selectTab('friends')"
           >
             Znajomi
           </button>
@@ -321,16 +564,180 @@ async function saveProfile() {
             type="button"
             role="tab"
             :aria-selected="activeTab === 'stats'"
-            @click="activeTab = 'stats'"
+            @click="selectTab('stats')"
           >
             Statystyki
+          </button>
+          <button
+            id="tab-badges"
+            type="button"
+            role="tab"
+            :aria-selected="activeTab === 'badges'"
+            @click="selectTab('badges')"
+          >
+            Odznaki
           </button>
         </div>
 
         <div class="tab-panel" role="tabpanel" :aria-labelledby="`tab-${activeTab}`">
           <UserTripsList v-if="activeTab === 'trips'" />
           <p v-else-if="activeTab === 'friends'">Lista znajomych pojawi się tutaj.</p>
-          <p v-else>Statystyki pojawią się tutaj.</p>
+          <div v-else-if="statsLoadState === 'loading'" class="stats-message" role="status">
+            Pobieranie statystyk...
+          </div>
+          <div v-else-if="statsLoadState === 'error'" class="stats-message" role="alert">
+            <p>{{ statsError }}</p>
+            <button class="retry-button" type="button" @click="loadStats">Spróbuj ponownie</button>
+          </div>
+          <div v-else-if="travelStats && activeTab === 'stats'" class="stats-content">
+            <div class="stats-toolbar">
+              <label for="stats-year">Zakres statystyk</label>
+              <select id="stats-year" :value="selectedYear ?? ''" @change="selectStatsYear">
+                <option value="">Cała historia</option>
+                <option v-for="year in availableYears" :key="year" :value="year">
+                  {{ year }}
+                </option>
+              </select>
+              <span v-if="yearsLoading" class="filter-status" role="status">
+                Ładowanie dostępnych lat...
+              </span>
+              <span v-else-if="yearsError" class="filter-status">
+                Nie udało się wczytać listy lat.
+                <button class="inline-retry-button" type="button" @click="retryAvailableYears">
+                  Spróbuj ponownie
+                </button>
+              </span>
+            </div>
+
+            <div class="stats-grid" aria-label="Podsumowanie podróży">
+              <article class="stat-card">
+                <span class="stat-icon" aria-hidden="true">🧳</span>
+                <strong>{{ travelStats.trips_count }}</strong>
+                <span>podróży</span>
+              </article>
+              <article class="stat-card">
+                <span class="stat-icon" aria-hidden="true">🌍</span>
+                <strong>{{ travelStats.countries.length }}</strong>
+                <span>odwiedzonych krajów</span>
+              </article>
+              <article class="stat-card">
+                <span class="stat-icon" aria-hidden="true">🛣️</span>
+                <strong>{{ formatDistance(travelStats.total_distance) }}</strong>
+                <span>przebytych kilometrów</span>
+              </article>
+              <article class="stat-card">
+                <span class="stat-icon" aria-hidden="true">📍</span>
+                <strong>{{ travelStats.places_count }}</strong>
+                <span>odwiedzonych miejsc</span>
+              </article>
+            </div>
+
+            <section class="stats-section" aria-labelledby="countries-title">
+              <h3 id="countries-title">Odwiedzone kraje</h3>
+              <p v-if="travelStats.countries.length === 0" class="empty-state">
+                Kraje pojawią się tutaj po dodaniu miejsc do podróży.
+              </p>
+              <ul v-else class="country-list">
+                <li v-for="country in travelStats.countries" :key="country">
+                  <span class="country-code">{{ country }}</span>
+                  <span>{{ countryName(country) }}</span>
+                </li>
+              </ul>
+            </section>
+
+            <section class="stats-section" aria-labelledby="transport-title">
+              <h3 id="transport-title">Dystans według transportu</h3>
+              <p v-if="transportDistances.length === 0" class="empty-state">
+                Dystans pojawi się po dodaniu odcinków podróży.
+              </p>
+              <div v-else class="transport-charts">
+                <svg
+                  class="transport-donut"
+                  viewBox="0 0 120 120"
+                  role="img"
+                  aria-label="Udział środków transportu w łącznym dystansie"
+                >
+                  <circle class="donut-track" cx="60" cy="60" r="44" />
+                  <circle
+                    v-for="segment in transportChartSegments"
+                    :key="segment.transport"
+                    class="donut-segment"
+                    cx="60"
+                    cy="60"
+                    r="44"
+                    :style="{
+                      stroke: segment.color,
+                      strokeDasharray: segment.dashArray,
+                      strokeDashoffset: segment.dashOffset,
+                    }"
+                  />
+                </svg>
+                <ul class="distance-legend" aria-label="Udział dystansu według transportu">
+                  <li v-for="segment in transportChartSegments" :key="segment.transport">
+                    <span class="legend-label">
+                      <span class="legend-swatch" :style="{ backgroundColor: segment.color }" />
+                      {{ transportLabels[segment.transport] ?? segment.transport }}
+                    </span>
+                    <strong>{{ formatDistance(segment.percentage) }}%</strong>
+                  </li>
+                </ul>
+                <ul class="distance-chart" aria-label="Wykres dystansu według transportu">
+                  <li v-for="[transport, distance] in transportDistances" :key="transport">
+                    <div class="chart-row-labels">
+                      <span>{{ transportLabels[transport] ?? transport }}</span>
+                      <strong>{{ formatDistance(distance) }} km</strong>
+                    </div>
+                    <div class="chart-bar-track" aria-hidden="true">
+                      <span
+                        :style="{
+                          width: transportBarWidth(distance),
+                          backgroundColor: transportColors[transport] ?? '#386a54',
+                        }"
+                      />
+                    </div>
+                  </li>
+                </ul>
+              </div>
+            </section>
+          </div>
+          <section v-else-if="travelStats && activeTab === 'badges'" class="badges-content">
+            <div class="badges-heading">
+              <div>
+                <h3>Twoje odznaki</h3>
+                <p>Odblokowuj je podczas zapisywania podróży i odkrywania nowych miejsc.</p>
+              </div>
+              <strong class="badge-count"
+                >{{ unlockedBadgesCount }} / {{ badgeProgress.length }}</strong
+              >
+            </div>
+            <div class="badges-grid">
+              <article
+                v-for="badge in badgeProgress"
+                :key="badge.id"
+                class="badge-card"
+                :class="{ unlocked: badgeIsUnlocked(badge) }"
+              >
+                <span class="badge-icon" aria-hidden="true">{{ badge.icon }}</span>
+                <div class="badge-details">
+                  <h4>{{ badge.name }}</h4>
+                  <p>{{ badge.description }}</p>
+                  <div
+                    class="badge-progress-track"
+                    role="progressbar"
+                    :aria-label="`Postęp: ${badge.name}`"
+                    :aria-valuenow="badgeProgressPercent(badge)"
+                    aria-valuemin="0"
+                    aria-valuemax="100"
+                  >
+                    <span :style="{ width: `${badgeProgressPercent(badge)}%` }" />
+                  </div>
+                  <span class="badge-progress-label">
+                    {{ badgeIsUnlocked(badge) ? 'Odblokowana' : badge.progress }}
+                  </span>
+                </div>
+              </article>
+            </div>
+          </section>
         </div>
       </section>
     </div>
@@ -653,6 +1060,342 @@ input {
   padding-top: 1rem;
 }
 
+.stats-content,
+.badges-content {
+  display: grid;
+  gap: 1.75rem;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.stat-card {
+  display: grid;
+  justify-items: start;
+  align-content: start;
+  gap: 0.35rem;
+  min-height: 8rem;
+  padding: 1rem;
+  border: 1px solid rgb(56 106 84 / 18%);
+  border-radius: 1rem;
+  background: rgb(255 255 255 / 65%);
+}
+
+.stat-card strong {
+  font-size: clamp(1.35rem, 3vw, 2rem);
+  line-height: 1.1;
+  overflow-wrap: anywhere;
+}
+
+.stat-card > span:last-child,
+.empty-state {
+  color: #4b5563;
+  font-size: 0.9rem;
+}
+
+.stat-icon {
+  font-size: 1.35rem;
+}
+
+.stats-section {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.stats-section h3,
+.badges-heading h3 {
+  margin: 0;
+  font-size: 1.15rem;
+}
+
+.empty-state {
+  margin: 0;
+}
+
+.country-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.country-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.65rem;
+  padding: 0.6rem 0.8rem;
+  border: 1px solid rgb(56 106 84 / 18%);
+  border-radius: 0.75rem;
+  background: rgb(255 255 255 / 55%);
+}
+
+.country-code {
+  display: inline-grid;
+  place-items: center;
+  min-width: 2rem;
+  min-height: 1.5rem;
+  border-radius: 0.35rem;
+  color: #fff;
+  background: #386a54;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.stats-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.stats-toolbar label {
+  font-weight: 600;
+}
+
+.stats-toolbar select {
+  min-height: 2.5rem;
+  padding: 0.4rem 2rem 0.4rem 0.7rem;
+  border: 1px solid #9ca3af;
+  border-radius: 0.5rem;
+  color: #111827;
+  background: #fff;
+  font: inherit;
+}
+
+.stats-toolbar select:focus-visible,
+.inline-retry-button:focus-visible {
+  outline: 3px solid #294d3d;
+  outline-offset: 2px;
+}
+
+.filter-status {
+  color: #4b5563;
+  font-size: 0.875rem;
+}
+
+.inline-retry-button {
+  padding: 0;
+  border: 0;
+  color: #294d3d;
+  background: transparent;
+  font: inherit;
+  font-weight: 600;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.distance-chart {
+  display: grid;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.transport-charts {
+  display: grid;
+  grid-template-columns: minmax(8rem, 0.45fr) minmax(0, 1fr);
+  align-items: center;
+  gap: 1.25rem;
+}
+
+.transport-donut {
+  width: 100%;
+  max-width: 13rem;
+  justify-self: center;
+}
+
+.donut-track,
+.donut-segment {
+  fill: none;
+  stroke-width: 16;
+}
+
+.donut-track {
+  stroke: rgb(56 106 84 / 16%);
+}
+
+.donut-segment {
+  transform: rotate(-90deg);
+  transform-origin: 50% 50%;
+}
+
+.distance-legend {
+  display: grid;
+  gap: 0.6rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.distance-legend li,
+.legend-label {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.distance-legend li {
+  justify-content: space-between;
+}
+
+.legend-swatch {
+  flex: 0 0 auto;
+  width: 0.75rem;
+  height: 0.75rem;
+  border-radius: 50%;
+}
+
+.distance-chart {
+  grid-column: 1 / -1;
+}
+
+.distance-chart li {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.chart-row-labels {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.chart-row-labels strong {
+  flex: 0 0 auto;
+  font-variant-numeric: tabular-nums;
+}
+
+.chart-bar-track {
+  height: 0.75rem;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgb(56 106 84 / 16%);
+}
+
+.chart-bar-track span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: #386a54;
+}
+
+.stats-message {
+  display: grid;
+  justify-items: start;
+  gap: 0.75rem;
+}
+
+.retry-button {
+  padding: 0.55rem 0.8rem;
+  border: 0;
+  border-radius: 0.5rem;
+  color: #fff;
+  background: #386a54;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.badges-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.badges-heading p {
+  margin: 0.35rem 0 0;
+  color: #4b5563;
+}
+
+.badge-count {
+  flex: 0 0 auto;
+  padding: 0.5rem 0.75rem;
+  border-radius: 999px;
+  color: #294d3d;
+  background: rgb(56 106 84 / 12%);
+}
+
+.badges-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.badge-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.8rem;
+  min-width: 0;
+  padding: 1rem;
+  border: 1px solid rgb(17 24 39 / 12%);
+  border-radius: 1rem;
+  background: rgb(255 255 255 / 45%);
+  opacity: 0.72;
+}
+
+.badge-card.unlocked {
+  border-color: rgb(56 106 84 / 40%);
+  background: rgb(255 255 255 / 75%);
+  opacity: 1;
+}
+
+.badge-icon {
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 50%;
+  background: rgb(17 24 39 / 8%);
+  font-size: 1.4rem;
+  filter: grayscale(1);
+}
+
+.badge-card.unlocked .badge-icon {
+  background: rgb(56 106 84 / 15%);
+  filter: none;
+}
+
+.badge-details {
+  display: grid;
+  flex: 1;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.badge-details h4,
+.badge-details p {
+  margin: 0;
+}
+
+.badge-details p,
+.badge-progress-label {
+  color: #4b5563;
+  font-size: 0.85rem;
+}
+
+.badge-progress-track {
+  height: 0.45rem;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgb(17 24 39 / 12%);
+}
+
+.badge-progress-track span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: #386a54;
+}
+
 .avatar-dialog {
   width: min(36rem, calc(100vw - 2rem));
   max-width: none;
@@ -715,6 +1458,16 @@ input {
 
 @media (max-width: 900px) {
   .profile-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 700px) {
+  .stats-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .badges-grid {
     grid-template-columns: minmax(0, 1fr);
   }
 }
@@ -799,6 +1552,57 @@ input {
 
   .tab-panel p {
     color: #9ca3af;
+  }
+
+  .stat-card,
+  .country-list li,
+  .badge-card {
+    border-color: rgb(156 163 175 / 25%);
+    background: rgb(31 41 55 / 65%);
+  }
+
+  .stat-card > span:last-child,
+  .empty-state,
+  .filter-status,
+  .badges-heading p,
+  .badge-details p,
+  .badge-progress-label {
+    color: #9ca3af;
+  }
+
+  .badge-count {
+    color: #6ee7b7;
+    background: rgb(110 231 183 / 12%);
+  }
+
+  .badge-progress-track {
+    background: rgb(156 163 175 / 25%);
+  }
+
+  .badge-progress-track span {
+    background: #6ee7b7;
+  }
+
+  .stats-toolbar select {
+    border-color: #4b5563;
+    color: #f3f4f6;
+    background: #1f2937;
+  }
+
+  .inline-retry-button {
+    color: #6ee7b7;
+  }
+
+  .chart-bar-track {
+    background: rgb(156 163 175 / 25%);
+  }
+
+  .donut-track {
+    stroke: rgb(156 163 175 / 25%);
+  }
+
+  .chart-bar-track span {
+    background: #6ee7b7;
   }
 
   .form-error {

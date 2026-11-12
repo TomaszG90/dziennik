@@ -114,7 +114,7 @@ Utwórz Issue, korzystając z szablonu funkcji w `.github/ISSUE_TEMPLATE/feature
 | ~~**PR-33**~~ | Bazowy komponent mapy (Leaflet lub MapLibre): kafelki, zoom, konfiguracja, test renderowania | frontend | PR-3, PR-7 | M |
 | ~~PR-34~~ | Mapa jednej podróży: markery punktów i odcinki | frontend | PR-33, PR-25 | L |
 | ~~PR-35~~ | Rozróżnienie transportu: kolory, ikony lub styl linii, legenda mapy | frontend | PR-34 | M |
-| ~~PR-36~~<br/> | Prezentacja samolotu jako łuku, trasy samochodowej po drogach, pociągu i "inne" jako linii prostej | frontend | PR-35, PR-30 | L |
+| ~~PR-36~~  | Prezentacja samolotu jako łuku, trasy samochodowej po drogach, pociągu i "inne" jako linii prostej | frontend | PR-35, PR-30 | L |
 | ~~PR-37~~ | Mapa wszystkich podróży użytkownika (endpoint zbiorczy `GET /api/v1/map` + widok) | backend + frontend | PR-34, PR-30 | L |
 
 
@@ -124,9 +124,9 @@ Utwórz Issue, korzystając z szablonu funkcji w `.github/ISSUE_TEMPLATE/feature
 
 | ID | Zadanie | Obszar | Zależy od | Rozmiar |
 |---|---|---|---|---|
-| PR-40 | Serwis i endpoint statystyk `GET /api/v1/stats?year=`: liczba podróży, kraje, kilometry, dystans wg transportu, liczba miejsc + testy | backend | PR-30, PR-31 | L |
-| PR-41 | Frontend: widok statystyk (karty z liczbami, lista odwiedzonych krajów) | frontend | PR-40, PR-15 | M |
-| PR-42 | Frontend: filtr roku ("cała historia" / wybrany rok) i wykres dystansu według transportu | frontend | PR-41 | M |
+| ~~PR-40~~ | Serwis i endpoint statystyk `GET /api/v1/stats?year=`: liczba podróży, kraje, kilometry, dystans wg transportu, liczba miejsc + testy | backend | PR-30, PR-31 | L |
+| ~~PR-41~~ | Frontend: widok statystyk (karty z liczbami, lista odwiedzonych krajów) | frontend | PR-40, PR-15 | M |
+| ~~PR-42~~ | Frontend: filtr roku ("cała historia" / wybrany rok) i wykres dystansu według transportu | frontend | PR-41 | M |
 
 ---
 
