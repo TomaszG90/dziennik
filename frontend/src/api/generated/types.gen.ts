@@ -75,6 +75,20 @@ export type PlaceResource = {
 };
 
 /**
+ * PublicUserResource
+ */
+export type PublicUserResource = {
+    id: string;
+    name?: string;
+    first_name?: string;
+    last_name?: string;
+    city?: string;
+    birth_date?: string | null;
+    avatar_path?: string;
+    created_at: string;
+};
+
+/**
  * RegisterRequest
  */
 export type RegisterRequest = {
@@ -100,6 +114,17 @@ export type ResetPasswordRequest = {
     email: string;
     password: string;
     password_confirmation: string;
+};
+
+/**
+ * StatsResource
+ */
+export type StatsResource = {
+    trips_count: number;
+    countries: string;
+    total_distance: number;
+    distance_by_transport: string;
+    places_count: number;
 };
 
 /**
@@ -1297,6 +1322,249 @@ export type ProfileUpdateResponses = {
 };
 
 export type ProfileUpdateResponse = ProfileUpdateResponses[keyof ProfileUpdateResponses];
+
+export type PublicProfileIndexData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/public/users';
+};
+
+export type PublicProfileIndexResponses = {
+    /**
+     * Paginated set of `PublicUserResource`
+     */
+    200: {
+        data: Array<PublicUserResource>;
+        links: {
+            first: string | null;
+            last: string | null;
+            prev: string | null;
+            next: string | null;
+        };
+        meta: {
+            current_page: number;
+            from: number | null;
+            last_page: number;
+            /**
+             * Generated paginator links.
+             */
+            links: Array<{
+                url: string | null;
+                label: string;
+                active: boolean;
+            }>;
+            /**
+             * Base path for paginator generated URLs.
+             */
+            path: string | null;
+            /**
+             * Number of items shown per page.
+             */
+            per_page: number;
+            /**
+             * Number of the last item in the slice.
+             */
+            to: number | null;
+            /**
+             * Total number of items being paginated.
+             */
+            total: number;
+        };
+    };
+};
+
+export type PublicProfileIndexResponse = PublicProfileIndexResponses[keyof PublicProfileIndexResponses];
+
+export type PublicProfileShowData = {
+    body?: never;
+    path: {
+        /**
+         * The user ID
+         */
+        user: number;
+    };
+    query?: never;
+    url: '/public/users/{user}';
+};
+
+export type PublicProfileShowErrors = {
+    /**
+     * Not found
+     */
+    404: {
+        /**
+         * Error overview.
+         */
+        message: string;
+    };
+};
+
+export type PublicProfileShowError = PublicProfileShowErrors[keyof PublicProfileShowErrors];
+
+export type PublicProfileShowResponses = {
+    /**
+     * `PublicUserResource`
+     */
+    200: {
+        data: PublicUserResource;
+    };
+};
+
+export type PublicProfileShowResponse = PublicProfileShowResponses[keyof PublicProfileShowResponses];
+
+export type PublicProfileTripsData = {
+    body?: never;
+    path: {
+        /**
+         * The user ID
+         */
+        user: number;
+    };
+    query?: never;
+    url: '/public/users/{user}/trips';
+};
+
+export type PublicProfileTripsErrors = {
+    /**
+     * Not found
+     */
+    404: {
+        /**
+         * Error overview.
+         */
+        message: string;
+    };
+};
+
+export type PublicProfileTripsError = PublicProfileTripsErrors[keyof PublicProfileTripsErrors];
+
+export type PublicProfileTripsResponses = {
+    /**
+     * Array of `TripResource`
+     */
+    200: {
+        data: Array<TripResource>;
+    };
+};
+
+export type PublicProfileTripsResponse = PublicProfileTripsResponses[keyof PublicProfileTripsResponses];
+
+export type PublicProfileMapData = {
+    body?: never;
+    path: {
+        /**
+         * The user ID
+         */
+        user: number;
+    };
+    query?: never;
+    url: '/public/users/{user}/map';
+};
+
+export type PublicProfileMapErrors = {
+    /**
+     * Not found
+     */
+    404: {
+        /**
+         * Error overview.
+         */
+        message: string;
+    };
+};
+
+export type PublicProfileMapError = PublicProfileMapErrors[keyof PublicProfileMapErrors];
+
+export type PublicProfileMapResponses = {
+    200: {
+        data: {
+            trips: Array<{
+                id: number;
+                name: string;
+                start_date: string;
+                end_date: string | null;
+            }>;
+            places: Array<{
+                id: string;
+                trip_id: string;
+                trip_name: string;
+                name: string;
+                latitude: string;
+                longitude: string;
+                position: string;
+                country_code: string;
+            }>;
+            legs: Array<{
+                id: string;
+                trip_id: string;
+                trip_name: string;
+                from_place_id: string;
+                to_place_id: string;
+                transport: string;
+                distance: string;
+                geometry: string;
+                position: string;
+            }>;
+        };
+    };
+};
+
+export type PublicProfileMapResponse = PublicProfileMapResponses[keyof PublicProfileMapResponses];
+
+export type PublicProfileStatsData = {
+    body?: never;
+    path: {
+        /**
+         * The user ID
+         */
+        user: number;
+    };
+    query?: {
+        year?: number;
+    };
+    url: '/public/users/{user}/stats';
+};
+
+export type PublicProfileStatsErrors = {
+    /**
+     * Not found
+     */
+    404: {
+        /**
+         * Error overview.
+         */
+        message: string;
+    };
+    /**
+     * Validation error
+     */
+    422: {
+        /**
+         * Errors overview.
+         */
+        message: string;
+        /**
+         * A detailed description of each field that failed validation.
+         */
+        errors: {
+            [key: string]: Array<string>;
+        };
+    };
+};
+
+export type PublicProfileStatsError = PublicProfileStatsErrors[keyof PublicProfileStatsErrors];
+
+export type PublicProfileStatsResponses = {
+    /**
+     * `StatsResource`
+     */
+    200: {
+        data: StatsResource;
+    };
+};
+
+export type PublicProfileStatsResponse = PublicProfileStatsResponses[keyof PublicProfileStatsResponses];
 
 export type StatsIndexData = {
     body?: never;

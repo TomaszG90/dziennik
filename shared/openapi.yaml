@@ -765,6 +765,318 @@ paths:
           $ref: "#/components/responses/AuthenticationException"
         "422":
           $ref: "#/components/responses/ValidationException"
+  /public/users:
+    get:
+      operationId: publicProfile.index
+      tags:
+        - PublicProfile
+      responses:
+        "200":
+          description: Paginated set of `PublicUserResource`
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/PublicUserResource"
+                  links:
+                    type: object
+                    properties:
+                      first:
+                        type:
+                          - string
+                          - "null"
+                      last:
+                        type:
+                          - string
+                          - "null"
+                      prev:
+                        type:
+                          - string
+                          - "null"
+                      next:
+                        type:
+                          - string
+                          - "null"
+                    required:
+                      - first
+                      - last
+                      - prev
+                      - next
+                  meta:
+                    type: object
+                    properties:
+                      current_page:
+                        type: integer
+                        minimum: 1
+                      from:
+                        type:
+                          - integer
+                          - "null"
+                        minimum: 1
+                      last_page:
+                        type: integer
+                        minimum: 1
+                      links:
+                        type: array
+                        description: Generated paginator links.
+                        items:
+                          type: object
+                          properties:
+                            url:
+                              type:
+                                - string
+                                - "null"
+                            label:
+                              type: string
+                            active:
+                              type: boolean
+                          required:
+                            - url
+                            - label
+                            - active
+                      path:
+                        type:
+                          - string
+                          - "null"
+                        description: Base path for paginator generated URLs.
+                      per_page:
+                        type: integer
+                        description: Number of items shown per page.
+                        minimum: 0
+                      to:
+                        type:
+                          - integer
+                          - "null"
+                        description: Number of the last item in the slice.
+                        minimum: 1
+                      total:
+                        type: integer
+                        description: Total number of items being paginated.
+                        minimum: 0
+                    required:
+                      - current_page
+                      - from
+                      - last_page
+                      - links
+                      - path
+                      - per_page
+                      - to
+                      - total
+                required:
+                  - data
+                  - links
+                  - meta
+      security: []
+  /public/users/{user}:
+    get:
+      operationId: publicProfile.show
+      tags:
+        - PublicProfile
+      parameters:
+        - name: user
+          in: path
+          required: true
+          description: The user ID
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: "`PublicUserResource`"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/PublicUserResource"
+                required:
+                  - data
+        "404":
+          $ref: "#/components/responses/ModelNotFoundException"
+      security: []
+  /public/users/{user}/trips:
+    get:
+      operationId: publicProfile.trips
+      tags:
+        - PublicProfile
+      parameters:
+        - name: user
+          in: path
+          required: true
+          description: The user ID
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Array of `TripResource`
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/TripResource"
+                required:
+                  - data
+        "404":
+          $ref: "#/components/responses/ModelNotFoundException"
+      security: []
+  /public/users/{user}/map:
+    get:
+      operationId: publicProfile.map
+      tags:
+        - PublicProfile
+      parameters:
+        - name: user
+          in: path
+          required: true
+          description: The user ID
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      trips:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            id:
+                              type: integer
+                            name:
+                              type: string
+                            start_date:
+                              type: string
+                            end_date:
+                              type:
+                                - string
+                                - "null"
+                          required:
+                            - id
+                            - name
+                            - start_date
+                            - end_date
+                      places:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            id:
+                              type: string
+                            trip_id:
+                              type: string
+                            trip_name:
+                              type: string
+                            name:
+                              type: string
+                            latitude:
+                              type: string
+                            longitude:
+                              type: string
+                            position:
+                              type: string
+                            country_code:
+                              type: string
+                          required:
+                            - id
+                            - trip_id
+                            - trip_name
+                            - name
+                            - latitude
+                            - longitude
+                            - position
+                            - country_code
+                      legs:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            id:
+                              type: string
+                            trip_id:
+                              type: string
+                            trip_name:
+                              type: string
+                            from_place_id:
+                              type: string
+                            to_place_id:
+                              type: string
+                            transport:
+                              type: string
+                            distance:
+                              type: string
+                            geometry:
+                              type: string
+                            position:
+                              type: string
+                          required:
+                            - id
+                            - trip_id
+                            - trip_name
+                            - from_place_id
+                            - to_place_id
+                            - transport
+                            - distance
+                            - geometry
+                            - position
+                    required:
+                      - trips
+                      - places
+                      - legs
+                required:
+                  - data
+        "404":
+          $ref: "#/components/responses/ModelNotFoundException"
+      security: []
+  /public/users/{user}/stats:
+    get:
+      operationId: publicProfile.stats
+      tags:
+        - PublicProfile
+      parameters:
+        - name: user
+          in: path
+          required: true
+          description: The user ID
+          schema:
+            type: integer
+        - name: year
+          in: query
+          schema:
+            type: integer
+            minimum: 1901
+            maximum: 2026
+      responses:
+        "200":
+          description: "`StatsResource`"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/StatsResource"
+                required:
+                  - data
+        "404":
+          $ref: "#/components/responses/ModelNotFoundException"
+        "422":
+          $ref: "#/components/responses/ValidationException"
+      security: []
   /stats:
     get:
       operationId: stats.index
@@ -1153,6 +1465,31 @@ components:
         - created_at
         - updated_at
       title: PlaceResource
+    PublicUserResource:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        first_name:
+          type: string
+        last_name:
+          type: string
+        city:
+          type: string
+        birth_date:
+          type:
+            - string
+            - "null"
+        avatar_path:
+          type: string
+        created_at:
+          type: string
+      required:
+        - id
+        - created_at
+      title: PublicUserResource
     RegisterRequest:
       type: object
       properties:
@@ -1210,6 +1547,26 @@ components:
         - password
         - password_confirmation
       title: ResetPasswordRequest
+    StatsResource:
+      type: object
+      properties:
+        trips_count:
+          type: integer
+        countries:
+          type: string
+        total_distance:
+          type: number
+        distance_by_transport:
+          type: string
+        places_count:
+          type: integer
+      required:
+        - trips_count
+        - countries
+        - total_distance
+        - distance_by_transport
+        - places_count
+      title: StatsResource
     StoreLegRequest:
       type: object
       properties:
@@ -1498,6 +1855,18 @@ components:
         - updated_at
       title: UserResource
   responses:
+    ModelNotFoundException:
+      description: Not found
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              message:
+                type: string
+                description: Error overview.
+            required:
+              - message
     ValidationException:
       description: Validation error
       content:
@@ -1532,18 +1901,6 @@ components:
               - message
     AuthorizationException:
       description: Authorization error
-      content:
-        application/json:
-          schema:
-            type: object
-            properties:
-              message:
-                type: string
-                description: Error overview.
-            required:
-              - message
-    ModelNotFoundException:
-      description: Not found
       content:
         application/json:
           schema:
