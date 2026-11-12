@@ -124,9 +124,9 @@ Utwórz Issue, korzystając z szablonu funkcji w `.github/ISSUE_TEMPLATE/feature
 
 | ID | Zadanie | Obszar | Zależy od | Rozmiar |
 |---|---|---|---|---|
-| PR-40 | Serwis i endpoint statystyk `GET /api/v1/stats?year=`: liczba podróży, kraje, kilometry, dystans wg transportu, liczba miejsc + testy | backend | PR-30, PR-31 | L |
-| PR-41 | Frontend: widok statystyk (karty z liczbami, lista odwiedzonych krajów) | frontend | PR-40, PR-15 | M |
-| PR-42 | Frontend: filtr roku ("cała historia" / wybrany rok) i wykres dystansu według transportu | frontend | PR-41 | M |
+| ~~PR-40~~ | Serwis i endpoint statystyk `GET /api/v1/stats?year=`: liczba podróży, kraje, kilometry, dystans wg transportu, liczba miejsc + testy | backend | PR-30, PR-31 | L |
+| ~~PR-41~~ | Frontend: widok statystyk (karty z liczbami, lista odwiedzonych krajów) | frontend | PR-40, PR-15 | M |
+| ~~PR-42~~ | Frontend: filtr roku ("cała historia" / wybrany rok) i wykres dystansu według transportu | frontend | PR-41 | M |
 
 ---
 

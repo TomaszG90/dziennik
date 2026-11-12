@@ -15,6 +15,14 @@ return [
         'title' => 'Dziennik Podróży API',
     ],
 
+    'renderer' => 'swagger',
+
+    'renderers' => [
+        'swagger' => [
+            'view' => 'swagger',
+        ],
+    ],
+
     // Sanctum personal access tokens are sent as HTTP Bearer tokens by mobile clients.
     'security_strategy' => MiddlewareAuthSecurityStrategy::class,
 ];

@@ -11,6 +11,8 @@ cd frontend
 npm run api:generate
 ```
 
+The interactive Swagger UI for the local API is available at `http://localhost:8000/docs/api`; the raw OpenAPI JSON is at `http://localhost:8000/docs/api.json`.
+
 In GitHub Actions the backend job exports directly to `shared/openapi.json`, then runs the same YAML and TypeScript generation.
 
 Do not edit generated OpenAPI or TypeScript files by hand. Commit the Scramble dependency and generated contract together so CI can verify the committed files against the backend source.
