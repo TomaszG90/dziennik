@@ -103,17 +103,6 @@ export type ResetPasswordRequest = {
 };
 
 /**
- * StatsResource
- */
-export type StatsResource = {
-    trips_count: string;
-    countries: string;
-    total_distance: string;
-    distance_by_transport: string;
-    places_count: string;
-};
-
-/**
  * StoreLegRequest
  */
 export type StoreLegRequest = {
@@ -1348,11 +1337,16 @@ export type StatsIndexErrors = {
 export type StatsIndexError = StatsIndexErrors[keyof StatsIndexErrors];
 
 export type StatsIndexResponses = {
-    /**
-     * `StatsResource`
-     */
     200: {
-        data: StatsResource;
+        data: {
+            trips_count: number;
+            countries: Array<string>;
+            total_distance: number;
+            distance_by_transport: {
+                [key: string]: number;
+            };
+            places_count: number;
+        };
     };
 };
 

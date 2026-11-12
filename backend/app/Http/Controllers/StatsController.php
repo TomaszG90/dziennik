@@ -13,6 +13,17 @@ class StatsController extends Controller
         private StatsService $statsService
     ) {}
 
+    /**
+     * Return statistics for the authenticated user's trips.
+     *
+     * @response array{data: array{
+     *   trips_count: int,
+     *   countries: list<string>,
+     *   total_distance: float,
+     *   distance_by_transport: array<string, float>,
+     *   places_count: int
+     * }}
+     */
     public function index(StatsRequest $request): JsonResponse
     {
         $year = $request->input('year') ? (int) $request->input('year') : null;

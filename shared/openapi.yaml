@@ -768,6 +768,7 @@ paths:
   /stats:
     get:
       operationId: stats.index
+      summary: Return statistics for the authenticated user's trips
       tags:
         - Stats
       parameters:
@@ -781,14 +782,35 @@ paths:
             maximum: 2027
       responses:
         "200":
-          description: "`StatsResource`"
+          description: ""
           content:
             application/json:
               schema:
                 type: object
                 properties:
                   data:
-                    $ref: "#/components/schemas/StatsResource"
+                    type: object
+                    properties:
+                      trips_count:
+                        type: integer
+                      countries:
+                        type: array
+                        items:
+                          type: string
+                      total_distance:
+                        type: number
+                      distance_by_transport:
+                        type: object
+                        additionalProperties:
+                          type: number
+                      places_count:
+                        type: integer
+                    required:
+                      - trips_count
+                      - countries
+                      - total_distance
+                      - distance_by_transport
+                      - places_count
                 required:
                   - data
         "401":
@@ -1188,26 +1210,6 @@ components:
         - password
         - password_confirmation
       title: ResetPasswordRequest
-    StatsResource:
-      type: object
-      properties:
-        trips_count:
-          type: string
-        countries:
-          type: string
-        total_distance:
-          type: string
-        distance_by_transport:
-          type: string
-        places_count:
-          type: string
-      required:
-        - trips_count
-        - countries
-        - total_distance
-        - distance_by_transport
-        - places_count
-      title: StatsResource
     StoreLegRequest:
       type: object
       properties:

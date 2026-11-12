@@ -49,17 +49,20 @@ Przykład podróży:
 - Automatyczne oznaczanie odwiedzonych państw na podstawie zapisanych podróży
 - Przybliżanie mapy i podgląd szczegółów tras
 
-### Statystyki (w planach)
-Dla całej historii oraz dla wybranego roku kalendarzowego:
-- liczba odbytych podróży
-- liczba i lista odwiedzonych państw (wyróżnione na mapie)
-- łączna liczba przebytych kilometrów
-- dystans według środka transportu
-- liczba odwiedzonych miejsc
+### Statystyki (API zaimplementowane, interfejs w planach)
+Endpoint `GET /api/v1/stats` (wymaga tokenu Sanctum) zwraca statystyki zalogowanego użytkownika. Parametr `year` jest opcjonalny; po jego podaniu uwzględniane są podróże, których zakres dat przecina wskazany rok. Statystyki takiej podróży obejmują wszystkie jej miejsca i odcinki.
+
+Dane są dostępne dla całej historii lub dla wybranego roku kalendarzowego:
+
+- liczba podróży
+- lista unikalnych kodów odwiedzonych państw
+- łączny dystans w kilometrach
+- dystans w kilometrach według środka transportu
+- liczba miejsc
 
 ## Architektura
 
-Aplikacja składa się z backendu Laravel, aplikacji Vue SPA i rozwijanej natywnej aplikacji Android. Vue korzysta ze wspólnego REST API (`/api/v1`); aplikacja Android będzie korzystać z tego samego API. Backend udostępnia m.in. funkcje kont, profilu, podróży, punktów, odcinków i geokodowania. Interfejs zarządzania podróżami, mapa i statystyki są w planach. Aplikacja Android jest na etapie pustego szkieletu i nie ma jeszcze funkcji użytkowych.
+Aplikacja składa się z backendu Laravel, aplikacji Vue SPA i rozwijanej natywnej aplikacji Android. Vue korzysta ze wspólnego REST API (`/api/v1`); aplikacja Android będzie korzystać z tego samego API. Backend udostępnia m.in. funkcje kont, profilu, podróży, punktów, odcinków, geokodowania i statystyk. Interfejs mapy i statystyk jest w planach. Aplikacja Android jest na etapie pustego szkieletu i nie ma jeszcze funkcji użytkowych.
 
 ```
 backend/    # Laravel: REST API
