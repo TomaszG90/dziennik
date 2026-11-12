@@ -7,6 +7,7 @@ use App\Http\Controllers\MapController;
 use App\Http\Controllers\PasswordResetController;
 use App\Http\Controllers\PlaceController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\PublicProfileController;
 use App\Http\Controllers\StatsController;
 use App\Http\Controllers\TripController;
 use Illuminate\Http\Request;
@@ -22,6 +23,13 @@ Route::prefix('v1')->group(function () {
             'status' => 'ok',
             'timestamp' => now()->toIso8601String(),
         ]);
+    });
+    Route::prefix('public')->controller(PublicProfileController::class)->group(function () {
+        Route::get('/users', 'index');
+        Route::get('/users/{user}', 'show');
+        Route::get('/users/{user}/trips', 'trips');
+        Route::get('/users/{user}/map', 'map');
+        Route::get('/users/{user}/stats', 'stats');
     });
 
     Route::get('/geocode', GeocodeController::class)->middleware('throttle:geocode');
