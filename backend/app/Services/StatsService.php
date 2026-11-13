@@ -11,6 +11,15 @@ class StatsService
         private readonly LegCalculationService $legCalculationService,
     ) {}
 
+    /**
+     * @return array{
+     *     trips_count: int,
+     *     countries: list<string>,
+     *     total_distance: float,
+     *     distance_by_transport: array<string, float>,
+     *     places_count: int
+     * }
+     */
     public function calculateStats(User $user, ?int $year = null): array
     {
         $tripsQuery = $user->trips();

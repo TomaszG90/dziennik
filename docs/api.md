@@ -345,6 +345,131 @@ Pola:
 }
 ```
 
+### Publiczne profile
+
+Poniższe endpointy nie wymagają uwierzytelnienia i są dostępne również dla niezalogowanych użytkowników. Zwracają wyłącznie profile z `profile_visibility: "public"`. Dla prywatnego lub nieistniejącego profilu endpointy szczegółów, podróży, mapy i statystyk zwracają `404 Not Found`. Profile nie mają osobnego ustawienia widoczności podróży — podróże, mapa i statystyki są udostępniane razem z profilem publicznym.
+
+#### `GET /api/v1/public/users`
+
+Zwraca stronicowaną listę publicznych profili (20 na stronę), uporządkowaną według ID. Opcjonalny parametr `search` (string, maks. 100 znaków) wyszukuje po nazwie, imieniu, nazwisku lub mieście, ale tylko w polach oznaczonych przez użytkownika jako publiczne. Odpowiedź zawiera standardowe pola paginacji Laravel (`links`, `meta`). Każdy profil zawiera `id`, `created_at` oraz tylko te pola profilu, które użytkownik oznaczył jako publiczne: `name`, `first_name`, `last_name`, `city`, `birth_date`, `avatar_path`. Adres e-mail nie jest zwracany.
+
+Przykład wyszukiwania: `GET /api/v1/public/users?search=Warszawa`.
+
+**Odpowiedź sukcesu `200 OK`:**
+
+```json
+{
+  "data": [
+    {
+      "id": 12,
+      "name": "Jan Kowalski",
+      "city": "Warszawa",
+      "created_at": "2026-10-29T17:00:00.000000Z"
+    }
+  ],
+  "links": {
+    "first": "http://localhost/api/v1/public/users?page=1",
+    "last": "http://localhost/api/v1/public/users?page=1",
+    "prev": null,
+    "next": null
+  },
+  "meta": {
+    "current_page": 1,
+    "from": 1,
+    "last_page": 1,
+    "links": [],
+    "path": "http://localhost/api/v1/public/users",
+    "per_page": 20,
+    "to": 1,
+    "total": 1
+  }
+}
+```
+
+#### `GET /api/v1/public/users/{user}`
+
+Zwraca publiczne dane profilu użytkownika o podanym ID. Format pola `data` jest taki sam jak element listy profili.
+
+**Odpowiedź sukcesu `200 OK`:**
+
+```json
+{
+  "data": {
+    "id": 12,
+    "name": "Jan Kowalski",
+    "city": "Warszawa",
+    "created_at": "2026-10-29T17:00:00.000000Z"
+  }
+}
+```
+
+#### `GET /api/v1/public/users/{user}/trips`
+
+Zwraca podróże publicznego profilu, uporządkowane według daty rozpoczęcia. Każdy element zawiera `id`, `name`, `start_date`, `end_date`, `description`, `created_at` i `updated_at`.
+
+**Odpowiedź sukcesu `200 OK`:**
+
+```json
+{
+  "data": [
+    {
+      "id": 34,
+      "name": "Podróż do Berlina",
+      "start_date": "2026-06-01",
+      "end_date": "2026-06-05",
+      "description": null,
+      "created_at": "2026-06-01T10:00:00.000000Z",
+      "updated_at": "2026-06-01T10:00:00.000000Z"
+    }
+  ]
+}
+```
+
+#### `GET /api/v1/public/users/{user}/map`
+
+Zwraca dane mapowe publicznego profilu w strukturze `data.trips`, `data.places` i `data.legs`. Podróże zawierają `id`, `name`, `start_date` i `end_date`; miejsca i odcinki są płaskimi listami powiązanymi przez `trip_id` i zawierają również `trip_name`.
+
+**Odpowiedź sukcesu `200 OK`:**
+
+```json
+{
+  "data": {
+    "trips": [
+      { "id": 34, "name": "Podróż do Berlina", "start_date": "2026-06-01", "end_date": "2026-06-05" }
+    ],
+    "places": [
+      { "id": 81, "trip_id": 34, "trip_name": "Podróż do Berlina", "name": "Warszawa", "latitude": "52.2297000", "longitude": "21.0122000", "position": 1, "country_code": "PL" }
+    ],
+    "legs": []
+  }
+}
+```
+
+Element miejsca zawiera `id`, `trip_id`, `trip_name`, `name`, `latitude`, `longitude`, `position` i `country_code`. Element odcinka zawiera `id`, `trip_id`, `trip_name`, `from_place_id`, `to_place_id`, `transport`, `distance`, `geometry` i `position`.
+
+#### `GET /api/v1/public/users/{user}/stats`
+
+Zwraca statystyki podróży publicznego profilu. Opcjonalny parametr `year` filtruje wyniki do danego roku; musi być liczbą całkowitą z zakresu od 1901 do bieżącego roku.
+
+**Odpowiedź sukcesu `200 OK`:**
+
+```json
+{
+  "data": {
+    "trips_count": 5,
+    "countries": ["PL", "DE"],
+    "total_distance": 2500.5,
+    "distance_by_transport": {
+      "car": 1200.0,
+      "train": 1300.5
+    },
+    "places_count": 15
+  }
+}
+```
+
+Niepoprawny parametr `year` zwraca `422 Unprocessable Entity`. Dla prywatnego lub nieistniejącego profilu wszystkie endpointy profilu poza listą publicznych użytkowników zwracają `404 Not Found`.
+
 ### Podróże
 
 Wszystkie trasy podróży wymagają uwierzytelnienia tokenem Sanctum. Użytkownik może przeglądać i modyfikować wyłącznie własne podróże.

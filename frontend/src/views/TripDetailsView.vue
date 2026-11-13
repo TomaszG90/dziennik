@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { computed, onMounted, onBeforeUnmount, ref, watch } from 'vue'
-import { RouterLink, useRoute } from 'vue-router'
+import { RouterLink, useRouter, useRoute } from 'vue-router'
 import { searchPlaces, type GeocodeResult } from '@/api/geocoding'
 import MapView from '@/components/MapView.vue'
 import {
   createTripLeg,
   createTripPlace,
+  copyTrip,
   deleteTripLeg,
   deleteTripPlace,
   getTrip,
@@ -20,20 +21,34 @@ import {
 } from '@/api/trips'
 import { ApiError } from '@/api/types'
 import { calculateDistanceKm } from '@/utils/distance'
+import {
+  getFriends,
+  inviteToTrip,
+  cancelTripInvitation,
+  getTripInvitations,
+  type Friend,
+  type TripInvitation,
+} from '@/api/friends'
+import { getPublicAvatarUrl } from '@/api/publicProfiles'
 
 const route = useRoute()
+const router = useRouter()
 const trip = ref<Trip | null>(null)
 const places = ref<TripPlace[]>([])
 const legs = ref<TripLeg[]>([])
 const isLoading = ref(true)
 const error = ref('')
 const friendSearch = ref('')
-const invitedFriends = ref<string[]>([])
+const myFriends = ref<Friend[]>([])
+const tripInvitations = ref<TripInvitation[]>([])
+const isLoadingInvitations = ref(false)
+const inviteError = ref('')
 const photoLink = ref('')
 const photoLinks = ref<string[]>([])
 const socialError = ref('')
 const routeActionError = ref('')
 const isSavingRoute = ref(false)
+const isCopying = ref(false)
 const placeForm = ref({ name: '', latitude: '', longitude: '', country_code: '' })
 const selectedPlace = ref<GeocodeResult | null>(null)
 const placeSearchResults = ref<GeocodeResult[]>([])
@@ -109,52 +124,116 @@ watch(
   },
 )
 
-const storageKey = computed(() => `trip-details-${String(route.params.id)}-extras`)
+const storageKey = computed(() => `trip-details-${String(route.params.id)}-photos`)
 
 watch(
   storageKey,
   (key) => {
     try {
       const saved = JSON.parse(localStorage.getItem(key) ?? '{}') as {
-        friends?: string[]
         photoLinks?: string[]
       }
-      invitedFriends.value = saved.friends ?? []
       photoLinks.value = saved.photoLinks ?? []
     } catch {
-      invitedFriends.value = []
       photoLinks.value = []
     }
   },
   { immediate: true },
 )
 
-function saveExtras() {
+function savePhotos() {
   localStorage.setItem(
     storageKey.value,
-    JSON.stringify({ friends: invitedFriends.value, photoLinks: photoLinks.value }),
+    JSON.stringify({ photoLinks: photoLinks.value }),
   )
 }
 
-function inviteFriend() {
-  const name = friendSearch.value.trim()
-  socialError.value = ''
-  if (!name) {
-    socialError.value = 'Wyszukaj znajomego z aplikacji.'
-    return
+async function loadFriends() {
+  try {
+    myFriends.value = await getFriends()
+  } catch {
+    myFriends.value = []
   }
-  if (invitedFriends.value.includes(name)) {
-    socialError.value = 'Ta osoba jest już dodana do podróży.'
-    return
-  }
-  invitedFriends.value.push(name)
-  friendSearch.value = ''
-  saveExtras()
 }
 
-function removeFriend(name: string) {
-  invitedFriends.value = invitedFriends.value.filter((item) => item !== name)
-  saveExtras()
+async function loadTripInvitations() {
+  const tripId = Number(route.params.id)
+  if (!tripId) return
+  isLoadingInvitations.value = true
+  inviteError.value = ''
+  try {
+    tripInvitations.value = await getTripInvitations(tripId)
+  } catch {
+    tripInvitations.value = []
+  } finally {
+    isLoadingInvitations.value = false
+  }
+}
+
+// Pobierz ID zaakceptowanych gości
+function acceptedGuestIds(): Set<number> {
+  return new Set(
+    tripInvitations.value
+      .filter((inv) => inv.status === 'accepted')
+      .map((inv) => inv.invitee_id),
+  )
+}
+
+// Status zaproszenia dla danego znajomego
+function getInvitationStatus(friendId: number): 'pending' | 'accepted' | 'declined' | null {
+  const inv = tripInvitations.value.find((i) => i.invitee_id === friendId)
+  return inv?.status ?? null
+}
+
+// Znajdź zaproszenie dla znajomego
+function getInvitation(friendId: number): TripInvitation | undefined {
+  return tripInvitations.value.find((i) => i.invitee_id === friendId)
+}
+
+async function handleToggleFriend(friendId: number) {
+  const tripId = Number(route.params.id)
+  if (!tripId) return
+
+  const existingInvitation = getInvitation(friendId)
+  inviteError.value = ''
+
+  try {
+    if (existingInvitation && (existingInvitation.status === 'pending' || existingInvitation.status === 'accepted')) {
+      // Wycofaj/usuń zaproszenie
+      await cancelTripInvitation(tripId, existingInvitation.id)
+      await loadTripInvitations()
+    } else {
+      // Wyślij nowe zaproszenie
+      await inviteToTrip(tripId, friendId)
+      await loadTripInvitations()
+    }
+  } catch (err: unknown) {
+    inviteError.value = err instanceof Error ? err.message : 'Nie udało się wysłać zaproszenia.'
+  }
+}
+
+// Czy znajomy jest zaznaczony (ma zaproszenie pending lub accepted)
+function isFriendInvited(friendId: number): boolean {
+  const status = getInvitationStatus(friendId)
+  return status === 'pending' || status === 'accepted'
+}
+
+function getFriendName(friend: Friend): string {
+  return friend.name || 'Użytkownik'
+}
+
+function filteredFriends(): Friend[] {
+  const query = friendSearch.value.trim().toLowerCase()
+  if (!query) return myFriends.value
+  return myFriends.value.filter((f) => {
+    const name = f.name?.toLowerCase() ?? ''
+    return name.includes(query)
+  })
+}
+
+function getSelectedFriendName(friendId: number): string {
+  const friend = myFriends.value.find((f) => f.id === friendId)
+  return friend ? getFriendName(friend) : 'Użytkownik'
 }
 
 function addPhotoLink() {
@@ -170,7 +249,7 @@ function addPhotoLink() {
     }
     photoLinks.value.push(url.href)
     photoLink.value = ''
-    saveExtras()
+    savePhotos()
   } catch {
     socialError.value = 'Wpisz poprawny link zaczynający się od https:// lub www.'
   }
@@ -178,7 +257,7 @@ function addPhotoLink() {
 
 function removePhotoLink(url: string) {
   photoLinks.value = photoLinks.value.filter((item) => item !== url)
-  saveExtras()
+  savePhotos()
 }
 
 function photoPortalLabel(url: string): string {
@@ -455,6 +534,19 @@ async function removeLeg(leg: TripLeg) {
   }
 }
 
+async function handleCopyTrip() {
+  if (!trip.value) return
+  isCopying.value = true
+  try {
+    const newTrip = await copyTrip(tripId())
+    router.push({ name: 'trip-details', params: { id: newTrip.id } })
+  } catch (err: unknown) {
+    error.value = err instanceof Error ? err.message : 'Nie udało się skopiować podróży.'
+  } finally {
+    isCopying.value = false
+  }
+}
+
 async function loadTrip() {
   isLoading.value = true
   error.value = ''
@@ -480,7 +572,11 @@ async function loadTrip() {
   }
 }
 
-onMounted(() => void loadTrip())
+onMounted(() => {
+  void loadTrip()
+  void loadFriends()
+  void loadTripInvitations()
+})
 onBeforeUnmount(() => {
   if (placeSearchTimer) clearTimeout(placeSearchTimer)
   placeSearchGeneration += 1
@@ -513,9 +609,22 @@ onBeforeUnmount(() => {
               <h1>{{ trip.name }}</h1>
               <p class="trip-dates"><span aria-hidden="true">▦</span> {{ dateRange }}</p>
             </div>
-            <RouterLink class="edit-link" :to="{ name: 'trip-edit', params: { id: trip.id } }"
-              >Edytuj podróż</RouterLink
+            <RouterLink
+              v-if="!trip.is_guest"
+              class="edit-link"
+              :to="{ name: 'trip-edit', params: { id: trip.id } }"
             >
+              Edytuj podróż
+            </RouterLink>
+            <button
+              v-else
+              type="button"
+              class="copy-trip-button"
+              :disabled="isCopying"
+              @click="handleCopyTrip"
+            >
+              {{ isCopying ? 'Kopiowanie…' : 'Kopiuj do własnych' }}
+            </button>
           </div>
           <p v-if="trip.description" class="trip-description">{{ trip.description }}</p>
           <div class="trip-stats" aria-label="Podsumowanie podróży">
@@ -540,19 +649,19 @@ onBeforeUnmount(() => {
             <div class="trip-stat trip-stat-guests">
               <span class="trip-stat-label">Goście</span>
               <div
-                v-if="invitedFriends.length"
+                v-if="acceptedGuestIds().size > 0"
                 class="guest-avatars"
                 aria-label="Zaproszeni goście"
               >
                 <span
-                  v-for="name in invitedFriends"
-                  :key="name"
+                  v-for="friendId in acceptedGuestIds()"
+                  :key="friendId"
                   class="guest-avatar"
                   role="img"
-                  :aria-label="name"
-                  :title="name"
+                  :aria-label="getSelectedFriendName(friendId)"
+                  :title="getSelectedFriendName(friendId)"
                 >
-                  {{ name.trim().charAt(0).toUpperCase() }}
+                  {{ getSelectedFriendName(friendId).trim().charAt(0).toUpperCase() }}
                 </span>
               </div>
               <span v-else class="trip-stat-detail">Brak gości</span>
@@ -573,7 +682,7 @@ onBeforeUnmount(() => {
               >
             </div>
 
-            <form class="place-form" @submit.prevent="addPlace">
+            <form v-if="!trip.is_guest" class="place-form" @submit.prevent="addPlace">
               <h3>Dodaj punkt trasy</h3>
               <div class="place-form-fields">
                 <div class="place-search-field">
@@ -716,6 +825,7 @@ onBeforeUnmount(() => {
                       </svg>
                     </button>
                     <button
+                      v-if="!trip.is_guest"
                       type="button"
                       class="remove-button"
                       :disabled="isSavingRoute"
@@ -763,6 +873,7 @@ onBeforeUnmount(() => {
                     </div>
                     <span class="leg-distance">{{ formatDistance(legDistance(leg)) }}</span>
                     <button
+                      v-if="!trip.is_guest"
                       type="button"
                       class="remove-button"
                       :disabled="isSavingRoute"
@@ -774,6 +885,7 @@ onBeforeUnmount(() => {
                   </article>
                   <form
                     v-if="
+                      !trip.is_guest &&
                       !legs.some(
                         (leg) =>
                           leg.from_place_id === place.id &&
@@ -841,39 +953,76 @@ onBeforeUnmount(() => {
         </div>
 
         <section class="extras-grid" aria-label="Znajomi i zdjęcia z podróży">
-          <section class="extra-card" aria-labelledby="friends-title">
+          <section v-if="!trip.is_guest" class="extra-card" aria-labelledby="friends-title">
             <p class="eyebrow">Wspólna podróż</p>
             <h2 id="friends-title">Znajomi</h2>
-            <form class="add-row" @submit.prevent="inviteFriend">
-              <label class="sr-only" for="friend-search">Wyszukaj znajomych</label>
+            <p class="extra-intro">
+              Zaproś znajomych, którzy dołączą do tej podróży.
+            </p>
+            <div class="friend-search-row">
+              <label class="sr-only" for="trip-friend-search">Wyszukaj znajomych</label>
               <input
-                id="friend-search"
+                id="trip-friend-search"
                 v-model="friendSearch"
                 type="search"
                 placeholder="Wyszukaj znajomych"
                 autocomplete="off"
               />
-              <button type="submit" class="add-button">Zaproś</button>
-            </form>
-            <p v-if="invitedFriends.length === 0" class="extra-empty">
-              Nie zaproszono jeszcze znajomych do tej podróży.
+            </div>
+            <p v-if="myFriends.length === 0" class="extra-empty">
+              Nie masz jeszcze znajomych. Dodaj znajomych w zakładce „Znajomi” w swoim profilu.
             </p>
-            <ul v-else class="extra-list">
-              <li v-for="name in invitedFriends" :key="name">
-                <span class="avatar-placeholder" aria-hidden="true">{{
-                  name.charAt(0).toUpperCase()
-                }}</span>
-                <span class="extra-value">{{ name }}</span>
-                <button
-                  type="button"
-                  class="remove-button"
-                  :aria-label="`Usuń ${name}`"
-                  @click="removeFriend(name)"
-                >
-                  Usuń
-                </button>
+            <ul v-else class="extra-list friend-select-list">
+              <li v-for="friend in filteredFriends()" :key="friend.id">
+                <div class="friend-invite-item">
+                  <div class="friend-info">
+                    <img
+                      v-if="friend.avatar_path"
+                      class="friend-avatar"
+                      :src="getPublicAvatarUrl(friend.avatar_path)"
+                      alt=""
+                    />
+                    <span v-else class="friend-avatar friend-avatar-placeholder" aria-hidden="true">
+                      {{ getFriendName(friend).slice(0, 1).toLocaleUpperCase() }}
+                    </span>
+                    <span class="extra-value">{{ getFriendName(friend) }}</span>
+                  </div>
+                  <span
+                    v-if="getInvitationStatus(friend.id) === 'accepted'"
+                    class="status-badge status-accepted"
+                  >
+                    Dołączył
+                  </span>
+                  <span
+                    v-else-if="getInvitationStatus(friend.id) === 'pending'"
+                    class="status-badge status-pending"
+                  >
+                    Oczekuje
+                  </span>
+                  <span
+                    v-else-if="getInvitationStatus(friend.id) === 'declined'"
+                    class="status-badge status-declined"
+                  >
+                    Odrzucił
+                  </span>
+                  <button
+                    type="button"
+                    class="invite-button"
+                    :class="{
+                      'invite-button-invited': isFriendInvited(friend.id),
+                    }"
+                    :disabled="isLoadingInvitations"
+                    @click="handleToggleFriend(friend.id)"
+                  >
+                    {{ isFriendInvited(friend.id) ? 'Wycofaj' : 'Zaproś' }}
+                  </button>
+                </div>
               </li>
             </ul>
+            <p v-if="inviteError" class="social-error" role="alert">{{ inviteError }}</p>
+            <p v-if="acceptedGuestIds().size > 0" class="selected-count">
+              Goście: {{ acceptedGuestIds().size }} {{ acceptedGuestIds().size === 1 ? 'gość' : (acceptedGuestIds().size >= 2 && acceptedGuestIds().size <= 4 ? 'goście' : 'gości') }}
+            </p>
           </section>
 
           <section class="extra-card" aria-labelledby="photos-title">
@@ -920,9 +1069,6 @@ onBeforeUnmount(() => {
             </ul>
           </section>
           <p v-if="socialError" class="social-error" role="alert">{{ socialError }}</p>
-          <p class="local-note">
-            Listy znajomych i linków są na razie zapisywane tylko w tej przeglądarce.
-          </p>
         </section>
       </template>
     </div>
@@ -1045,6 +1191,7 @@ h1 {
   font-weight: 600;
 }
 .edit-link,
+.copy-trip-button,
 .button-secondary {
   flex: 0 0 auto;
   padding: 0.65rem 0.9rem;
@@ -1054,6 +1201,14 @@ h1 {
   background: transparent;
   font: inherit;
   font-weight: 700;
+}
+.copy-trip-button:hover:not(:disabled) {
+  background: #386a54;
+  color: #fff;
+}
+.copy-trip-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 .trip-description {
   max-width: 65ch;
@@ -1678,6 +1833,113 @@ h2 {
   color: #77847a;
   font-size: 0.78rem;
 }
+.friend-search-row {
+  margin-top: 0.75rem;
+}
+.friend-search-row input {
+  width: 100%;
+  min-height: 2.5rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #cbd5ce;
+  border-radius: 0.6rem;
+  color: #17251e;
+  background: #fff;
+  font: inherit;
+  box-sizing: border-box;
+}
+.friend-select-list {
+  max-height: 16rem;
+  overflow-y: auto;
+}
+.friend-invite-item {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  width: 100%;
+  padding: 0.55rem 0.6rem;
+  border-radius: 0.65rem;
+  background: #f5f8f5;
+  transition: background 0.15s;
+}
+.friend-invite-item:hover {
+  background: #e5f1e9;
+}
+.friend-info {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  flex: 1;
+  min-width: 0;
+}
+.friend-avatar {
+  display: grid;
+  flex: 0 0 2rem;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  object-fit: cover;
+}
+.friend-avatar-placeholder {
+  color: #fff;
+  background: #386a54;
+  font-size: 0.85rem;
+  font-weight: 800;
+}
+.status-badge {
+  flex: 0 0 auto;
+  padding: 0.2rem 0.6rem;
+  border-radius: 1rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.status-accepted {
+  background: #d4edda;
+  color: #155724;
+  border: 1px solid #a3d9b1;
+}
+.status-pending {
+  background: #fff3cd;
+  color: #856404;
+  border: 1px solid #ffe69c;
+}
+.status-declined {
+  background: #f8d7da;
+  color: #721c24;
+  border: 1px solid #f1aeb5;
+}
+.invite-button {
+  flex: 0 0 auto;
+  padding: 0.3rem 0.8rem;
+  border: 1px solid #386a54;
+  border-radius: 0.5rem;
+  background: #386a54;
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s, border-color 0.15s;
+}
+.invite-button:hover {
+  background: #2d5a45;
+  border-color: #2d5a45;
+}
+.invite-button-invited {
+  background: transparent;
+  color: #386a54;
+  border-color: #386a54;
+}
+.invite-button-invited:hover {
+  background: #d4edda;
+}
+.selected-count {
+  margin: 0.5rem 0 0;
+  color: #386a54;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
 .sr-only {
   position: absolute;
   width: 1px;
@@ -1803,9 +2065,14 @@ h2 {
     color: #a6b2a9;
   }
   .edit-link,
+  .copy-trip-button,
   .button-secondary {
     border-color: #6ee7b7;
     color: #6ee7b7;
+  }
+  .copy-trip-button:hover:not(:disabled) {
+    background: #6ee7b7;
+    color: #111827;
   }
   .trip-stats > .trip-stat {
     border-color: #37483d;
@@ -1903,6 +2170,48 @@ h2 {
   .social-error,
   .route-action-error {
     color: #fca5a5;
+  }
+  .friend-invite-item {
+    background: #263329;
+  }
+  .friend-invite-item:hover {
+    background: #2f3f33;
+  }
+  .friend-avatar-placeholder {
+    background: #6ee7b7;
+    color: #111827;
+  }
+  .status-accepted {
+    background: rgba(110, 231, 183, 0.15);
+    color: #6ee7b7;
+    border-color: rgba(110, 231, 183, 0.3);
+  }
+  .status-pending {
+    background: rgba(251, 191, 36, 0.15);
+    color: #fcd34d;
+    border-color: rgba(251, 191, 36, 0.3);
+  }
+  .status-declined {
+    background: rgba(248, 113, 113, 0.15);
+    color: #fca5a5;
+    border-color: rgba(248, 113, 113, 0.3);
+  }
+  .invite-button {
+    background: #6ee7b7;
+    color: #111827;
+    border-color: #6ee7b7;
+  }
+  .invite-button:hover {
+    background: #a7f3d0;
+    border-color: #a7f3d0;
+  }
+  .invite-button-invited {
+    background: transparent;
+    color: #6ee7b7;
+    border-color: #6ee7b7;
+  }
+  .invite-button-invited:hover {
+    background: rgba(110, 231, 183, 0.15);
   }
   .icon-button {
     color: #6ee7b7;

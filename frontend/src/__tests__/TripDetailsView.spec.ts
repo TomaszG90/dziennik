@@ -3,6 +3,7 @@ import { createMemoryHistory, createRouter } from 'vue-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import * as geocodingApi from '@/api/geocoding'
 import * as tripsApi from '@/api/trips'
+import * as friendsApi from '@/api/friends'
 import TripDetailsView from '@/views/TripDetailsView.vue'
 
 vi.mock('@/components/MapView.vue', () => ({
@@ -59,6 +60,9 @@ async function mountDetails(places = [placeA, placeB], legs: tripsApi.TripLeg[] 
   vi.spyOn(tripsApi, 'getTrip').mockResolvedValue(trip)
   vi.spyOn(tripsApi, 'getTripPlaces').mockResolvedValue(places)
   vi.spyOn(tripsApi, 'getTripLegs').mockResolvedValue(legs)
+  vi.spyOn(friendsApi, 'getFriends').mockResolvedValue([
+    { id: 1, name: 'Anna Nowak', avatar_path: '1.png', created_at: '2026-01-01T00:00:00Z' },
+  ])
 
   const router = createTestRouter()
   await router.push('/trips/5')
@@ -105,17 +109,25 @@ describe('TripDetailsView route editing', () => {
   })
 
   it('shows distinct visited country codes and invited guests in the trip summary', async () => {
+    vi.spyOn(friendsApi, 'getTripInvitations').mockResolvedValue([
+      {
+        id: 1,
+        trip_id: trip.id,
+        inviter_id: 2,
+        invitee_id: 1,
+        status: 'accepted',
+        created_at: '2026-01-01T00:00:00Z',
+      },
+    ])
     const wrapper = await mountDetails([placeA, placeB, { ...placeA, id: 12, position: 3 }])
-
-    await wrapper.get('input[placeholder="Wyszukaj znajomych"]').setValue('Anna')
-    await wrapper.get('.extra-card form').trigger('submit')
 
     expect(wrapper.get('.trip-stat-countries').text()).toContain('PL')
     expect(wrapper.get('.trip-stat-countries').text()).toContain('AT')
     expect(wrapper.findAll('.country-code-list span')).toHaveLength(2)
     expect(wrapper.get('.trip-stat-guests').text()).toContain('Goście')
     expect(wrapper.findAll('.guest-avatar')).toHaveLength(1)
-    expect(wrapper.get('.guest-avatar').attributes('aria-label')).toBe('Anna')
+    expect(wrapper.get('.guest-avatar').attributes('aria-label')).toBe('Anna Nowak')
+    expect(wrapper.get('.friend-invite-item').text()).toContain('Dołączył')
     expect(wrapper.get('.trip-stats').text()).not.toContain('odcinków')
   })
 
@@ -299,9 +311,12 @@ describe('TripDetailsView route editing', () => {
     const openSpy = vi.spyOn(window, 'open').mockImplementation(() => null)
     const wrapper = await mountDetails([])
 
-    // Add a photo link
-    await wrapper.get('#photo-link').setValue('https://photos.app.goo.gl/test12345')
-    await wrapper.findAll('.extra-card form')[1]!.trigger('submit')
+    // Add a photo link (find the photos form by looking for the photo-link input's parent form)
+    const photoLinkInput = wrapper.get('#photo-link')
+    await photoLinkInput.setValue('https://photos.app.goo.gl/test12345')
+    // Find the form that contains the photo-link input
+    const photosCard = wrapper.findAll('.extra-card')[1]!
+    await photosCard.find('form').trigger('submit')
     await flushPromises()
 
     const link = wrapper.get('.photo-list a.portal-link')

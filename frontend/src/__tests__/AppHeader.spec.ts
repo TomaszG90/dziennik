@@ -25,6 +25,7 @@ async function mountHeader(authenticated = false) {
       { path: '/dashboard', name: 'dashboard', component: Placeholder },
       { path: '/map', name: 'user-map', component: Placeholder },
       { path: '/me', name: 'me', component: Placeholder },
+      { path: '/users/:id', name: 'public-profile', component: Placeholder },
     ],
   })
 
@@ -41,14 +42,18 @@ describe('AppHeader', () => {
     const { wrapper } = await mountHeader()
 
     expect(wrapper.get('a[href="/auth"]').text()).toBe('Konto')
+    expect(wrapper.find('a[href="/users"]').exists()).toBe(false)
     expect(wrapper.find('button').exists()).toBe(false)
     expect(wrapper.find('a[href="/dashboard"]').exists()).toBe(false)
   })
 
-  it('shows the user name and logout button when authenticated', async () => {
+  it('shows the user name as a link to their public profile when authenticated', async () => {
     const { wrapper } = await mountHeader(true)
 
     expect(wrapper.text()).toContain('Ala Kowalska')
+    const nameLink = wrapper.find('a[href="/users/1"]')
+    expect(nameLink.exists()).toBe(true)
+    expect(nameLink.text()).toBe('Ala Kowalska')
     expect(wrapper.find('button').text()).toBe('Wyloguj')
     expect(wrapper.find('a[href="/auth"]').exists()).toBe(false)
     expect(wrapper.get('a[href="/dashboard"]').text()).toBe('Mój dziennik')

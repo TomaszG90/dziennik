@@ -15,6 +15,7 @@ export interface Trip {
   created_at: string
   updated_at: string
   is_invitation?: boolean
+  is_guest?: boolean
   inviter?: TripFriendInviter | null
 }
 
@@ -156,4 +157,9 @@ export async function updateTrip(id: string | number, payload: TripPayload): Pro
 
 export async function deleteTrip(id: string | number): Promise<void> {
   await apiClient.delete(`/trips/${id}`)
+}
+
+export async function copyTrip(id: string | number): Promise<Trip> {
+  const response = await apiClient.post<{ data: Trip }>(`/trips/${id}/copy`)
+  return response.data.data
 }

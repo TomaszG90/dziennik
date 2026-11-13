@@ -23,7 +23,11 @@ async function handleLogout() {
         <RouterLink to="/dashboard">Mój dziennik</RouterLink>
         <RouterLink :to="{ name: 'user-map' }">Mapa podróży</RouterLink>
 
-        <span>{{ auth.user?.name }}</span>
+        <RouterLink
+          :to="{ name: 'public-profile', params: { id: auth.user?.id } }"
+        >
+          {{ auth.user?.name }}
+        </RouterLink>
         <button class="logout-button" type="button" @click="handleLogout">Wyloguj</button>
       </template>
 
