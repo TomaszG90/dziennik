@@ -773,8 +773,6 @@ paths:
       parameters:
         - name: search
           in: query
-          required: false
-          description: Search public name, first name, last name, or city fields only.
           schema:
             type: string
             maxLength: 100
@@ -878,6 +876,8 @@ paths:
                   - data
                   - links
                   - meta
+        "422":
+          $ref: "#/components/responses/ValidationException"
       security: []
   /public/users/{user}:
     get:
@@ -1863,18 +1863,6 @@ components:
         - updated_at
       title: UserResource
   responses:
-    ModelNotFoundException:
-      description: Not found
-      content:
-        application/json:
-          schema:
-            type: object
-            properties:
-              message:
-                type: string
-                description: Error overview.
-            required:
-              - message
     ValidationException:
       description: Validation error
       content:
@@ -1895,6 +1883,18 @@ components:
             required:
               - message
               - errors
+    ModelNotFoundException:
+      description: Not found
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              message:
+                type: string
+                description: Error overview.
+            required:
+              - message
     AuthenticationException:
       description: Unauthenticated
       content:

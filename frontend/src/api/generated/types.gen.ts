@@ -1326,9 +1326,31 @@ export type ProfileUpdateResponse = ProfileUpdateResponses[keyof ProfileUpdateRe
 export type PublicProfileIndexData = {
     body?: never;
     path?: never;
-    query?: never;
+    query?: {
+        search?: string;
+    };
     url: '/public/users';
 };
+
+export type PublicProfileIndexErrors = {
+    /**
+     * Validation error
+     */
+    422: {
+        /**
+         * Errors overview.
+         */
+        message: string;
+        /**
+         * A detailed description of each field that failed validation.
+         */
+        errors: {
+            [key: string]: Array<string>;
+        };
+    };
+};
+
+export type PublicProfileIndexError = PublicProfileIndexErrors[keyof PublicProfileIndexErrors];
 
 export type PublicProfileIndexResponses = {
     /**
