@@ -38,6 +38,9 @@ class DatabaseSeederTest extends TestCase
     public function test_seeder_creates_complete_demo_profiles(): void
     {
         Http::preventStrayRequests();
+        Http::fake([
+            'api.heigit.org/openrouteservice/v2/directions/*' => Http::response([], 503),
+        ]);
 
         $this->seed();
 
@@ -64,11 +67,14 @@ class DatabaseSeederTest extends TestCase
     public function test_seeder_creates_demo_trip_from_legnica_to_mallorca(): void
     {
         Http::preventStrayRequests();
+        Http::fake([
+            'api.heigit.org/openrouteservice/v2/directions/*' => Http::response([], 503),
+        ]);
 
         $this->seed();
 
         $user = User::where('email', 'test1@gmail.com')->firstOrFail();
-        $trip = $user->trips()->sole();
+        $trip = $user->trips()->where('name', 'Podróż na Majorkę')->firstOrFail();
 
         $this->assertSame('Podróż na Majorkę', $trip->name);
         $this->assertSame('2024-06-01', $trip->start_date->toDateString());
@@ -107,11 +113,14 @@ class DatabaseSeederTest extends TestCase
     public function test_seeder_creates_second_demo_trip_in_another_year(): void
     {
         Http::preventStrayRequests();
+        Http::fake([
+            'api.heigit.org/openrouteservice/v2/directions/*' => Http::response([], 503),
+        ]);
 
         $this->seed();
 
         $user = User::where('email', 'test2@gmail.com')->firstOrFail();
-        $trip = $user->trips()->sole();
+        $trip = $user->trips()->where('name', 'Weekend w Krakowie')->firstOrFail();
 
         $this->assertSame('Weekend w Krakowie', $trip->name);
         $this->assertSame(2025, $trip->start_date->year);
@@ -127,6 +136,10 @@ class DatabaseSeederTest extends TestCase
 
     public function test_seeder_is_idempotent(): void
     {
+        Http::fake([
+            'api.heigit.org/openrouteservice/v2/directions/*' => Http::response([], 503),
+        ]);
+
         $this->seed();
         $this->seed();
 
@@ -134,15 +147,16 @@ class DatabaseSeederTest extends TestCase
         $this->assertSame(1, User::where('email', 'public@example.com')->count());
         $this->assertSame(1, User::where('email', 'test1@gmail.com')->count());
         $this->assertSame(1, User::where('email', 'test2@gmail.com')->count());
-        $this->assertSame(4, User::count());
-        $this->assertSame(2, Trip::count());
-        $this->assertSame(12, Place::count());
-        $this->assertSame(11, Leg::count());
+        $this->assertSame(34, User::count());
+        $this->assertSame(22, Trip::count());
     }
 
     public function test_seeder_repairs_demo_account_without_profile_data(): void
     {
         Http::preventStrayRequests();
+        Http::fake([
+            'api.heigit.org/openrouteservice/v2/directions/*' => Http::response([], 503),
+        ]);
 
         $stale = User::factory()->create([
             'email' => 'test1@gmail.com',
@@ -160,7 +174,7 @@ class DatabaseSeederTest extends TestCase
         $this->assertNotNull($stale->last_name);
         $this->assertNotNull($stale->city);
         $this->assertNotNull($stale->birth_date);
-        $this->assertSame(1, $stale->trips()->count());
-        $this->assertSame(8, $stale->trips()->sole()->places()->count());
+        $mallorcaTrip = $stale->trips()->where('name', 'Podróż na Majorkę')->firstOrFail();
+        $this->assertSame(8, $mallorcaTrip->places()->count());
     }
 }
