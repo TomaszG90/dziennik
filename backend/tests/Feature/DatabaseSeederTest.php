@@ -2,8 +2,6 @@
 
 namespace Tests\Feature;
 
-use App\Models\Leg;
-use App\Models\Place;
 use App\Models\Trip;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;

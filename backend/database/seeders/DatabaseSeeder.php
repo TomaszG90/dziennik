@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Exceptions\RoutingProviderException;
 use App\Models\FriendRequest;
 use App\Models\Place;
 use App\Models\TripInvitation;
@@ -274,7 +275,7 @@ class DatabaseSeeder extends Seeder
         $user1 = User::where('email', 'test1@gmail.com')->first();
         $user2 = User::where('email', 'test2@gmail.com')->first();
 
-        if (!$user1 || !$user2) {
+        if (! $user1 || ! $user2) {
             return;
         }
 
@@ -630,7 +631,7 @@ class DatabaseSeeder extends Seeder
         $user1 = User::where('email', 'test1@gmail.com')->first();
         $user2 = User::where('email', 'test2@gmail.com')->first();
 
-        if (!$user1 || !$user2) {
+        if (! $user1 || ! $user2) {
             return;
         }
 
@@ -648,13 +649,13 @@ class DatabaseSeeder extends Seeder
         $user1 = User::where('email', 'test1@gmail.com')->first();
         $user2 = User::where('email', 'test2@gmail.com')->first();
 
-        if (!$user1 || !$user2) {
+        if (! $user1 || ! $user2) {
             return;
         }
 
         $trip = $user1->trips()->first();
 
-        if (!$trip) {
+        if (! $trip) {
             return;
         }
 
@@ -688,7 +689,7 @@ class DatabaseSeeder extends Seeder
         if (in_array($transport, ['car', 'plane'], true)) {
             try {
                 return app(LegCalculationService::class)->calculate($from, $to, $transport);
-            } catch (\App\Exceptions\RoutingProviderException $e) {
+            } catch (RoutingProviderException $e) {
                 // Routing API unavailable; fall back to straight-line approximation.
             }
         }
