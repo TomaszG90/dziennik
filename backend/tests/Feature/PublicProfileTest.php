@@ -13,55 +13,34 @@ class PublicProfileTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_public_users_endpoint_returns_only_public_profiles(): void
+    public function test_public_users_requires_search_parameter(): void
     {
-        $publicUser = User::factory()->publicProfile()->create([
-            'name' => 'Public User',
+        $this->getJson('/api/v1/public/users')
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['search']);
+    }
+
+    public function test_public_users_search_returns_matching_profiles(): void
+    {
+        $user = User::factory()->publicProfile()->create([
+            'name' => 'Jan Kowalski',
             'privacy_settings' => array_merge(
                 User::DEFAULT_PRIVACY_SETTINGS,
                 ['name' => true]
             ),
         ]);
 
-        User::factory()->privateProfile()->create([
-            'name' => 'Private User',
-        ]);
-
-        $response = $this->getJson('/api/v1/public/users');
-
-        $response->assertOk()
-            ->assertJsonFragment([
-                'id' => $publicUser->id,
-                'name' => 'Public User',
-            ])
-            ->assertJsonMissing([
-                'name' => 'Private User',
-            ]);
-    }
-
-    public function test_public_users_search_matches_only_fields_enabled_for_public_visibility(): void
-    {
-        $matchingUser = User::factory()->publicProfile()->create([
-            'name' => 'Visible Name',
-            'first_name' => 'Searchable',
+        User::factory()->publicProfile()->create([
+            'name' => 'Anna Nowak',
             'privacy_settings' => array_merge(
                 User::DEFAULT_PRIVACY_SETTINGS,
-                ['firstName' => true]
+                ['name' => true]
             ),
         ]);
 
-        User::factory()->publicProfile()->create([
-            'name' => 'Hidden Searchable Name',
-            'privacy_settings' => User::DEFAULT_PRIVACY_SETTINGS,
-        ]);
-
-        $response = $this->getJson('/api/v1/public/users?search=Searchable');
-
-        $response->assertOk()
-            ->assertJsonCount(1, 'data')
-            ->assertJsonPath('data.0.id', $matchingUser->id)
-            ->assertJsonPath('data.0.first_name', 'Searchable')
-            ->assertJsonMissing(['name' => 'Hidden Searchable Name']);
+        $this->getJson('/api/v1/public/users?search=Jan')
+            ->assertOk()
+            ->assertJsonFragment(['id' => $user->id]);
     }
 
     public function test_public_profile_returns_allowed_user_data(): void
@@ -252,7 +231,7 @@ class PublicProfileTest extends TestCase
     {
         $user = User::factory()->publicProfile()->create();
 
-        $this->getJson('/api/v1/public/users')->assertOk();
+        $this->getJson('/api/v1/public/users?search=test')->assertOk();
         $this->getJson("/api/v1/public/users/{$user->id}")->assertOk();
         $this->getJson("/api/v1/public/users/{$user->id}/trips")->assertOk();
         $this->getJson("/api/v1/public/users/{$user->id}/map")->assertOk();

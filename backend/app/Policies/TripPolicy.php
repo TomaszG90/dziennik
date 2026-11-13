@@ -3,6 +3,7 @@
 namespace App\Policies;
 
 use App\Models\Trip;
+use App\Models\TripInvitation;
 use App\Models\User;
 
 class TripPolicy
@@ -14,7 +15,16 @@ class TripPolicy
 
     public function view(User $user, Trip $trip): bool
     {
-        return $user->id === $trip->user_id;
+        // Właściciel może zawsze widzieć
+        if ($user->id === $trip->user_id) {
+            return true;
+        }
+
+        // Gość z zaakceptowanym zaproszeniem może widzieć
+        return TripInvitation::where('trip_id', $trip->id)
+            ->where('invitee_id', $user->id)
+            ->where('status', 'accepted')
+            ->exists();
     }
 
     public function create(User $user): bool

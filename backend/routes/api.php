@@ -1,7 +1,10 @@
 <?php
 
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\FriendController;
+use App\Http\Controllers\FriendRequestController;
 use App\Http\Controllers\GeocodeController;
+use App\Http\Controllers\InviteController;
 use App\Http\Controllers\LegController;
 use App\Http\Controllers\MapController;
 use App\Http\Controllers\PasswordResetController;
@@ -10,6 +13,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PublicProfileController;
 use App\Http\Controllers\StatsController;
 use App\Http\Controllers\TripController;
+use App\Http\Controllers\TripInvitationController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -64,5 +68,28 @@ Route::prefix('v1')->group(function () {
         Route::get('/trips/{trip}/legs/{leg}', [LegController::class, 'show']);
         Route::patch('/trips/{trip}/legs/{leg}', [LegController::class, 'update']);
         Route::delete('/trips/{trip}/legs/{leg}', [LegController::class, 'destroy']);
+
+        // Friends
+        Route::get('/friends', [FriendController::class, 'index']);
+        Route::delete('/friends/{user}', [FriendController::class, 'destroy']);
+
+        // Friend Requests
+        Route::get('/friend-requests', [FriendRequestController::class, 'index']);
+        Route::post('/friend-requests', [FriendRequestController::class, 'store']);
+        Route::patch('/friend-requests/{friendRequest}', [FriendRequestController::class, 'update']);
+        Route::delete('/friend-requests/{friendRequest}', [FriendRequestController::class, 'destroy']);
+
+        // Invite by email
+        Route::post('/invite', [InviteController::class, 'store']);
+
+        // Trip Invitations
+        Route::get('/trip-invitations', [TripInvitationController::class, 'myInvitations']);
+        Route::get('/trips/{trip}/invitations', [TripInvitationController::class, 'index']);
+        Route::post('/trips/{trip}/invitations', [TripInvitationController::class, 'store']);
+        Route::patch('/trips/{trip}/invitations/{invitation}', [TripInvitationController::class, 'update']);
+        Route::delete('/trips/{trip}/invitations/{invitation}', [TripInvitationController::class, 'destroy']);
+
+        // Copy trip
+        Route::post('/trips/{trip}/copy', [TripController::class, 'copy']);
     });
 });

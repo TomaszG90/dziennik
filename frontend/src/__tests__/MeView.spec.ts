@@ -4,6 +4,7 @@ import { createMemoryHistory, createRouter } from 'vue-router'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import * as statsApi from '@/api/stats'
 import * as publicProfilesApi from '@/api/publicProfiles'
+import * as friendsApi from '@/api/friends'
 import MeView from '@/views/MeView.vue'
 import * as tripsApi from '@/api/trips'
 
@@ -69,6 +70,8 @@ describe('MeView', () => {
 
   it('searches only after submit and shows profile and add-friend actions', async () => {
     vi.spyOn(tripsApi, 'getTrips').mockResolvedValue([])
+    vi.spyOn(friendsApi, 'getFriends').mockResolvedValue([])
+    vi.spyOn(friendsApi, 'getFriendRequests').mockResolvedValue([])
     const getPublicProfiles = vi.spyOn(publicProfilesApi, 'getPublicProfiles').mockResolvedValue({
       data: [
         {
@@ -94,8 +97,9 @@ describe('MeView', () => {
     expect(wrapper.text()).toContain('Jan Kowalski')
     expect(wrapper.get('a[href="/users/8"]').text()).toContain('Zobacz profil')
     expect(getPublicProfiles).toHaveBeenLastCalledWith(1, 'Jan')
+    // Button is now enabled and clickable (backend is implemented)
     expect(wrapper.get('.add-friend-button').text()).toBe('Dodaj znajomego')
-    expect(wrapper.get('.add-friend-button').element).toHaveProperty('disabled', true)
+    expect(wrapper.get('.add-friend-button').element).toHaveProperty('disabled', false)
   })
 
   it('filters statistics by year and shows distance by transport', async () => {

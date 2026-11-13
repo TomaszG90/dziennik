@@ -22,9 +22,9 @@ class PublicProfileController extends Controller
     public function index(Request $request): AnonymousResourceCollection
     {
         $validated = $request->validate([
-            'search' => ['sometimes', 'string', 'max:100'],
+            'search' => ['required', 'string', 'max:100'],
         ]);
-        $search = trim($validated['search'] ?? '');
+        $search = trim($validated['search']);
 
         $users = User::query()
             ->where('profile_visibility', 'public')

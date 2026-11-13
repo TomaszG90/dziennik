@@ -8,7 +8,6 @@ import TripFormView from '../views/TripFormView.vue'
 import TripDetailsView from '../views/TripDetailsView.vue'
 import UserMapView from '../views/UserMapView.vue'
 import DashboardView from '../views/DashboardView.vue'
-import PublicProfilesView from '../views/PublicProfilesView.vue'
 import PublicProfileView from '../views/PublicProfileView.vue'
 
 const router = createRouter({
@@ -18,11 +17,6 @@ const router = createRouter({
       path: '/',
       name: 'home',
       component: HomeView,
-    },
-    {
-      path: '/users',
-      name: 'public-profiles',
-      component: PublicProfilesView,
     },
     {
       path: '/users/:id',

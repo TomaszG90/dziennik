@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-import { RouterLink, useRoute } from 'vue-router'
+import { useRoute } from 'vue-router'
 import MapView from '@/components/MapView.vue'
 import { ApiError } from '@/api/types'
 import {
@@ -61,16 +61,11 @@ watch(
 
 <template>
   <section class="public-profile-page">
-    <RouterLink class="back-link" :to="{ name: 'public-profiles' }">
-      ← Wróć do publicznych profili
-    </RouterLink>
-
     <div v-if="isLoading" class="profile-message" role="status">Ładowanie profilu…</div>
 
     <section v-else-if="error" class="profile-message profile-error" role="alert">
       <h1>Nie można wyświetlić profilu</h1>
       <p>{{ error }}</p>
-      <RouterLink :to="{ name: 'public-profiles' }">Przeglądaj inne profile</RouterLink>
     </section>
 
     <template v-else-if="profile && map && stats">
@@ -144,13 +139,6 @@ watch(
 .public-profile-page {
   width: min(100% - 2rem, 1100px);
   margin: 2rem auto 4rem;
-}
-
-.back-link {
-  display: inline-block;
-  margin-bottom: 1.5rem;
-  color: #386a54;
-  font-weight: 700;
 }
 
 .profile-heading {
