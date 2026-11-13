@@ -72,6 +72,60 @@ Przesuwaj kartę zadania na bieżąco, żeby wszyscy widzieli stan prac.
 
 ---
 
+## Praca z bazą danych
+
+Podczas pracy nad zadaniem często trzeba odświeżyć bazę danych — np. po zmianie migracji, modelu lub seedera. Poniżej znajdziesz polecenia do czyszczenia i wstawiania danych.
+
+### Czyszczenie bazy danych
+
+```bash
+# Usuń wszystkie tabele i zacznij od zera (ostrożnie — na zawsze usuwa dane)
+docker compose exec backend php artisan db:wipe
+
+# Cofnij wszystkie migracje (zachowuje tabele, jeśli nie ma down())
+docker compose exec backend php artisan migrate:reset
+```
+
+### Migracje i seeder
+
+```bash
+# Wykonaj migracje od zera i wstaw dane testowe
+docker compose exec backend php artisan migrate:fresh --seed
+
+# Tylko migracje (bez danych testowych)
+docker compose exec backend php artisan migrate:fresh
+
+# Migracje + seeder osobno (przydatne przy debugowaniu)
+docker compose exec backend php artisan migrate
+docker compose exec backend php artisan db:seed
+```
+
+### Co tworzy seeder?
+
+Seeder (`DatabaseSeeder.php`) tworzy **34 użytkowników** i **22 wycieczki** z powiązanymi miejscami i odcinkami:
+
+- **4 użytkowników demo**: `test@example.com` (prywatny), `public@example.com` (publiczny), `test1@gmail.com` (publiczny, Jan Kowalski), `test2@gmail.com` (prywatny, Anna Nowak). Hasło wszystkich demo: `haslo123`.
+- **25 użytkowników publicznych** z losowymi ustawieniami prywatności (`user_1@demo.com` … `user_25@demo.com`).
+- **5 użytkowników prywatnych** (`private_1@demo.com` … `private_5@demo.com`).
+- **22 wycieczki**: 11 dla test1 (Majorka, Włochy, Praga, Alpy, Japonia, Norwegia, Paryż, Hiszpania, Grecja, USA, Londyn) i 11 dla test2 (Kraków, Czechy, Słowacja, Austria, Berlin, Portugalia, Dania, Chorwacja, Wiedeń, Bułgaria, Rumunia).
+- **1 relacja przyjaźni**: test1 → test2, status `accepted`.
+- **1 zaproszenie do wycieczki**: test1 zaprasza test2 do „Podróży na Majorkę", status `accepted`.
+
+Seeder jest idempotentny — wielokrotne uruchomienie nie duplikuje rekordów. Jednak `migrate:fresh` najpierw czyści całą bazę, więc po nim seeder zawsze tworzy dane od zera.
+
+### Przydatne komendy
+
+```bash
+# Sprawdź status migracji
+docker compose exec backend php artisan migrate:status
+
+# Wyczyść cache konfiguracji i routów po zmianach
+docker compose exec backend php artisan config:clear
+docker compose exec backend php artisan route:clear
+```
+
+---
+
 ## Krok po kroku
 
 ### 1. Wybierz i zrozum zadanie
