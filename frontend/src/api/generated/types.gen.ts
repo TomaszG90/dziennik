@@ -12,6 +12,18 @@ export type ForgotPasswordRequest = {
 };
 
 /**
+ * FriendRequestResource
+ */
+export type FriendRequestResource = {
+    id: number;
+    status: string;
+    sender_id: number;
+    recipient_id: number;
+    user: PublicUserResource;
+    created_at: string;
+};
+
+/**
  * GeocodeResource
  */
 export type GeocodeResource = {
@@ -78,14 +90,14 @@ export type PlaceResource = {
  * PublicUserResource
  */
 export type PublicUserResource = {
-    id: string;
+    id: number;
     name?: string;
-    first_name?: string;
-    last_name?: string;
-    city?: string;
+    first_name?: string | null;
+    last_name?: string | null;
+    city?: string | null;
     birth_date?: string | null;
-    avatar_path?: string;
-    created_at: string;
+    avatar_path?: string | null;
+    created_at: string | null;
 };
 
 /**
@@ -154,6 +166,20 @@ export type StoreTripRequest = {
     start_date: string;
     end_date?: string | null;
     description?: string | null;
+};
+
+/**
+ * TripInvitationResource
+ */
+export type TripInvitationResource = {
+    id: number;
+    trip_id: number;
+    inviter_id: number;
+    invitee_id: number;
+    status: string;
+    invitee?: PublicUserResource;
+    inviter?: PublicUserResource;
+    created_at: string;
 };
 
 /**
@@ -362,6 +388,300 @@ export type AuthLogoutResponses = {
 
 export type AuthLogoutResponse = AuthLogoutResponses[keyof AuthLogoutResponses];
 
+export type FriendIndexData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/friends';
+};
+
+export type FriendIndexErrors = {
+    /**
+     * Unauthenticated
+     */
+    401: {
+        /**
+         * Error overview.
+         */
+        message: string;
+    };
+};
+
+export type FriendIndexError = FriendIndexErrors[keyof FriendIndexErrors];
+
+export type FriendIndexResponses = {
+    200: {
+        data: Array<{
+            id: number;
+            name: string;
+            avatar_path: string | null;
+            created_at: string;
+        }>;
+    };
+};
+
+export type FriendIndexResponse = FriendIndexResponses[keyof FriendIndexResponses];
+
+export type FriendDestroyData = {
+    body?: never;
+    path: {
+        /**
+         * The user ID
+         */
+        user: number;
+    };
+    query?: never;
+    url: '/friends/{user}';
+};
+
+export type FriendDestroyErrors = {
+    /**
+     * Unauthenticated
+     */
+    401: {
+        /**
+         * Error overview.
+         */
+        message: string;
+    };
+    /**
+     * Not found
+     */
+    404: {
+        /**
+         * Error overview.
+         */
+        message: string;
+    };
+};
+
+export type FriendDestroyError = FriendDestroyErrors[keyof FriendDestroyErrors];
+
+export type FriendDestroyResponses = {
+    /**
+     * No content
+     */
+    204: void;
+};
+
+export type FriendDestroyResponse = FriendDestroyResponses[keyof FriendDestroyResponses];
+
+export type FriendRequestIndexData = {
+    body?: never;
+    path?: never;
+    query: {
+        direction: 'incoming' | 'outgoing';
+    };
+    url: '/friend-requests';
+};
+
+export type FriendRequestIndexErrors = {
+    /**
+     * Unauthenticated
+     */
+    401: {
+        /**
+         * Error overview.
+         */
+        message: string;
+    };
+    /**
+     * Validation error
+     */
+    422: {
+        /**
+         * Errors overview.
+         */
+        message: string;
+        /**
+         * A detailed description of each field that failed validation.
+         */
+        errors: {
+            [key: string]: Array<string>;
+        };
+    };
+};
+
+export type FriendRequestIndexError = FriendRequestIndexErrors[keyof FriendRequestIndexErrors];
+
+export type FriendRequestIndexResponses = {
+    /**
+     * Array of `FriendRequestResource`
+     */
+    200: {
+        data: Array<FriendRequestResource>;
+    };
+};
+
+export type FriendRequestIndexResponse = FriendRequestIndexResponses[keyof FriendRequestIndexResponses];
+
+export type FriendRequestStoreData = {
+    body: {
+        user_id: number;
+    };
+    path?: never;
+    query?: never;
+    url: '/friend-requests';
+};
+
+export type FriendRequestStoreErrors = {
+    /**
+     * Unauthenticated
+     */
+    401: {
+        /**
+         * Error overview.
+         */
+        message: string;
+    };
+    404: {
+        message: 'Nie znaleziono użytkownika.';
+    };
+    409: {
+        message: 'Relacja już istnieje.';
+    } | {
+        message: 'Istnieje oczekujące zaproszenie od tego użytkownika. Proszę je zaakceptować.';
+        data: FriendRequestResource;
+    };
+    /**
+     * Validation error
+     */
+    422: {
+        /**
+         * Errors overview.
+         */
+        message: string;
+        /**
+         * A detailed description of each field that failed validation.
+         */
+        errors: {
+            [key: string]: Array<string>;
+        };
+    };
+};
+
+export type FriendRequestStoreError = FriendRequestStoreErrors[keyof FriendRequestStoreErrors];
+
+export type FriendRequestStoreResponses = {
+    201: {
+        data: FriendRequestResource;
+    };
+};
+
+export type FriendRequestStoreResponse = FriendRequestStoreResponses[keyof FriendRequestStoreResponses];
+
+export type FriendRequestDestroyData = {
+    body?: never;
+    path: {
+        /**
+         * The friend request ID
+         */
+        friendRequest: number;
+    };
+    query?: never;
+    url: '/friend-requests/{friendRequest}';
+};
+
+export type FriendRequestDestroyErrors = {
+    /**
+     * Unauthenticated
+     */
+    401: {
+        /**
+         * Error overview.
+         */
+        message: string;
+    };
+    403: unknown;
+    /**
+     * Not found
+     */
+    404: {
+        /**
+         * Error overview.
+         */
+        message: string;
+    };
+    409: unknown;
+};
+
+export type FriendRequestDestroyError = FriendRequestDestroyErrors[keyof FriendRequestDestroyErrors];
+
+export type FriendRequestDestroyResponses = {
+    /**
+     * No content
+     */
+    204: void;
+};
+
+export type FriendRequestDestroyResponse = FriendRequestDestroyResponses[keyof FriendRequestDestroyResponses];
+
+export type FriendRequestUpdateData = {
+    body: {
+        action: 'accept' | 'decline';
+    };
+    path: {
+        /**
+         * The friend request ID
+         */
+        friendRequest: number;
+    };
+    query?: never;
+    url: '/friend-requests/{friendRequest}';
+};
+
+export type FriendRequestUpdateErrors = {
+    /**
+     * Unauthenticated
+     */
+    401: {
+        /**
+         * Error overview.
+         */
+        message: string;
+    };
+    403: {
+        message: 'Brak uprawnień do wykonania tej operacji.';
+    };
+    /**
+     * Not found
+     */
+    404: {
+        /**
+         * Error overview.
+         */
+        message: string;
+    };
+    409: {
+        message: 'Zaproszenie zostało już obsłużone.';
+    };
+    /**
+     * Validation error
+     */
+    422: {
+        /**
+         * Errors overview.
+         */
+        message: string;
+        /**
+         * A detailed description of each field that failed validation.
+         */
+        errors: {
+            [key: string]: Array<string>;
+        };
+    };
+};
+
+export type FriendRequestUpdateError = FriendRequestUpdateErrors[keyof FriendRequestUpdateErrors];
+
+export type FriendRequestUpdateResponses = {
+    200: {
+        data: FriendRequestResource;
+    };
+};
+
+export type FriendRequestUpdateResponse = FriendRequestUpdateResponses[keyof FriendRequestUpdateResponses];
+
 export type GeocodeData = {
     body?: never;
     path?: never;
@@ -401,6 +721,52 @@ export type GeocodeResponses = {
 };
 
 export type GeocodeResponse = GeocodeResponses[keyof GeocodeResponses];
+
+export type InviteStoreData = {
+    body: {
+        email: string;
+    };
+    path?: never;
+    query?: never;
+    url: '/invite';
+};
+
+export type InviteStoreErrors = {
+    /**
+     * Unauthenticated
+     */
+    401: {
+        /**
+         * Error overview.
+         */
+        message: string;
+    };
+    /**
+     * Validation error
+     */
+    422: {
+        /**
+         * Errors overview.
+         */
+        message: string;
+        /**
+         * A detailed description of each field that failed validation.
+         */
+        errors: {
+            [key: string]: Array<string>;
+        };
+    };
+};
+
+export type InviteStoreError = InviteStoreErrors[keyof InviteStoreErrors];
+
+export type InviteStoreResponses = {
+    200: {
+        message: 'Zaproszenie zostało wysłane.';
+    };
+};
+
+export type InviteStoreResponse = InviteStoreResponses[keyof InviteStoreResponses];
 
 export type LegIndexData = {
     body?: never;
@@ -1326,8 +1692,8 @@ export type ProfileUpdateResponse = ProfileUpdateResponses[keyof ProfileUpdateRe
 export type PublicProfileIndexData = {
     body?: never;
     path?: never;
-    query?: {
-        search?: string;
+    query: {
+        search: string;
     };
     url: '/public/users';
 };
@@ -1673,11 +2039,17 @@ export type TripsIndexErrors = {
 export type TripsIndexError = TripsIndexErrors[keyof TripsIndexErrors];
 
 export type TripsIndexResponses = {
-    /**
-     * Array of `TripResource`
-     */
     200: {
-        data: Array<TripResource>;
+        data: Array<{
+            id: number;
+            name: string;
+            start_date: string;
+            end_date: string | null;
+            description: string | null;
+            created_at: string | null;
+            updated_at: string | null;
+            is_guest: boolean;
+        }>;
     };
 };
 
@@ -1837,11 +2209,17 @@ export type TripsShowErrors = {
 export type TripsShowError = TripsShowErrors[keyof TripsShowErrors];
 
 export type TripsShowResponses = {
-    /**
-     * `TripResource`
-     */
     200: {
-        data: TripResource;
+        data: {
+            id: number;
+            name: string;
+            start_date: string;
+            end_date: string | null;
+            description: string | null;
+            created_at: string | null;
+            updated_at: string | null;
+            is_guest: boolean;
+        };
     };
 };
 
@@ -1916,3 +2294,347 @@ export type TripsUpdateResponses = {
 };
 
 export type TripsUpdateResponse = TripsUpdateResponses[keyof TripsUpdateResponses];
+
+export type TripCopyData = {
+    body?: never;
+    path: {
+        /**
+         * The trip ID
+         */
+        trip: number;
+    };
+    query?: never;
+    url: '/trips/{trip}/copy';
+};
+
+export type TripCopyErrors = {
+    /**
+     * Unauthenticated
+     */
+    401: {
+        /**
+         * Error overview.
+         */
+        message: string;
+    };
+    /**
+     * Authorization error
+     */
+    403: {
+        /**
+         * Error overview.
+         */
+        message: string;
+    };
+    /**
+     * Not found
+     */
+    404: {
+        /**
+         * Error overview.
+         */
+        message: string;
+    };
+};
+
+export type TripCopyError = TripCopyErrors[keyof TripCopyErrors];
+
+export type TripCopyResponses = {
+    /**
+     * `TripResource`
+     */
+    201: {
+        data: TripResource;
+    };
+};
+
+export type TripCopyResponse = TripCopyResponses[keyof TripCopyResponses];
+
+export type TripInvitationMyInvitationsData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/trip-invitations';
+};
+
+export type TripInvitationMyInvitationsErrors = {
+    /**
+     * Unauthenticated
+     */
+    401: {
+        /**
+         * Error overview.
+         */
+        message: string;
+    };
+};
+
+export type TripInvitationMyInvitationsError = TripInvitationMyInvitationsErrors[keyof TripInvitationMyInvitationsErrors];
+
+export type TripInvitationMyInvitationsResponses = {
+    /**
+     * Array of `TripInvitationResource`
+     */
+    200: {
+        data: Array<TripInvitationResource & {
+            [key: string]: unknown;
+        }>;
+    };
+};
+
+export type TripInvitationMyInvitationsResponse = TripInvitationMyInvitationsResponses[keyof TripInvitationMyInvitationsResponses];
+
+export type TripInvitationIndexData = {
+    body?: never;
+    path: {
+        /**
+         * The trip ID
+         */
+        trip: number;
+    };
+    query?: never;
+    url: '/trips/{trip}/invitations';
+};
+
+export type TripInvitationIndexErrors = {
+    /**
+     * Unauthenticated
+     */
+    401: {
+        /**
+         * Error overview.
+         */
+        message: string;
+    };
+    /**
+     * An error
+     */
+    403: {
+        /**
+         * Error overview.
+         */
+        message: string;
+    };
+    /**
+     * Not found
+     */
+    404: {
+        /**
+         * Error overview.
+         */
+        message: string;
+    };
+};
+
+export type TripInvitationIndexError = TripInvitationIndexErrors[keyof TripInvitationIndexErrors];
+
+export type TripInvitationIndexResponses = {
+    /**
+     * Array of `TripInvitationResource`
+     */
+    200: {
+        data: Array<TripInvitationResource & {
+            [key: string]: unknown;
+        }>;
+    };
+};
+
+export type TripInvitationIndexResponse = TripInvitationIndexResponses[keyof TripInvitationIndexResponses];
+
+export type TripInvitationStoreData = {
+    body: {
+        user_id: number;
+    };
+    path: {
+        /**
+         * The trip ID
+         */
+        trip: number;
+    };
+    query?: never;
+    url: '/trips/{trip}/invitations';
+};
+
+export type TripInvitationStoreErrors = {
+    /**
+     * Unauthenticated
+     */
+    401: {
+        /**
+         * Error overview.
+         */
+        message: string;
+    };
+    /**
+     * An error
+     */
+    403: {
+        /**
+         * Error overview.
+         */
+        message: string;
+    };
+    /**
+     * Not found
+     */
+    404: {
+        /**
+         * Error overview.
+         */
+        message: string;
+    };
+    409: {
+        message: 'Ten użytkownik jest już uczestnikiem wycieczki.';
+    } | {
+        message: 'Zaproszenie do tej wycieczki jest już oczekujące.';
+    };
+    /**
+     * Validation error
+     */
+    422: {
+        /**
+         * Errors overview.
+         */
+        message: string;
+        /**
+         * A detailed description of each field that failed validation.
+         */
+        errors: {
+            [key: string]: Array<string>;
+        };
+    };
+};
+
+export type TripInvitationStoreError = TripInvitationStoreErrors[keyof TripInvitationStoreErrors];
+
+export type TripInvitationStoreResponses = {
+    201: {
+        data: TripInvitationResource & {
+            [key: string]: unknown;
+        };
+    };
+};
+
+export type TripInvitationStoreResponse = TripInvitationStoreResponses[keyof TripInvitationStoreResponses];
+
+export type TripInvitationDestroyData = {
+    body?: never;
+    path: {
+        /**
+         * The trip ID
+         */
+        trip: number;
+        /**
+         * The invitation ID
+         */
+        invitation: number;
+    };
+    query?: never;
+    url: '/trips/{trip}/invitations/{invitation}';
+};
+
+export type TripInvitationDestroyErrors = {
+    /**
+     * Unauthenticated
+     */
+    401: {
+        /**
+         * Error overview.
+         */
+        message: string;
+    };
+    403: unknown;
+    /**
+     * Not found
+     */
+    404: {
+        /**
+         * Error overview.
+         */
+        message: string;
+    };
+    409: unknown;
+};
+
+export type TripInvitationDestroyError = TripInvitationDestroyErrors[keyof TripInvitationDestroyErrors];
+
+export type TripInvitationDestroyResponses = {
+    /**
+     * No content
+     */
+    204: void;
+};
+
+export type TripInvitationDestroyResponse = TripInvitationDestroyResponses[keyof TripInvitationDestroyResponses];
+
+export type TripInvitationUpdateData = {
+    body: {
+        action: 'accept' | 'decline';
+    };
+    path: {
+        /**
+         * The trip ID
+         */
+        trip: number;
+        /**
+         * The invitation ID
+         */
+        invitation: number;
+    };
+    query?: never;
+    url: '/trips/{trip}/invitations/{invitation}';
+};
+
+export type TripInvitationUpdateErrors = {
+    /**
+     * Unauthenticated
+     */
+    401: {
+        /**
+         * Error overview.
+         */
+        message: string;
+    };
+    403: {
+        message: 'Brak uprawnień do wykonania tej operacji.';
+    };
+    /**
+     * Not found
+     */
+    404: {
+        /**
+         * Error overview.
+         */
+        message: string;
+    };
+    409: {
+        message: 'Zaproszenie zostało już obsłużone.';
+    };
+    /**
+     * Validation error
+     */
+    422: {
+        /**
+         * Errors overview.
+         */
+        message: string;
+        /**
+         * A detailed description of each field that failed validation.
+         */
+        errors: {
+            [key: string]: Array<string>;
+        };
+    };
+};
+
+export type TripInvitationUpdateError = TripInvitationUpdateErrors[keyof TripInvitationUpdateErrors];
+
+export type TripInvitationUpdateResponses = {
+    200: {
+        data: TripInvitationResource & {
+            [key: string]: unknown;
+        };
+    };
+};
+
+export type TripInvitationUpdateResponse = TripInvitationUpdateResponses[keyof TripInvitationUpdateResponses];

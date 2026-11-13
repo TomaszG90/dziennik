@@ -2,7 +2,7 @@ import { apiClient } from './client'
 import type { Trip, UserMapData } from './trips'
 
 export interface PublicProfile {
-  id: string | number
+  id: number
   name?: string
   first_name?: string
   last_name?: string
