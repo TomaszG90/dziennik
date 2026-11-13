@@ -134,8 +134,8 @@ Utwórz Issue, korzystając z szablonu funkcji w `.github/ISSUE_TEMPLATE/feature
 
 | ID | Zadanie | Obszar | Zależy od | Rozmiar |
 |---|---|---|---|---|
-| PR-43 | Backend: publiczne endpointy (lista użytkowników z publicznym profilem, ich podróże, mapa, statystyki) i blokada dostępu do prywatnych (403/404) + testy | backend | PR-19, PR-37, PR-40 | L |
-| PR-44 | Frontend: lista publicznych użytkowników i widok profilu innego użytkownika (podróże, mapa, statystyki, tylko do odczytu) | frontend | PR-43 | L |
+| ~~PR-43~~ | Backend: publiczne endpointy (lista użytkowników z publicznym profilem, ich podróże, mapa, statystyki) i blokada dostępu do prywatnych (403/404) + testy | backend | PR-19, PR-37, PR-40 | L |
+| ~~PR-44~~ | Frontend: lista publicznych użytkowników i widok profilu innego użytkownika (podróże, mapa, statystyki, tylko do odczytu) | frontend | PR-43 | L |
 
 ---
 
@@ -154,10 +154,10 @@ Utwórz Issue, korzystając z szablonu funkcji w `.github/ISSUE_TEMPLATE/feature
 
 | ID | Zadanie | Obszar | Zależy od | Rozmiar |
 |---|---|---|---|---|
-| PR-51 [#116](https://github.com/TomaszG90/dziennik/issues/116) | Scramble jako źródło kontraktu OpenAPI 3.1; eksport do `shared/openapi.yaml` i reguły jego aktualizacji | backend / API | PR-4 | M |
-| PR-52 [#117](https://github.com/TomaszG90/dziennik/issues/117) | Generowanie typów TypeScript frontendu z `shared/openapi.yaml` i kontrola aktualności wygenerowanych plików w CI | frontend | PR-51 | S |
-| PR-53 [#118](https://github.com/TomaszG90/dziennik/issues/118) | Filtry ścieżek CI dla backendu, frontendu, kontraktu API i `mobile/` | devops | PR-51, PR-52 | M |
-| PR-54 [#119](https://github.com/TomaszG90/dziennik/issues/119) | Szkielet natywnej aplikacji Android w Kotlinie i Jetpack Compose, Gradle Wrapper, CI build oraz dokumentacja `mobile/README.md`; bez ekranów funkcjonalnych | mobile / devops / docs | PR-51, PR-53 | M |
+| ~~PR-51~~ [#116](https://github.com/TomaszG90/dziennik/issues/116) | Scramble jako źródło kontraktu OpenAPI 3.1; eksport do `shared/openapi.yaml` i reguły jego aktualizacji | backend / API | PR-4 | M |
+| ~~PR-52~~ [#117](https://github.com/TomaszG90/dziennik/issues/117) | Generowanie typów TypeScript frontendu z `shared/openapi.yaml` i kontrola aktualności wygenerowanych plików w CI | frontend | PR-51 | S |
+| ~~PR-53~~ [#118](https://github.com/TomaszG90/dziennik/issues/118) | Filtry ścieżek CI dla backendu, frontendu, kontraktu API i `mobile/` | devops | PR-51, PR-52 | M |
+| ~~PR-54~~ [#119](https://github.com/TomaszG90/dziennik/issues/119) | Szkielet natywnej aplikacji Android w Kotlinie i Jetpack Compose, Gradle Wrapper, CI build oraz dokumentacja `mobile/README.md`; bez ekranów funkcjonalnych | mobile / devops / docs | PR-51, PR-53 | M |
 
 Decyzję stacku Android opisuje [ADR-002](docs/ADR-002-mobile-stack.md). Szczegółowy plan rozwoju aplikacji mobilnej od PR-55 znajduje się w [TASK2.md](TASK2.md). Zmiany backendowego API są źródłem kontraktu wspólnego dla Vue i Androida; aplikacja mobilna nie kopiuje definicji endpointów ręcznie.
 

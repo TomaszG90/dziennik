@@ -110,6 +110,256 @@ paths:
                   - message
         "401":
           $ref: "#/components/responses/AuthenticationException"
+  /friends:
+    get:
+      operationId: friend.index
+      summary: Get accepted friends of the authenticated user
+      tags:
+        - Friend
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                        name:
+                          type: string
+                        avatar_path:
+                          type:
+                            - string
+                            - "null"
+                        created_at:
+                          type: string
+                      required:
+                        - id
+                        - name
+                        - avatar_path
+                        - created_at
+                required:
+                  - data
+        "401":
+          $ref: "#/components/responses/AuthenticationException"
+  /friends/{user}:
+    delete:
+      operationId: friend.destroy
+      summary: Remove an accepted friend relationship (symmetric)
+      tags:
+        - Friend
+      parameters:
+        - name: user
+          in: path
+          required: true
+          description: The user ID
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: No content
+        "401":
+          $ref: "#/components/responses/AuthenticationException"
+        "404":
+          $ref: "#/components/responses/ModelNotFoundException"
+  /friend-requests:
+    get:
+      operationId: friendRequest.index
+      summary: Get friend requests (incoming or outgoing)
+      tags:
+        - FriendRequest
+      parameters:
+        - name: direction
+          in: query
+          required: true
+          schema:
+            type: string
+            enum:
+              - incoming
+              - outgoing
+      responses:
+        "200":
+          description: Array of `FriendRequestResource`
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/FriendRequestResource"
+                required:
+                  - data
+        "401":
+          $ref: "#/components/responses/AuthenticationException"
+        "422":
+          $ref: "#/components/responses/ValidationException"
+    post:
+      operationId: friendRequest.store
+      summary: Send a friend request to another user
+      tags:
+        - FriendRequest
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                user_id:
+                  type: integer
+              required:
+                - user_id
+      responses:
+        "201":
+          description: ""
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/FriendRequestResource"
+                required:
+                  - data
+        "401":
+          $ref: "#/components/responses/AuthenticationException"
+        "404":
+          description: ""
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    const: Nie znaleziono użytkownika.
+                required:
+                  - message
+        "409":
+          description: ""
+          content:
+            application/json:
+              schema:
+                anyOf:
+                  - type: object
+                    properties:
+                      message:
+                        type: string
+                        const: Relacja już istnieje.
+                    required:
+                      - message
+                  - type: object
+                    properties:
+                      message:
+                        type: string
+                        const: Istnieje oczekujące zaproszenie od tego użytkownika. Proszę je zaakceptować.
+                      data:
+                        $ref: "#/components/schemas/FriendRequestResource"
+                    required:
+                      - message
+                      - data
+        "422":
+          $ref: "#/components/responses/ValidationException"
+  /friend-requests/{friendRequest}:
+    patch:
+      operationId: friendRequest.update
+      summary: Accept or decline a friend request
+      tags:
+        - FriendRequest
+      parameters:
+        - name: friendRequest
+          in: path
+          required: true
+          description: The friend request ID
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                action:
+                  type: string
+                  enum:
+                    - accept
+                    - decline
+              required:
+                - action
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/FriendRequestResource"
+                required:
+                  - data
+        "401":
+          $ref: "#/components/responses/AuthenticationException"
+        "403":
+          description: ""
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    const: Brak uprawnień do wykonania tej operacji.
+                required:
+                  - message
+        "404":
+          $ref: "#/components/responses/ModelNotFoundException"
+        "409":
+          description: ""
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    const: Zaproszenie zostało już obsłużone.
+                required:
+                  - message
+        "422":
+          $ref: "#/components/responses/ValidationException"
+    delete:
+      operationId: friendRequest.destroy
+      summary: Cancel (withdraw) a sent friend request
+      tags:
+        - FriendRequest
+      parameters:
+        - name: friendRequest
+          in: path
+          required: true
+          description: The friend request ID
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: No content
+        "401":
+          $ref: "#/components/responses/AuthenticationException"
+        "403":
+          description: ""
+        "404":
+          $ref: "#/components/responses/ModelNotFoundException"
+        "409":
+          description: ""
   /geocode:
     get:
       operationId: geocode
@@ -141,6 +391,41 @@ paths:
         "422":
           $ref: "#/components/responses/ValidationException"
       security: []
+  /invite:
+    post:
+      operationId: invite.store
+      tags:
+        - Invite
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  format: email
+                  maxLength: 255
+              required:
+                - email
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    const: Zaproszenie zostało wysłane.
+                required:
+                  - message
+        "401":
+          $ref: "#/components/responses/AuthenticationException"
+        "422":
+          $ref: "#/components/responses/ValidationException"
   /trips/{trip}/legs:
     get:
       operationId: leg.index
@@ -765,6 +1050,327 @@ paths:
           $ref: "#/components/responses/AuthenticationException"
         "422":
           $ref: "#/components/responses/ValidationException"
+  /public/users:
+    get:
+      operationId: publicProfile.index
+      tags:
+        - PublicProfile
+      parameters:
+        - name: search
+          in: query
+          required: true
+          schema:
+            type: string
+            maxLength: 100
+      responses:
+        "200":
+          description: Paginated set of `PublicUserResource`
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/PublicUserResource"
+                  links:
+                    type: object
+                    properties:
+                      first:
+                        type:
+                          - string
+                          - "null"
+                      last:
+                        type:
+                          - string
+                          - "null"
+                      prev:
+                        type:
+                          - string
+                          - "null"
+                      next:
+                        type:
+                          - string
+                          - "null"
+                    required:
+                      - first
+                      - last
+                      - prev
+                      - next
+                  meta:
+                    type: object
+                    properties:
+                      current_page:
+                        type: integer
+                        minimum: 1
+                      from:
+                        type:
+                          - integer
+                          - "null"
+                        minimum: 1
+                      last_page:
+                        type: integer
+                        minimum: 1
+                      links:
+                        type: array
+                        description: Generated paginator links.
+                        items:
+                          type: object
+                          properties:
+                            url:
+                              type:
+                                - string
+                                - "null"
+                            label:
+                              type: string
+                            active:
+                              type: boolean
+                          required:
+                            - url
+                            - label
+                            - active
+                      path:
+                        type:
+                          - string
+                          - "null"
+                        description: Base path for paginator generated URLs.
+                      per_page:
+                        type: integer
+                        description: Number of items shown per page.
+                        minimum: 0
+                      to:
+                        type:
+                          - integer
+                          - "null"
+                        description: Number of the last item in the slice.
+                        minimum: 1
+                      total:
+                        type: integer
+                        description: Total number of items being paginated.
+                        minimum: 0
+                    required:
+                      - current_page
+                      - from
+                      - last_page
+                      - links
+                      - path
+                      - per_page
+                      - to
+                      - total
+                required:
+                  - data
+                  - links
+                  - meta
+        "422":
+          $ref: "#/components/responses/ValidationException"
+      security: []
+  /public/users/{user}:
+    get:
+      operationId: publicProfile.show
+      tags:
+        - PublicProfile
+      parameters:
+        - name: user
+          in: path
+          required: true
+          description: The user ID
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: "`PublicUserResource`"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/PublicUserResource"
+                required:
+                  - data
+        "404":
+          $ref: "#/components/responses/ModelNotFoundException"
+      security: []
+  /public/users/{user}/trips:
+    get:
+      operationId: publicProfile.trips
+      tags:
+        - PublicProfile
+      parameters:
+        - name: user
+          in: path
+          required: true
+          description: The user ID
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Array of `TripResource`
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/TripResource"
+                required:
+                  - data
+        "404":
+          $ref: "#/components/responses/ModelNotFoundException"
+      security: []
+  /public/users/{user}/map:
+    get:
+      operationId: publicProfile.map
+      tags:
+        - PublicProfile
+      parameters:
+        - name: user
+          in: path
+          required: true
+          description: The user ID
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      trips:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            id:
+                              type: integer
+                            name:
+                              type: string
+                            start_date:
+                              type: string
+                            end_date:
+                              type:
+                                - string
+                                - "null"
+                          required:
+                            - id
+                            - name
+                            - start_date
+                            - end_date
+                      places:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            id:
+                              type: string
+                            trip_id:
+                              type: string
+                            trip_name:
+                              type: string
+                            name:
+                              type: string
+                            latitude:
+                              type: string
+                            longitude:
+                              type: string
+                            position:
+                              type: string
+                            country_code:
+                              type: string
+                          required:
+                            - id
+                            - trip_id
+                            - trip_name
+                            - name
+                            - latitude
+                            - longitude
+                            - position
+                            - country_code
+                      legs:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            id:
+                              type: string
+                            trip_id:
+                              type: string
+                            trip_name:
+                              type: string
+                            from_place_id:
+                              type: string
+                            to_place_id:
+                              type: string
+                            transport:
+                              type: string
+                            distance:
+                              type: string
+                            geometry:
+                              type: string
+                            position:
+                              type: string
+                          required:
+                            - id
+                            - trip_id
+                            - trip_name
+                            - from_place_id
+                            - to_place_id
+                            - transport
+                            - distance
+                            - geometry
+                            - position
+                    required:
+                      - trips
+                      - places
+                      - legs
+                required:
+                  - data
+        "404":
+          $ref: "#/components/responses/ModelNotFoundException"
+      security: []
+  /public/users/{user}/stats:
+    get:
+      operationId: publicProfile.stats
+      tags:
+        - PublicProfile
+      parameters:
+        - name: user
+          in: path
+          required: true
+          description: The user ID
+          schema:
+            type: integer
+        - name: year
+          in: query
+          schema:
+            type: integer
+            minimum: 1901
+            maximum: 2026
+      responses:
+        "200":
+          description: "`StatsResource`"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/StatsResource"
+                required:
+                  - data
+        "404":
+          $ref: "#/components/responses/ModelNotFoundException"
+        "422":
+          $ref: "#/components/responses/ValidationException"
+      security: []
   /stats:
     get:
       operationId: stats.index
@@ -825,7 +1431,7 @@ paths:
         - Trip
       responses:
         "200":
-          description: Array of `TripResource`
+          description: ""
           content:
             application/json:
               schema:
@@ -834,7 +1440,43 @@ paths:
                   data:
                     type: array
                     items:
-                      $ref: "#/components/schemas/TripResource"
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                        name:
+                          type: string
+                        start_date:
+                          type: string
+                        end_date:
+                          type:
+                            - string
+                            - "null"
+                        description:
+                          type:
+                            - string
+                            - "null"
+                        created_at:
+                          type:
+                            - string
+                            - "null"
+                          format: date-time
+                        updated_at:
+                          type:
+                            - string
+                            - "null"
+                          format: date-time
+                        is_guest:
+                          type: boolean
+                      required:
+                        - id
+                        - name
+                        - start_date
+                        - end_date
+                        - description
+                        - created_at
+                        - updated_at
+                        - is_guest
                 required:
                   - data
         "401":
@@ -885,14 +1527,50 @@ paths:
             type: integer
       responses:
         "200":
-          description: "`TripResource`"
+          description: ""
           content:
             application/json:
               schema:
                 type: object
                 properties:
                   data:
-                    $ref: "#/components/schemas/TripResource"
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                      name:
+                        type: string
+                      start_date:
+                        type: string
+                      end_date:
+                        type:
+                          - string
+                          - "null"
+                      description:
+                        type:
+                          - string
+                          - "null"
+                      created_at:
+                        type:
+                          - string
+                          - "null"
+                        format: date-time
+                      updated_at:
+                        type:
+                          - string
+                          - "null"
+                        format: date-time
+                      is_guest:
+                        type: boolean
+                    required:
+                      - id
+                      - name
+                      - start_date
+                      - end_date
+                      - description
+                      - created_at
+                      - updated_at
+                      - is_guest
                 required:
                   - data
         "401":
@@ -959,6 +1637,303 @@ paths:
           $ref: "#/components/responses/AuthorizationException"
         "404":
           $ref: "#/components/responses/ModelNotFoundException"
+  /trips/{trip}/copy:
+    post:
+      operationId: trip.copy
+      summary: Copy a trip to the authenticated user's trips
+      tags:
+        - Trip
+      parameters:
+        - name: trip
+          in: path
+          required: true
+          description: The trip ID
+          schema:
+            type: integer
+      responses:
+        "201":
+          description: "`TripResource`"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/TripResource"
+                required:
+                  - data
+        "401":
+          $ref: "#/components/responses/AuthenticationException"
+        "403":
+          $ref: "#/components/responses/AuthorizationException"
+        "404":
+          $ref: "#/components/responses/ModelNotFoundException"
+  /trip-invitations:
+    get:
+      operationId: tripInvitation.myInvitations
+      summary: Get my incoming trip invitations (across all trips)
+      tags:
+        - TripInvitation
+      responses:
+        "200":
+          description: Array of `TripInvitationResource`
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      allOf:
+                        - $ref: "#/components/schemas/TripInvitationResource"
+                        - type: object
+                          required:
+                            - invitee
+                            - inviter
+                required:
+                  - data
+        "401":
+          $ref: "#/components/responses/AuthenticationException"
+  /trips/{trip}/invitations:
+    get:
+      operationId: tripInvitation.index
+      summary: Get invitations for a specific trip (only trip owner)
+      tags:
+        - TripInvitation
+      parameters:
+        - name: trip
+          in: path
+          required: true
+          description: The trip ID
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Array of `TripInvitationResource`
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      allOf:
+                        - $ref: "#/components/schemas/TripInvitationResource"
+                        - type: object
+                          required:
+                            - invitee
+                            - inviter
+                required:
+                  - data
+        "401":
+          $ref: "#/components/responses/AuthenticationException"
+        "403":
+          description: An error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    description: Error overview.
+                    examples:
+                      - ""
+                required:
+                  - message
+        "404":
+          $ref: "#/components/responses/ModelNotFoundException"
+    post:
+      operationId: tripInvitation.store
+      summary: Invite a friend to a trip
+      tags:
+        - TripInvitation
+      parameters:
+        - name: trip
+          in: path
+          required: true
+          description: The trip ID
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                user_id:
+                  type: integer
+              required:
+                - user_id
+      responses:
+        "201":
+          description: ""
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    allOf:
+                      - $ref: "#/components/schemas/TripInvitationResource"
+                      - type: object
+                        required:
+                          - invitee
+                          - inviter
+                required:
+                  - data
+        "401":
+          $ref: "#/components/responses/AuthenticationException"
+        "403":
+          description: An error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    description: Error overview.
+                    examples:
+                      - ""
+                required:
+                  - message
+        "404":
+          $ref: "#/components/responses/ModelNotFoundException"
+        "409":
+          description: ""
+          content:
+            application/json:
+              schema:
+                anyOf:
+                  - type: object
+                    properties:
+                      message:
+                        type: string
+                        const: Ten użytkownik jest już uczestnikiem wycieczki.
+                    required:
+                      - message
+                  - type: object
+                    properties:
+                      message:
+                        type: string
+                        const: Zaproszenie do tej wycieczki jest już oczekujące.
+                    required:
+                      - message
+        "422":
+          $ref: "#/components/responses/ValidationException"
+  /trips/{trip}/invitations/{invitation}:
+    patch:
+      operationId: tripInvitation.update
+      summary: Accept or decline a trip invitation
+      tags:
+        - TripInvitation
+      parameters:
+        - name: trip
+          in: path
+          required: true
+          description: The trip ID
+          schema:
+            type: integer
+        - name: invitation
+          in: path
+          required: true
+          description: The invitation ID
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                action:
+                  type: string
+                  enum:
+                    - accept
+                    - decline
+              required:
+                - action
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    allOf:
+                      - $ref: "#/components/schemas/TripInvitationResource"
+                      - type: object
+                        required:
+                          - invitee
+                          - inviter
+                required:
+                  - data
+        "401":
+          $ref: "#/components/responses/AuthenticationException"
+        "403":
+          description: ""
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    const: Brak uprawnień do wykonania tej operacji.
+                required:
+                  - message
+        "404":
+          $ref: "#/components/responses/ModelNotFoundException"
+        "409":
+          description: ""
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    const: Zaproszenie zostało już obsłużone.
+                required:
+                  - message
+        "422":
+          $ref: "#/components/responses/ValidationException"
+    delete:
+      operationId: tripInvitation.destroy
+      summary: Cancel (withdraw) a trip invitation
+      tags:
+        - TripInvitation
+      parameters:
+        - name: trip
+          in: path
+          required: true
+          description: The trip ID
+          schema:
+            type: integer
+        - name: invitation
+          in: path
+          required: true
+          description: The invitation ID
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: No content
+        "401":
+          $ref: "#/components/responses/AuthenticationException"
+        "403":
+          description: ""
+        "404":
+          $ref: "#/components/responses/ModelNotFoundException"
+        "409":
+          description: ""
 components:
   securitySchemes:
     http:
@@ -975,6 +1950,29 @@ components:
       required:
         - email
       title: ForgotPasswordRequest
+    FriendRequestResource:
+      type: object
+      properties:
+        id:
+          type: integer
+        status:
+          type: string
+        sender_id:
+          type: integer
+        recipient_id:
+          type: integer
+        user:
+          $ref: "#/components/schemas/PublicUserResource"
+        created_at:
+          type: string
+      required:
+        - id
+        - status
+        - sender_id
+        - recipient_id
+        - user
+        - created_at
+      title: FriendRequestResource
     GeocodeResource:
       type: object
       properties:
@@ -1153,6 +2151,42 @@ components:
         - created_at
         - updated_at
       title: PlaceResource
+    PublicUserResource:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        first_name:
+          type:
+            - string
+            - "null"
+        last_name:
+          type:
+            - string
+            - "null"
+        city:
+          type:
+            - string
+            - "null"
+        birth_date:
+          type:
+            - string
+            - "null"
+        avatar_path:
+          type:
+            - string
+            - "null"
+        created_at:
+          type:
+            - string
+            - "null"
+          format: date-time
+      required:
+        - id
+        - created_at
+      title: PublicUserResource
     RegisterRequest:
       type: object
       properties:
@@ -1210,6 +2244,26 @@ components:
         - password
         - password_confirmation
       title: ResetPasswordRequest
+    StatsResource:
+      type: object
+      properties:
+        trips_count:
+          type: integer
+        countries:
+          type: string
+        total_distance:
+          type: number
+        distance_by_transport:
+          type: string
+        places_count:
+          type: integer
+      required:
+        - trips_count
+        - countries
+        - total_distance
+        - distance_by_transport
+        - places_count
+      title: StatsResource
     StoreLegRequest:
       type: object
       properties:
@@ -1277,6 +2331,33 @@ components:
         - name
         - start_date
       title: StoreTripRequest
+    TripInvitationResource:
+      type: object
+      properties:
+        id:
+          type: integer
+        trip_id:
+          type: integer
+        inviter_id:
+          type: integer
+        invitee_id:
+          type: integer
+        status:
+          type: string
+        invitee:
+          $ref: "#/components/schemas/PublicUserResource"
+        inviter:
+          $ref: "#/components/schemas/PublicUserResource"
+        created_at:
+          type: string
+      required:
+        - id
+        - trip_id
+        - inviter_id
+        - invitee_id
+        - status
+        - created_at
+      title: TripInvitationResource
     TripResource:
       type: object
       properties:
@@ -1518,6 +2599,18 @@ components:
             required:
               - message
               - errors
+    ModelNotFoundException:
+      description: Not found
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              message:
+                type: string
+                description: Error overview.
+            required:
+              - message
     AuthenticationException:
       description: Unauthenticated
       content:
@@ -1532,18 +2625,6 @@ components:
               - message
     AuthorizationException:
       description: Authorization error
-      content:
-        application/json:
-          schema:
-            type: object
-            properties:
-              message:
-                type: string
-                description: Error overview.
-            required:
-              - message
-    ModelNotFoundException:
-      description: Not found
       content:
         application/json:
           schema:

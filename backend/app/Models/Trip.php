@@ -41,4 +41,14 @@ class Trip extends Model
     {
         return $this->hasMany(Leg::class)->orderBy('position');
     }
+
+    public function invitations(): HasMany
+    {
+        return $this->hasMany(TripInvitation::class);
+    }
+
+    public function invitedGuests()
+    {
+        return $this->hasMany(TripInvitation::class)->where('status', 'accepted');
+    }
 }

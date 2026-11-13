@@ -1,10 +1,28 @@
 <script setup lang="ts">
-import { computed, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
+import { RouterLink } from 'vue-router'
 import { apiClient, ApiError, updateMyProfile } from '@/api'
 import { getTravelStats, type TravelStats } from '@/api/stats'
+import { getPublicAvatarUrl, getPublicProfiles, type PublicProfile } from '@/api/publicProfiles'
 import type { UpdateProfilePayload } from '@/api/auth'
 import type { ProfilePrivacySettings } from '@/api/types'
 import { getTrips } from '@/api/trips'
+import {
+  acceptFriendRequest,
+  acceptTripInvitation,
+  cancelFriendRequest,
+  declineFriendRequest,
+  declineTripInvitation,
+  getFriends,
+  getFriendRequests,
+  getMyTripInvitations,
+  removeFriend,
+  sendFriendRequest,
+  sendInviteEmail,
+  type Friend,
+  type FriendRequest,
+  type TripInvitation,
+} from '@/api/friends'
 import { useAuthStore } from '@/stores/auth'
 import UserTripsList from '@/components/trips/UserTripsList.vue'
 
@@ -42,6 +60,50 @@ interface ProfileField {
 
 const auth = useAuthStore()
 const activeTab = ref<ProfileTab>('trips')
+const publicProfiles = ref<PublicProfile[]>([])
+const friendSearch = ref('')
+const friendsCurrentPage = ref(1)
+const friendsLastPage = ref(1)
+const friendsTotal = ref(0)
+const friendsLoading = ref(false)
+const friendsError = ref('')
+const friendSearchSubmitted = ref(false)
+const friendSearchQuery = ref('')
+let friendsRequestId = 0
+
+// Accepted friends
+const friends = ref<Friend[]>([])
+const friendsListLoading = ref(false)
+const friendsListError = ref('')
+
+// Friend requests
+const incomingRequests = ref<FriendRequest[]>([])
+const outgoingRequests = ref<FriendRequest[]>([])
+const requestsLoading = ref(false)
+const requestsError = ref('')
+const requestsTab = ref<'incoming' | 'outgoing'>('incoming')
+
+// Friend state map: tracks whether a profile is already a friend or has a pending request
+const friendStateMap = ref<Record<number, 'friend' | 'pending_sent' | 'pending_received' | null>>({})
+
+// Email invite
+const inviteEmail = ref('')
+const inviteLoading = ref(false)
+const inviteSuccess = ref('')
+const inviteError = ref('')
+const showInvitePreview = ref(false)
+const invitePreviewTo = ref('')
+
+// Trip invitations
+const tripInvitations = ref<TripInvitation[]>([])
+const tripInvitationsLoading = ref(false)
+const tripInvitationsError = ref('')
+
+const inviteLink = computed(() => {
+  const origin = window.location.origin
+  return `${origin}/users/${auth.user?.id}`
+})
+
 const travelStats = ref<TravelStats | null>(null)
 const statsLoadState = ref<StatsLoadState>('idle')
 const statsError = ref('')
@@ -325,6 +387,222 @@ function selectTab(tab: ProfileTab) {
     void loadStats()
   }
   if (tab === 'stats') void loadAvailableYears()
+  if (tab === 'friends') {
+    void loadFriendsAndRequests()
+  }
+}
+
+async function loadFriendsAndRequests() {
+  friendsListLoading.value = true
+  friendsListError.value = ''
+  requestsLoading.value = true
+  requestsError.value = ''
+  tripInvitationsLoading.value = true
+  tripInvitationsError.value = ''
+
+  try {
+    const [friendsData, incomingData, outgoingData, tripInvData] = await Promise.all([
+      getFriends(),
+      getFriendRequests('incoming'),
+      getFriendRequests('outgoing'),
+      getMyTripInvitations(),
+    ])
+    friends.value = friendsData
+    incomingRequests.value = incomingData
+    outgoingRequests.value = outgoingData
+    tripInvitations.value = tripInvData
+
+    // Build state map for search results
+    const map: Record<number, 'friend' | 'pending_sent' | 'pending_received' | null> = {}
+    for (const f of friendsData) {
+      map[f.id] = 'friend'
+    }
+    for (const req of incomingData) {
+      const otherId = req.sender_id
+      if (!map[otherId]) map[otherId] = 'pending_received'
+    }
+    for (const req of outgoingData) {
+      const otherId = req.recipient_id
+      if (!map[otherId]) map[otherId] = 'pending_sent'
+    }
+    friendStateMap.value = map
+  } catch (cause: unknown) {
+    friendsListError.value =
+      cause instanceof Error ? cause.message : 'Nie udało się pobrać listy znajomych.'
+    requestsError.value = friendsListError.value
+  } finally {
+    friendsListLoading.value = false
+    requestsLoading.value = false
+    tripInvitationsLoading.value = false
+  }
+}
+
+async function sendAddFriendRequest(profileId: number) {
+  try {
+    await sendFriendRequest(profileId)
+    friendStateMap.value[profileId] = 'pending_sent'
+    await loadFriendsAndRequests()
+  } catch (cause: unknown) {
+    if (cause instanceof ApiError) {
+      friendsError.value = cause.message || 'Nie udało się wysłać zaproszenia.'
+    } else {
+      friendsError.value = 'Nie udało się wysłać zaproszenia.'
+    }
+  }
+}
+
+async function acceptRequest(requestId: number) {
+  try {
+    await acceptFriendRequest(requestId)
+    await loadFriendsAndRequests()
+  } catch {
+    requestsError.value = 'Nie udało się zaakceptować zaproszenia.'
+  }
+}
+
+async function declineRequest(requestId: number) {
+  try {
+    await declineFriendRequest(requestId)
+    await loadFriendsAndRequests()
+  } catch {
+    requestsError.value = 'Nie udało się odrzucić zaproszenia.'
+  }
+}
+
+async function cancelRequest(requestId: number) {
+  try {
+    await cancelFriendRequest(requestId)
+    await loadFriendsAndRequests()
+  } catch {
+    requestsError.value = 'Nie udało się wycofać zaproszenia.'
+  }
+}
+
+async function removeFriendRelationship(friendId: number) {
+  try {
+    await removeFriend(friendId)
+    delete friendStateMap.value[friendId]
+    await loadFriendsAndRequests()
+  } catch {
+    friendsListError.value = 'Nie udało się usunąć znajomego.'
+  }
+}
+
+async function acceptTripInv(tripId: number, invitationId: number) {
+  try {
+    await acceptTripInvitation(tripId, invitationId)
+    await loadFriendsAndRequests()
+  } catch {
+    tripInvitationsError.value = 'Nie udało się zaakceptować zaproszenia.'
+  }
+}
+
+async function declineTripInv(tripId: number, invitationId: number) {
+  try {
+    await declineTripInvitation(tripId, invitationId)
+    await loadFriendsAndRequests()
+  } catch {
+    tripInvitationsError.value = 'Nie udało się odrzucić zaproszenia.'
+  }
+}
+
+function getFriendState(profileId: number): 'friend' | 'pending_sent' | 'pending_received' | null {
+  return friendStateMap.value[profileId] ?? null
+}
+
+function friendName(friend: Friend): string {
+  return friend.name || 'Użytkownik'
+}
+
+function requestUserName(request: FriendRequest): string {
+  const profile = request.user
+  const fullName = [profile.first_name, profile.last_name].filter(Boolean).join(' ')
+  return profile.name || fullName || 'Użytkownik'
+}
+
+onMounted(() => {
+  // Preload friends if already on the friends tab
+  if (activeTab.value === 'friends') {
+    void loadFriendsAndRequests()
+  }
+})
+
+function showInvitePreviewDialog() {
+  const email = inviteEmail.value.trim()
+  if (!email) return
+  invitePreviewTo.value = email
+  showInvitePreview.value = true
+}
+
+async function confirmAndSendInvite() {
+  showInvitePreview.value = false
+  inviteLoading.value = true
+  inviteSuccess.value = ''
+  inviteError.value = ''
+
+  try {
+    await sendInviteEmail(invitePreviewTo.value.trim())
+    inviteSuccess.value = 'Zaproszenie zostało wysłane!'
+    inviteEmail.value = ''
+  } catch (cause: unknown) {
+    if (cause instanceof ApiError) {
+      inviteError.value = cause.message || 'Nie udało się wysłać zaproszenia.'
+    } else {
+      inviteError.value = 'Nie udało się wysłać zaproszenia.'
+    }
+  } finally {
+    inviteLoading.value = false
+  }
+}
+
+function closeInvitePreview() {
+  showInvitePreview.value = false
+}
+
+function publicProfileName(profile: PublicProfile): string {
+  const fullName = [profile.first_name, profile.last_name].filter(Boolean).join(' ')
+  return profile.name || fullName || 'Użytkownik'
+}
+
+async function loadPublicProfiles(page: number) {
+  if (!friendSearchQuery.value) return
+
+  const requestId = ++friendsRequestId
+  friendsLoading.value = true
+  friendsError.value = ''
+
+  try {
+    const result = await getPublicProfiles(page, friendSearchQuery.value)
+    if (requestId !== friendsRequestId) return
+    publicProfiles.value = result.data
+    friendsCurrentPage.value = result.meta.current_page
+    friendsLastPage.value = result.meta.last_page
+    friendsTotal.value = result.meta.total
+  } catch (cause: unknown) {
+    if (requestId !== friendsRequestId) return
+    friendsError.value =
+      cause instanceof Error ? cause.message : 'Nie udało się wyszukać publicznych profili.'
+  } finally {
+    if (requestId === friendsRequestId) friendsLoading.value = false
+  }
+}
+
+function searchPublicProfiles() {
+  friendSearchQuery.value = friendSearch.value.trim()
+  friendSearchSubmitted.value = friendSearchQuery.value.length > 0
+  friendsError.value = ''
+
+  if (!friendSearchSubmitted.value) {
+    friendsRequestId += 1
+    friendsLoading.value = false
+    publicProfiles.value = []
+    friendsTotal.value = 0
+    friendsCurrentPage.value = 1
+    friendsLastPage.value = 1
+    return
+  }
+
+  void loadPublicProfiles(1)
 }
 
 function selectStatsYear(event: Event) {
@@ -581,7 +859,288 @@ async function saveProfile() {
 
         <div class="tab-panel" role="tabpanel" :aria-labelledby="`tab-${activeTab}`">
           <UserTripsList v-if="activeTab === 'trips'" />
-          <p v-else-if="activeTab === 'friends'">Lista znajomych pojawi się tutaj.</p>
+          <section v-else-if="activeTab === 'friends'" class="friends-panel">
+            <!-- Friend requests section -->
+            <div class="requests-section">
+              <h3>Zaproszenia</h3>
+              <div class="requests-tabs" role="tablist" aria-label="Rodzaj zaproszeń">
+                <button
+                  type="button"
+                  role="tab"
+                  :aria-selected="requestsTab === 'incoming'"
+                  @click="requestsTab = 'incoming'"
+                >
+                  Przychodzące ({{ incomingRequests.length }})
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  :aria-selected="requestsTab === 'outgoing'"
+                  @click="requestsTab = 'outgoing'"
+                >
+                  Wysłane ({{ outgoingRequests.length }})
+                </button>
+              </div>
+
+              <p v-if="requestsLoading" class="friends-status" role="status">Ładowanie zaproszeń...</p>
+              <p v-else-if="requestsError" class="friends-status friends-error" role="alert">{{ requestsError }}</p>
+
+              <template v-else>
+                <div v-if="requestsTab === 'incoming'" class="requests-list">
+                  <p v-if="incomingRequests.length === 0" class="empty-state">
+                    Brak przychodzących zaproszeń.
+                  </p>
+                  <ul v-else class="friends-list">
+                    <li v-for="req in incomingRequests" :key="req.id">
+                      <img
+                        v-if="req.user.avatar_path"
+                        class="friend-avatar"
+                        :src="getPublicAvatarUrl(req.user.avatar_path)"
+                        alt=""
+                      />
+                      <span v-else class="friend-avatar friend-avatar-placeholder" aria-hidden="true">
+                        {{ requestUserName(req).slice(0, 1).toLocaleUpperCase() }}
+                      </span>
+                      <div>
+                        <strong>{{ requestUserName(req) }}</strong>
+                        <span v-if="req.user.city">{{ req.user.city }}</span>
+                      </div>
+                      <button
+                        class="accept-request-button"
+                        type="button"
+                        @click="acceptRequest(req.id)"
+                      >
+                        Akceptuj
+                      </button>
+                      <button
+                        class="decline-request-button"
+                        type="button"
+                        @click="declineRequest(req.id)"
+                      >
+                        Odrzuć
+                      </button>
+                    </li>
+                  </ul>
+                </div>
+                <div v-else class="requests-list">
+                  <p v-if="outgoingRequests.length === 0" class="empty-state">
+                    Brak wysłanych zaproszeń.
+                  </p>
+                  <ul v-else class="friends-list">
+                    <li v-for="req in outgoingRequests" :key="req.id">
+                      <img
+                        v-if="req.user.avatar_path"
+                        class="friend-avatar"
+                        :src="getPublicAvatarUrl(req.user.avatar_path)"
+                        alt=""
+                      />
+                      <span v-else class="friend-avatar friend-avatar-placeholder" aria-hidden="true">
+                        {{ requestUserName(req).slice(0, 1).toLocaleUpperCase() }}
+                      </span>
+                      <div>
+                        <strong>{{ requestUserName(req) }}</strong>
+                        <span v-if="req.user.city">{{ req.user.city }}</span>
+                      </div>
+                      <span class="pending-badge">Oczekujące</span>
+                      <button
+                        class="cancel-request-button"
+                        type="button"
+                        @click="cancelRequest(req.id)"
+                      >
+                        Wycofaj
+                      </button>
+                    </li>
+                  </ul>
+                </div>
+              </template>
+            </div>
+
+            <!-- Accepted friends list -->
+            <div class="accepted-friends-section">
+              <h3>Znajomi ({{ friends.length }})</h3>
+              <p v-if="friendsListLoading" class="friends-status" role="status">Ładowanie znajomych...</p>
+              <p v-else-if="friendsListError" class="friends-status friends-error" role="alert">{{ friendsListError }}</p>
+              <p v-else-if="friends.length === 0" class="empty-state">
+                Nie masz jeszcze znajomych. Wyszukaj profil poniżej i wyślij zaproszenie.
+              </p>
+              <ul v-else class="friends-list">
+                <li v-for="friend in friends" :key="friend.id">
+                  <img
+                    v-if="friend.avatar_path"
+                    class="friend-avatar"
+                    :src="getPublicAvatarUrl(friend.avatar_path)"
+                    alt=""
+                  />
+                  <span v-else class="friend-avatar friend-avatar-placeholder" aria-hidden="true">
+                    {{ friendName(friend).slice(0, 1).toLocaleUpperCase() }}
+                  </span>
+                  <div>
+                    <strong>{{ friendName(friend) }}</strong>
+                  </div>
+                  <RouterLink :to="{ name: 'public-profile', params: { id: friend.id } }">
+                    Zobacz profil
+                  </RouterLink>
+                  <button
+                    class="remove-friend-button"
+                    type="button"
+                    @click="removeFriendRelationship(friend.id)"
+                  >
+                    Usuń
+                  </button>
+                </li>
+              </ul>
+            </div>
+
+            <!-- Trip invitations -->
+            <div class="trip-invitations-section">
+              <h3>Zaproszenia do wycieczek ({{ tripInvitations.length }})</h3>
+              <p v-if="tripInvitationsLoading" class="friends-status" role="status">Ładowanie zaproszeń...</p>
+              <p v-else-if="tripInvitationsError" class="friends-status friends-error" role="alert">{{ tripInvitationsError }}</p>
+              <p v-else-if="tripInvitations.length === 0" class="empty-state">
+                Nie masz żadnych zaproszeń do wycieczek.
+              </p>
+              <ul v-else class="friends-list">
+                <li v-for="inv in tripInvitations" :key="inv.id">
+                  <div class="trip-inv-info">
+                    <span class="trip-inv-icon">🗺️</span>
+                    <div>
+                      <strong>{{ inv.inviter?.name || 'Użytkownik' }}</strong>
+                      <span class="trip-inv-trip">zaprasza Cię do wycieczki</span>
+                    </div>
+                  </div>
+                  <button
+                    class="accept-request-button"
+                    type="button"
+                    @click="acceptTripInv(inv.trip_id, inv.id)"
+                  >
+                    Dołącz
+                  </button>
+                  <button
+                    class="decline-request-button"
+                    type="button"
+                    @click="declineTripInv(inv.trip_id, inv.id)"
+                  >
+                    Odrzuć
+                  </button>
+                </li>
+              </ul>
+            </div>
+
+            <!-- Invite by email -->
+            <div class="invite-email-section">
+              <h3>Zaprosz przez e-mail</h3>
+              <p class="invite-description">
+                Wyślij zaproszenie z linkiem do swojego profilu — odbiorca będzie mógł Cię łatwo znaleźć w aplikacji.
+              </p>
+              <form class="invite-email-form" @submit.prevent="showInvitePreviewDialog">
+                <label for="invite-email">Adres e-mail</label>
+                <div class="invite-email-controls">
+                  <input
+                    id="invite-email"
+                    v-model="inviteEmail"
+                    type="email"
+                    placeholder="przyklad@email.com"
+                    autocomplete="email"
+                    required
+                  />
+                  <button type="submit" :disabled="inviteLoading">Wyślij zaproszenie</button>
+                </div>
+              </form>
+              <p v-if="inviteSuccess" class="friends-status friends-success" role="status">{{ inviteSuccess }}</p>
+              <p v-if="inviteError" class="friends-status friends-error" role="alert">{{ inviteError }}</p>
+            </div>
+
+            <!-- Search for new friends -->
+            <div class="search-friends-section">
+              <h3>Wyszukaj nowych znajomych</h3>
+              <form class="friends-search-form" @submit.prevent="searchPublicProfiles">
+                <label for="friend-search">Szukaj profilu</label>
+                <div class="friends-search-controls">
+                  <input
+                    id="friend-search"
+                    v-model="friendSearch"
+                    type="search"
+                    maxlength="100"
+                    placeholder="Wpisz nazwę użytkownika"
+                    autocomplete="off"
+                  />
+                  <button type="submit" :disabled="friendsLoading">Szukaj</button>
+                </div>
+              </form>
+
+              <p v-if="friendsError" class="friends-status friends-error" role="alert">{{ friendsError }}</p>
+              <p v-if="friendsLoading" class="friends-status" role="status">Szukanie profili...</p>
+              <p v-else-if="!friendSearchSubmitted" class="friends-status">
+                Wpisz nazwę użytkownika i wybierz „Szukaj”, aby znaleźć publiczny profil.
+              </p>
+              <p v-else-if="publicProfiles.length === 0" class="friends-status">
+                Nie znaleziono pasujących publicznych profili.
+              </p>
+              <template v-else>
+                <p class="friends-count">Publiczne profile: {{ friendsTotal }}</p>
+                <ul class="friends-list">
+                  <li v-for="profile in publicProfiles" :key="profile.id">
+                    <img
+                      v-if="profile.avatar_path"
+                      class="friend-avatar"
+                      :src="getPublicAvatarUrl(profile.avatar_path)"
+                      alt=""
+                    />
+                    <span v-else class="friend-avatar friend-avatar-placeholder" aria-hidden="true">
+                      {{ publicProfileName(profile).slice(0, 1).toLocaleUpperCase() }}
+                    </span>
+                    <div>
+                      <strong>{{ publicProfileName(profile) }}</strong>
+                      <span v-if="profile.city">{{ profile.city }}</span>
+                    </div>
+                    <RouterLink :to="{ name: 'public-profile', params: { id: profile.id } }">
+                      Zobacz profil
+                    </RouterLink>
+                    <template v-if="getFriendState(profile.id) === 'friend'">
+                      <span class="friend-badge">Znajomi</span>
+                    </template>
+                    <template v-else-if="getFriendState(profile.id) === 'pending_sent'">
+                      <span class="pending-badge">Oczekujące</span>
+                    </template>
+                    <template v-else-if="getFriendState(profile.id) === 'pending_received'">
+                      <span class="received-badge">Masz zaproszenie</span>
+                    </template>
+                    <template v-else>
+                      <button
+                        class="add-friend-button"
+                        type="button"
+                        :aria-label="`Dodaj znajomego: ${publicProfileName(profile)}`"
+                        @click="sendAddFriendRequest(profile.id)"
+                      >
+                        Dodaj znajomego
+                      </button>
+                    </template>
+                  </li>
+                </ul>
+                <nav
+                  v-if="friendsLastPage > 1"
+                  class="friends-pagination"
+                  aria-label="Stronicowanie profili"
+                >
+                  <button
+                    type="button"
+                    :disabled="friendsCurrentPage <= 1 || friendsLoading"
+                    @click="loadPublicProfiles(friendsCurrentPage - 1)"
+                  >
+                    Poprzednia
+                  </button>
+                  <span>Strona {{ friendsCurrentPage }} z {{ friendsLastPage }}</span>
+                  <button
+                    type="button"
+                    :disabled="friendsCurrentPage >= friendsLastPage || friendsLoading"
+                    @click="loadPublicProfiles(friendsCurrentPage + 1)"
+                  >
+                    Następna
+                  </button>
+                </nav>
+              </template>
+            </div>
+          </section>
           <div v-else-if="statsLoadState === 'loading'" class="stats-message" role="status">
             Pobieranie statystyk...
           </div>
@@ -772,6 +1331,66 @@ async function saveProfile() {
             @click="selectAvatar(avatar)"
           >
             <img :src="avatarUrl(avatar)" :alt="`Awatar ${avatarFiles.indexOf(avatar) + 1}`" />
+          </button>
+        </div>
+      </div>
+    </dialog>
+
+    <!-- Invite email preview dialog -->
+    <dialog
+      :open="showInvitePreview"
+      class="invite-preview-dialog"
+      aria-labelledby="invite-preview-title"
+      @click.self="closeInvitePreview"
+    >
+      <div class="invite-preview-content">
+        <header class="dialog-header">
+          <h2 id="invite-preview-title">Podgląd zaproszenia</h2>
+          <button
+            class="dialog-close"
+            type="button"
+            aria-label="Zamknij"
+            @click="closeInvitePreview"
+          >
+            ×
+          </button>
+        </header>
+
+        <p class="invite-preview-text">
+          Poniżej znajduje się treść wiadomości, która zostanie wysłana na adres
+          <strong>{{ invitePreviewTo }}</strong>:
+        </p>
+
+        <div class="invite-preview-email">
+          <h3 class="email-subject">🚗 Zaproszenie do Dziennika podróży</h3>
+          <p class="email-body">Cześć!</p>
+          <p class="email-body">
+            {{ auth.user?.name }} zaprasza Cię do dołączenia do niego w aplikacji
+            <strong>Dziennik podróży</strong>.
+          </p>
+          <div class="email-profile-info">
+            <p><strong>Profil:</strong> {{ auth.user?.name }}</p>
+            <p v-if="auth.user?.city"><strong>Miasto:</strong> {{ auth.user?.city }}</p>
+            <p>
+              <strong>Link do profilu:</strong><br>
+              <a :href="inviteLink" target="_blank" rel="noopener">{{ inviteLink }}</a>
+            </p>
+          </div>
+          <p class="email-body">
+            Kliknij powyższy link, aby przejść bezpośrednio do profilu:
+          </p>
+          <div class="email-button-wrapper">
+            <a :href="inviteLink" class="email-button" target="_blank" rel="noopener">Zobacz profil</a>
+          </div>
+          <p class="email-footer">
+            Jeśli nie chcesz odwiedzać tego profilu, po prostu zignoruj tę wiadomość.
+          </p>
+        </div>
+
+        <div class="invite-preview-actions">
+          <button type="button" class="btn-cancel" @click="closeInvitePreview">Anuluj</button>
+          <button type="button" class="btn-confirm" :disabled="inviteLoading" @click="confirmAndSendInvite">
+            {{ inviteLoading ? 'Wysyłanie…' : 'Potwierdź i wyślij' }}
           </button>
         </div>
       </div>
@@ -1058,6 +1677,340 @@ input {
 .tab-panel {
   min-height: 12rem;
   padding-top: 1rem;
+}
+
+.friends-panel {
+  display: grid;
+  gap: 0.75rem;
+  max-width: 42rem;
+}
+
+.friends-panel > label {
+  font-weight: 700;
+}
+
+.friends-search-form {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.friends-search-form label {
+  font-weight: 700;
+}
+
+.friends-search-controls {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.friends-search-controls input {
+  flex: 1;
+  width: 100%;
+  min-height: 2.75rem;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--color-border);
+  border-radius: 0.5rem;
+  color: inherit;
+  background: var(--color-background);
+  font: inherit;
+}
+
+.friends-search-controls button,
+.add-friend-button {
+  padding: 0.55rem 0.8rem;
+  border: 1px solid #386a54;
+  border-radius: 0.5rem;
+  color: white;
+  background: #386a54;
+  font: inherit;
+  font-weight: 600;
+}
+
+.friends-search-controls button {
+  cursor: pointer;
+}
+
+.friends-search-controls button:disabled,
+.add-friend-button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.friends-note {
+  margin: 0;
+  color: #64746c;
+  font-size: 0.9rem;
+}
+
+.friends-note code {
+  overflow-wrap: anywhere;
+}
+
+.friends-status,
+.friends-count {
+  margin: 0;
+  color: #64746c;
+}
+
+.friends-error {
+  color: #b42318;
+}
+
+.friends-error button,
+.friends-pagination button {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #386a54;
+  border-radius: 0.5rem;
+  color: #294d3d;
+  background: transparent;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.friends-list {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.friends-list li {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  border: 1px solid var(--color-border);
+  border-radius: 0.75rem;
+}
+
+.friend-avatar {
+  display: grid;
+  flex: 0 0 2.75rem;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 50%;
+}
+
+img.friend-avatar {
+  object-fit: cover;
+}
+
+.friend-avatar-placeholder {
+  color: white;
+  background: #386a54;
+  font-weight: 700;
+}
+
+.friends-list li > div {
+  display: grid;
+  flex: 1;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.friends-list li > div + a {
+  flex: 0 0 auto;
+}
+
+.friends-list li > div span {
+  color: #64746c;
+  font-size: 0.9rem;
+}
+
+.friends-list a {
+  color: #386a54;
+  font-weight: 700;
+}
+
+.friends-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+}
+
+.friends-pagination button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.requests-section,
+.accepted-friends-section,
+.trip-invitations-section,
+.search-friends-section,
+.invite-email-section {
+  display: grid;
+  gap: 0.75rem;
+  padding: 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: 0.75rem;
+}
+
+.requests-section h3,
+.accepted-friends-section h3,
+.trip-invitations-section h3,
+.search-friends-section h3,
+.invite-email-section h3 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.trip-inv-info {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.trip-inv-icon {
+  font-size: 1.5rem;
+}
+
+.trip-inv-trip {
+  display: block;
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+}
+
+.invite-description {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #6b7280;
+}
+
+.invite-email-form {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.invite-email-controls {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.invite-email-controls input {
+  flex: 1;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--color-border);
+  border-radius: 0.5rem;
+  font: inherit;
+  font-size: 1rem;
+}
+
+.invite-email-controls button {
+  padding: 0.5rem 1rem;
+  border: 1px solid #386a54;
+  border-radius: 0.5rem;
+  color: white;
+  background: #386a54;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.invite-email-controls button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.friends-success {
+  color: #2f855a;
+  background: rgb(47 133 90 / 12%);
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.5rem;
+}
+
+.requests-tabs {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.requests-tabs button {
+  padding: 0.4rem 0.75rem;
+  border: 1px solid var(--color-border);
+  border-radius: 0.5rem;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.requests-tabs button[aria-selected='true'] {
+  border-color: #386a54;
+  background: #386a54;
+  color: white;
+}
+
+.requests-list {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.accept-request-button,
+.cancel-request-button {
+  padding: 0.4rem 0.6rem;
+  border: 1px solid #2f855a;
+  border-radius: 0.5rem;
+  color: white;
+  background: #2f855a;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.decline-request-button {
+  padding: 0.4rem 0.6rem;
+  border: 1px solid #b42318;
+  border-radius: 0.5rem;
+  color: white;
+  background: #b42318;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.remove-friend-button {
+  padding: 0.4rem 0.6rem;
+  border: 1px solid #64746c;
+  border-radius: 0.5rem;
+  color: #64746c;
+  background: transparent;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.remove-friend-button:hover {
+  border-color: #b42318;
+  color: #b42318;
+}
+
+.friend-badge,
+.pending-badge,
+.received-badge {
+  padding: 0.3rem 0.6rem;
+  border-radius: 0.5rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.friend-badge {
+  color: #2f855a;
+  background: rgb(47 133 90 / 12%);
+}
+
+.pending-badge {
+  color: #b45309;
+  background: rgb(180 83 9 / 12%);
+}
+
+.received-badge {
+  color: #2563eb;
+  background: rgb(37 99 235 / 12%);
 }
 
 .stats-content,
@@ -1456,6 +2409,138 @@ input {
   border-color: #386a54;
 }
 
+/* Invite preview dialog */
+
+.invite-preview-dialog {
+  width: min(40rem, calc(100vw - 2rem));
+  max-width: none;
+  max-height: calc(100vh - 2rem);
+  margin: auto;
+  padding: 0;
+  overflow: auto;
+  border: 0;
+  border-radius: 1rem;
+  color: #111827;
+  background: #fff;
+  box-shadow: 0 1.5rem 4rem rgb(0 0 0 / 25%);
+}
+
+.invite-preview-dialog::backdrop {
+  background: rgb(17 24 39 / 65%);
+}
+
+.invite-preview-content {
+  display: grid;
+  gap: 1.25rem;
+  padding: 1.5rem;
+}
+
+.invite-preview-text {
+  margin: 0;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  color: #374151;
+}
+
+.invite-preview-email {
+  display: grid;
+  gap: 0.75rem;
+  padding: 1.25rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.75rem;
+  background: #f9fafb;
+}
+
+.email-subject {
+  margin: 0;
+  font-size: 1.15rem;
+  color: #386a54;
+}
+
+.email-body {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.6;
+  color: #374151;
+}
+
+.email-profile-info {
+  display: grid;
+  gap: 0.4rem;
+  padding: 1rem;
+  border-radius: 0.75rem;
+  background: #e9f5ef;
+  font-size: 0.9rem;
+}
+
+.email-profile-info p {
+  margin: 0;
+}
+
+.email-profile-info a {
+  color: #386a54;
+  word-break: break-all;
+}
+
+.email-button-wrapper {
+  text-align: center;
+}
+
+.email-button {
+  display: inline-block;
+  padding: 0.6rem 1.25rem;
+  border-radius: 0.5rem;
+  color: #fff;
+  background: #386a54;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.email-footer {
+  margin: 0;
+  font-size: 0.8rem;
+  color: #6b7280;
+}
+
+.invite-preview-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+}
+
+.btn-cancel {
+  padding: 0.5rem 1rem;
+  border: 1px solid #9ca3af;
+  border-radius: 0.5rem;
+  color: #374151;
+  background: #fff;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.btn-cancel:hover {
+  background: #f3f4f6;
+}
+
+.btn-confirm {
+  padding: 0.5rem 1rem;
+  border: 1px solid #386a54;
+  border-radius: 0.5rem;
+  color: #fff;
+  background: #386a54;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.btn-confirm:hover:not(:disabled) {
+  background: #294d3d;
+}
+
+.btn-confirm:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 @media (max-width: 900px) {
   .profile-layout {
     grid-template-columns: minmax(0, 1fr);
@@ -1635,6 +2720,66 @@ input {
 
   .dialog-close {
     background: #374151;
+  }
+
+  .invite-preview-dialog {
+    color: #f3f4f6;
+    background: #1f2937;
+  }
+
+  .invite-preview-text {
+    color: #d1d5db;
+  }
+
+  .invite-preview-email {
+    border-color: #374151;
+    background: #111827;
+  }
+
+  .email-subject {
+    color: #6ee7b7;
+  }
+
+  .email-body {
+    color: #d1d5db;
+  }
+
+  .email-profile-info {
+    background: rgb(110 231 183 / 12%);
+  }
+
+  .email-profile-info a {
+    color: #6ee7b7;
+  }
+
+  .email-button {
+    background: #6ee7b7;
+    color: #111827;
+  }
+
+  .email-footer {
+    color: #9ca3af;
+  }
+
+  .btn-cancel {
+    border-color: #6b7280;
+    color: #d1d5db;
+    background: #1f2937;
+  }
+
+  .btn-cancel:hover {
+    background: #374151;
+  }
+
+  .btn-confirm {
+    border-color: #6ee7b7;
+    background: #6ee7b7;
+    color: #111827;
+  }
+
+  .btn-confirm:hover:not(:disabled) {
+    background: #386a54;
+    color: #fff;
   }
 }
 </style>

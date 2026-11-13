@@ -9,6 +9,12 @@ import {
   type Trip,
   type TripPayload,
 } from '@/api/trips'
+import {
+  getFriends,
+  inviteToTrip,
+  type Friend,
+  type TripInvitation,
+} from '@/api/friends'
 import { ApiError } from '@/api/types'
 import ConfirmModal from '@/components/common/ConfirmModal.vue'
 
@@ -56,6 +62,16 @@ const isSubmitting = ref<boolean>(false)
 const showDeleteConfirm = ref<boolean>(false)
 const isDeleting = ref<boolean>(false)
 const currentTrip = ref<Trip | null>(null)
+
+// Zaproszenia znajomych do wycieczki
+const showInviteDialog = ref<boolean>(false)
+const friends = ref<Friend[]>([])
+const isLoadingFriends = ref<boolean>(false)
+const selectedFriends = ref<Set<number>>(new Set())
+const isInviting = ref<boolean>(false)
+const inviteError = ref<string>('')
+const inviteSuccess = ref<string>('')
+const existingInvitations = ref<TripInvitation[]>([])
 
 function clearErrors() {
   errors.name = []
@@ -187,6 +203,82 @@ async function confirmDeleteTrip() {
   } finally {
     isDeleting.value = false
   }
+}
+
+// ── Zaproszenia znajomych ──
+
+async function openInviteDialog() {
+  showInviteDialog.value = true
+  inviteError.value = ''
+  inviteSuccess.value = ''
+  selectedFriends.value = new Set()
+  await loadFriends()
+}
+
+function closeInviteDialog() {
+  showInviteDialog.value = false
+}
+
+async function loadFriends() {
+  isLoadingFriends.value = true
+  try {
+    friends.value = await getFriends()
+  } catch {
+    friends.value = []
+  } finally {
+    isLoadingFriends.value = false
+  }
+}
+
+function toggleFriendSelection(friendId: number) {
+  const next = new Set(selectedFriends.value)
+  if (next.has(friendId)) {
+    next.delete(friendId)
+  } else {
+    next.add(friendId)
+  }
+  selectedFriends.value = next
+}
+
+function isFriendSelected(friendId: number): boolean {
+  return selectedFriends.value.has(friendId)
+}
+
+function isFriendInvited(friendId: number): boolean {
+  return existingInvitations.value.some(
+    (inv) => inv.invitee_id === friendId && inv.status === 'pending',
+  )
+}
+
+function isFriendAccepted(friendId: number): boolean {
+  return existingInvitations.value.some(
+    (inv) => inv.invitee_id === friendId && inv.status === 'accepted',
+  )
+}
+
+async function sendInvitations() {
+  if (selectedFriends.value.size === 0) return
+  if (currentTrip.value === null) return
+
+  isInviting.value = true
+  inviteError.value = ''
+  inviteSuccess.value = ''
+
+  const tripId = currentTrip.value.id
+  let successCount = 0
+
+  for (const friendId of selectedFriends.value) {
+    try {
+      await inviteToTrip(tripId, friendId)
+      successCount++
+    } catch {
+      // skip failed invitations
+    }
+  }
+
+  selectedFriends.value = new Set()
+  inviteSuccess.value = `Zaproszono ${successCount} znajomych do wycieczki.`
+  isInviting.value = false
 }
 
 onMounted(() => {
@@ -370,7 +462,20 @@ onMounted(() => {
             </p>
           </div>
 
-          <div v-if="!isEditMode" class="invite-friends-row">
+          <div v-if="isEditMode" class="invite-friends-row">
+            <button
+              type="button"
+              class="btn-secondary"
+              data-testid="invite-friends-button"
+              @click="openInviteDialog"
+            >
+              Zaproś znajomych
+            </button>
+            <p class="invite-friends-hint">
+              {{ friends.length > 0 ? `Masz ${friends.length} znajomych` : 'Brak znajomych na liście' }}
+            </p>
+          </div>
+          <div v-else class="invite-friends-row">
             <button
               type="button"
               class="btn-secondary"
@@ -379,7 +484,7 @@ onMounted(() => {
             >
               Zaproś znajomych
             </button>
-            <p class="invite-friends-hint">Ta opcja będzie dostępna w przyszłości.</p>
+            <p class="invite-friends-hint">Zaproszenia dostępne po utworzeniu wycieczki.</p>
           </div>
 
           <!-- Przyciski akcji formularza -->
@@ -457,6 +562,90 @@ onMounted(() => {
       @cancel="closeDeleteModal"
       @close="closeDeleteModal"
     />
+
+    <!-- Dialog zaproszenia znajomych -->
+    <dialog
+      :open="showInviteDialog"
+      class="invite-dialog"
+      aria-labelledby="invite-dialog-title"
+      @click.self="closeInviteDialog"
+    >
+      <div class="invite-dialog-content">
+        <header class="dialog-header">
+          <h2 id="invite-dialog-title">Zaproś znajomych do wycieczki</h2>
+          <button
+            class="dialog-close"
+            type="button"
+            aria-label="Zamknij"
+            @click="closeInviteDialog"
+          >
+            ×
+          </button>
+        </header>
+
+        <p class="invite-dialog-intro">
+          Zaznacz znajomych, których chcesz zaprosić do wycieczki <strong>"{{ formData.name || 'tej wycieczki' }}"</strong>.
+        </p>
+
+        <div v-if="inviteSuccess" class="alert-banner success-banner" role="alert">
+          <span>{{ inviteSuccess }}</span>
+        </div>
+
+        <div v-if="isLoadingFriends" class="status-card loading-card" role="status" aria-live="polite">
+          <div class="spinner" aria-hidden="true"></div>
+          <p>Ładowanie znajomych...</p>
+        </div>
+
+        <div v-else-if="friends.length === 0" class="empty-state">
+          <p>Nie masz jeszcze znajomych. Dodaj ich w zakładce "Znajomi" w swoim profilu.</p>
+        </div>
+
+        <div v-else class="friends-list">
+          <label
+            v-for="friend in friends"
+            :key="friend.id"
+            class="friend-checkbox-item"
+            :class="{
+              'friend-pending': isFriendInvited(friend.id),
+              'friend-accepted': isFriendAccepted(friend.id),
+            }"
+          >
+            <div class="friend-avatar-wrapper">
+              <img
+                v-if="friend.avatar_path"
+                :src="`/storage/${friend.avatar_path}`"
+                :alt="`Avatar ${friend.name}`"
+                class="friend-avatar"
+              />
+              <div v-else class="friend-avatar-placeholder">
+                {{ friend.name?.charAt(0)?.toUpperCase() || '?' }}
+              </div>
+            </div>
+            <span class="friend-name">{{ friend.name || 'Użytkownik' }}</span>
+            <span v-if="isFriendAccepted(friend.id)" class="friend-badge accepted">Uczestnik</span>
+            <span v-else-if="isFriendInvited(friend.id)" class="friend-badge pending">Oczekujące</span>
+            <input
+              type="checkbox"
+              :disabled="isFriendInvited(friend.id) || isFriendAccepted(friend.id)"
+              :checked="isFriendSelected(friend.id)"
+              @change="toggleFriendSelection(friend.id)"
+            />
+          </label>
+        </div>
+
+        <div class="invite-dialog-actions">
+          <button type="button" class="btn-cancel" @click="closeInviteDialog">Anuluj</button>
+          <button
+            type="button"
+            class="btn-confirm"
+            :disabled="isInviting || selectedFriends.size === 0"
+            @click="sendInvitations"
+          >
+            {{ isInviting ? 'Wysyłanie…' : `Zaproś (${selectedFriends.size})` }}
+          </button>
+        </div>
+      </div>
+    </dialog>
   </main>
 </template>
 
@@ -878,6 +1067,245 @@ textarea:focus {
 
   .form-actions-row {
     border-top-color: rgba(110, 231, 183, 0.2);
+  }
+}
+
+/* ── Invite friends dialog ── */
+
+.invite-dialog {
+  width: min(36rem, calc(100vw - 2rem));
+  max-width: none;
+  max-height: calc(100vh - 2rem);
+  margin: auto;
+  padding: 0;
+  overflow: auto;
+  border: 0;
+  border-radius: 1rem;
+  color: #111827;
+  background: #fff;
+  box-shadow: 0 1.5rem 4rem rgb(0 0 0 / 25%);
+}
+
+.invite-dialog::backdrop {
+  background: rgb(17 24 39 / 65%);
+}
+
+.invite-dialog-content {
+  display: grid;
+  gap: 1.25rem;
+  padding: 1.5rem;
+}
+
+.invite-dialog-intro {
+  margin: 0;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  color: #374151;
+}
+
+.success-banner {
+  background: #e9f5ef;
+  border-color: #386a54;
+  color: #294d3d;
+}
+
+.empty-state {
+  display: flex;
+  justify-content: center;
+  padding: 2rem 1rem;
+  text-align: center;
+  color: #6b7280;
+  font-size: 0.95rem;
+}
+
+.friends-list {
+  display: grid;
+  gap: 0.5rem;
+  max-height: 20rem;
+  overflow-y: auto;
+  padding: 0.5rem;
+}
+
+.friend-checkbox-item {
+  display: grid;
+  grid-template-columns: auto 1fr auto auto;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 0.75rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: background 150ms ease;
+}
+
+.friend-checkbox-item:hover {
+  background: #f3f4f6;
+}
+
+.friend-checkbox-item.friend-pending {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.friend-checkbox-item.friend-accepted {
+  background: #e9f5ef;
+}
+
+.friend-avatar-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.friend-avatar {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.friend-avatar-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  background: #386a54;
+  color: #fff;
+  font-weight: 600;
+  font-size: 1rem;
+}
+
+.friend-name {
+  font-weight: 500;
+  font-size: 0.95rem;
+  color: #1f2937;
+}
+
+.friend-badge {
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.15rem 0.5rem;
+  border-radius: 9999px;
+}
+
+.friend-badge.accepted {
+  background: #386a54;
+  color: #fff;
+}
+
+.friend-badge.pending {
+  background: #f59e0b;
+  color: #fff;
+}
+
+.friend-checkbox-item input[type='checkbox'] {
+  width: 1.25rem;
+  height: 1.25rem;
+  accent-color: #386a54;
+}
+
+.invite-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+}
+
+.btn-cancel {
+  padding: 0.5rem 1rem;
+  border: 1px solid #9ca3af;
+  border-radius: 0.5rem;
+  color: #374151;
+  background: #fff;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.btn-cancel:hover {
+  background: #f3f4f6;
+}
+
+.btn-confirm {
+  padding: 0.5rem 1rem;
+  border: 1px solid #386a54;
+  border-radius: 0.5rem;
+  color: #fff;
+  background: #386a54;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.btn-confirm:hover:not(:disabled) {
+  background: #294d3d;
+}
+
+.btn-confirm:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Dark mode for invite dialog */
+@media (prefers-color-scheme: dark) {
+  .invite-dialog {
+    color: #f3f4f6;
+    background: #1f2937;
+  }
+
+  .invite-dialog-intro {
+    color: #d1d5db;
+  }
+
+  .success-banner {
+    background: rgb(110 231 183 / 12%);
+    border-color: #6ee7b7;
+    color: #6ee7b7;
+  }
+
+  .empty-state {
+    color: #9ca3af;
+  }
+
+  .friend-checkbox-item:hover {
+    background: #374151;
+  }
+
+  .friend-checkbox-item.friend-accepted {
+    background: rgb(110 231 183 / 12%);
+  }
+
+  .friend-avatar-placeholder {
+    background: #6ee7b7;
+    color: #111827;
+  }
+
+  .friend-name {
+    color: #f3f4f6;
+  }
+
+  .friend-badge.accepted {
+    background: #6ee7b7;
+    color: #111827;
+  }
+
+  .btn-cancel {
+    border-color: #6b7280;
+    color: #d1d5db;
+    background: #1f2937;
+  }
+
+  .btn-cancel:hover {
+    background: #374151;
+  }
+
+  .btn-confirm {
+    border-color: #6ee7b7;
+    background: #6ee7b7;
+    color: #111827;
+  }
+
+  .btn-confirm:hover:not(:disabled) {
+    background: #386a54;
+    color: #fff;
   }
 }
 </style>

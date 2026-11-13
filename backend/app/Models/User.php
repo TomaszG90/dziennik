@@ -5,6 +5,7 @@ namespace App\Models;
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -72,5 +73,30 @@ class User extends Authenticatable
     public function trips(): HasMany
     {
         return $this->hasMany(Trip::class);
+    }
+
+    public function sentFriendRequests(): HasMany
+    {
+        return $this->hasMany(FriendRequest::class, 'sender_id');
+    }
+
+    public function receivedFriendRequests(): HasMany
+    {
+        return $this->hasMany(FriendRequest::class, 'recipient_id');
+    }
+
+    public function friends(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'friend_requests', 'sender_id', 'recipient_id')
+            ->where('status', 'accepted')
+            ->orWherePivot('recipient_id', $this->id)
+            ->wherePivot('status', 'accepted');
+    }
+
+    public function guestTrips()
+    {
+        return Trip::whereHas('invitedGuests', function ($query) {
+            $query->where('invitee_id', $this->id)->where('status', 'accepted');
+        })->orderBy('start_date');
     }
 }

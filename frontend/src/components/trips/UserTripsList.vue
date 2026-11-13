@@ -360,13 +360,16 @@ onMounted(() => {
                   class="badge-origin"
                   :class="{
                     'badge-invitation': trip.is_invitation,
-                    'badge-own': !trip.is_invitation,
+                    'badge-guest': trip.is_guest,
+                    'badge-own': !trip.is_invitation && !trip.is_guest,
                   }"
                 >
                   {{
                     trip.is_invitation
                       ? `Zaproszenie: ${trip.inviter?.name ?? 'od znajomego'}`
-                      : 'Własna'
+                      : trip.is_guest
+                        ? 'Gość'
+                        : 'Własna'
                   }}
                 </span>
               </div>
@@ -402,7 +405,7 @@ onMounted(() => {
 
             <div class="trip-item-actions">
               <button
-                v-if="!trip.is_invitation"
+                v-if="!trip.is_invitation && !trip.is_guest"
                 type="button"
                 class="edit-button"
                 :aria-label="`Edytuj podróż ${trip.name}`"
@@ -475,13 +478,16 @@ onMounted(() => {
                   class="badge-origin"
                   :class="{
                     'badge-invitation': trip.is_invitation,
-                    'badge-own': !trip.is_invitation,
+                    'badge-guest': trip.is_guest,
+                    'badge-own': !trip.is_invitation && !trip.is_guest,
                   }"
                 >
                   {{
                     trip.is_invitation
                       ? `Zaproszenie: ${trip.inviter?.name ?? 'od znajomego'}`
-                      : 'Własna'
+                      : trip.is_guest
+                        ? 'Gość'
+                        : 'Własna'
                   }}
                 </span>
               </div>
@@ -517,7 +523,7 @@ onMounted(() => {
 
             <div class="trip-item-actions">
               <button
-                v-if="!trip.is_invitation"
+                v-if="!trip.is_invitation && !trip.is_guest"
                 type="button"
                 class="edit-button"
                 :aria-label="`Edytuj podróż ${trip.name}`"
@@ -998,6 +1004,12 @@ button.calendar-day:focus-visible {
   border: 1px solid #bfdbfe;
 }
 
+.badge-guest {
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fde68a;
+}
+
 .trip-date-row {
   display: flex;
   flex-wrap: wrap;
@@ -1273,6 +1285,12 @@ button.calendar-day:focus-visible {
     background: rgba(59, 130, 246, 0.15);
     color: #93c5fd;
     border-color: rgba(59, 130, 246, 0.3);
+  }
+
+  .badge-guest {
+    background: rgba(245, 158, 11, 0.15);
+    color: #fcd34d;
+    border-color: rgba(245, 158, 11, 0.3);
   }
 
   .trip-date-row {

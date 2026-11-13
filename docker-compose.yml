@@ -39,6 +39,7 @@ services:
     volumes:
       - ./backend:/var/www/backend
       - ./backend/.env:/var/www/backend/.env
+      - ./shared:/var/www/shared
     networks:
       - dziennik_network
     depends_on:
@@ -76,6 +77,7 @@ services:
       - "${FORWARD_FRONTEND_PORT:-5173}:5173"
     volumes:
       - ./frontend:/var/www/frontend
+      - ./shared:/var/www/shared
       # Izolacja node_modules kontenera od lokalnego systemu hosta:
       - /var/www/frontend/node_modules
     networks:

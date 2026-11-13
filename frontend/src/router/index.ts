@@ -8,6 +8,7 @@ import TripFormView from '../views/TripFormView.vue'
 import TripDetailsView from '../views/TripDetailsView.vue'
 import UserMapView from '../views/UserMapView.vue'
 import DashboardView from '../views/DashboardView.vue'
+import PublicProfileView from '../views/PublicProfileView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -16,6 +17,11 @@ const router = createRouter({
       path: '/',
       name: 'home',
       component: HomeView,
+    },
+    {
+      path: '/users/:id',
+      name: 'public-profile',
+      component: PublicProfileView,
     },
     {
       path: '/auth',
