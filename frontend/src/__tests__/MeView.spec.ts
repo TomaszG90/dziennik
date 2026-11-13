@@ -3,6 +3,7 @@ import { createPinia } from 'pinia'
 import { createMemoryHistory, createRouter } from 'vue-router'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import * as statsApi from '@/api/stats'
+import * as publicProfilesApi from '@/api/publicProfiles'
 import MeView from '@/views/MeView.vue'
 import * as tripsApi from '@/api/trips'
 
@@ -17,6 +18,7 @@ async function mountMeView() {
     routes: [
       { path: '/', name: 'home', component: { template: '<div>Home</div>' } },
       { path: '/me', name: 'me', component: MeView },
+      { path: '/users/:id', name: 'public-profile', component: { template: '<div />' } },
       { path: '/trips/new', name: 'trip-create', component: { template: '<div>New Trip</div>' } },
     ],
   })
@@ -51,6 +53,7 @@ describe('MeView', () => {
 
   it('switches tabs and hides UserTripsList when on friends tab', async () => {
     vi.spyOn(tripsApi, 'getTrips').mockResolvedValue([])
+    const getPublicProfiles = vi.spyOn(publicProfilesApi, 'getPublicProfiles')
 
     const { wrapper } = await mountMeView()
 
@@ -58,8 +61,41 @@ describe('MeView', () => {
     await friendsTab.trigger('click')
     await flushPromises()
 
-    expect(wrapper.text()).toContain('Lista znajomych pojawi się tutaj.')
+    expect(wrapper.get('#friend-search').attributes('placeholder')).toBe('Wpisz nazwę użytkownika')
+    expect(getPublicProfiles).not.toHaveBeenCalled()
+    expect(wrapper.text()).toContain('Wpisz nazwę użytkownika')
     expect(wrapper.find('[data-testid="create-trip-button"]').exists()).toBe(false)
+  })
+
+  it('searches only after submit and shows profile and add-friend actions', async () => {
+    vi.spyOn(tripsApi, 'getTrips').mockResolvedValue([])
+    const getPublicProfiles = vi.spyOn(publicProfilesApi, 'getPublicProfiles').mockResolvedValue({
+      data: [
+        {
+          id: 8,
+          name: 'Jan Kowalski',
+          city: 'Warszawa',
+          created_at: '2026-01-01T00:00:00Z',
+        },
+      ],
+      meta: { current_page: 1, last_page: 1, total: 1 },
+    })
+
+    const { wrapper } = await mountMeView()
+    await wrapper.get('#tab-friends').trigger('click')
+    await flushPromises()
+
+    expect(getPublicProfiles).not.toHaveBeenCalled()
+
+    await wrapper.get('#friend-search').setValue('Jan')
+    await wrapper.get('.friends-search-form').trigger('submit')
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('Jan Kowalski')
+    expect(wrapper.get('a[href="/users/8"]').text()).toContain('Zobacz profil')
+    expect(getPublicProfiles).toHaveBeenLastCalledWith(1, 'Jan')
+    expect(wrapper.get('.add-friend-button').text()).toBe('Dodaj znajomego')
+    expect(wrapper.get('.add-friend-button').element).toHaveProperty('disabled', true)
   })
 
   it('filters statistics by year and shows distance by transport', async () => {

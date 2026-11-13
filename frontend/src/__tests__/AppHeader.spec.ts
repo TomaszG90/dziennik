@@ -41,6 +41,7 @@ describe('AppHeader', () => {
     const { wrapper } = await mountHeader()
 
     expect(wrapper.get('a[href="/auth"]').text()).toBe('Konto')
+    expect(wrapper.find('a[href="/users"]').exists()).toBe(false)
     expect(wrapper.find('button').exists()).toBe(false)
     expect(wrapper.find('a[href="/dashboard"]').exists()).toBe(false)
   })

@@ -39,6 +39,31 @@ class PublicProfileTest extends TestCase
             ]);
     }
 
+    public function test_public_users_search_matches_only_fields_enabled_for_public_visibility(): void
+    {
+        $matchingUser = User::factory()->publicProfile()->create([
+            'name' => 'Visible Name',
+            'first_name' => 'Searchable',
+            'privacy_settings' => array_merge(
+                User::DEFAULT_PRIVACY_SETTINGS,
+                ['firstName' => true]
+            ),
+        ]);
+
+        User::factory()->publicProfile()->create([
+            'name' => 'Hidden Searchable Name',
+            'privacy_settings' => User::DEFAULT_PRIVACY_SETTINGS,
+        ]);
+
+        $response = $this->getJson('/api/v1/public/users?search=Searchable');
+
+        $response->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.id', $matchingUser->id)
+            ->assertJsonPath('data.0.first_name', 'Searchable')
+            ->assertJsonMissing(['name' => 'Hidden Searchable Name']);
+    }
+
     public function test_public_profile_returns_allowed_user_data(): void
     {
         $user = User::factory()->publicProfile()->create([

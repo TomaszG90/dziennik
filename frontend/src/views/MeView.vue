@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { computed, reactive, ref } from 'vue'
+import { RouterLink } from 'vue-router'
 import { apiClient, ApiError, updateMyProfile } from '@/api'
 import { getTravelStats, type TravelStats } from '@/api/stats'
+import { getPublicAvatarUrl, getPublicProfiles, type PublicProfile } from '@/api/publicProfiles'
 import type { UpdateProfilePayload } from '@/api/auth'
 import type { ProfilePrivacySettings } from '@/api/types'
 import { getTrips } from '@/api/trips'
@@ -42,6 +44,16 @@ interface ProfileField {
 
 const auth = useAuthStore()
 const activeTab = ref<ProfileTab>('trips')
+const publicProfiles = ref<PublicProfile[]>([])
+const friendSearch = ref('')
+const friendsCurrentPage = ref(1)
+const friendsLastPage = ref(1)
+const friendsTotal = ref(0)
+const friendsLoading = ref(false)
+const friendsError = ref('')
+const friendSearchSubmitted = ref(false)
+const friendSearchQuery = ref('')
+let friendsRequestId = 0
 const travelStats = ref<TravelStats | null>(null)
 const statsLoadState = ref<StatsLoadState>('idle')
 const statsError = ref('')
@@ -327,6 +339,52 @@ function selectTab(tab: ProfileTab) {
   if (tab === 'stats') void loadAvailableYears()
 }
 
+function publicProfileName(profile: PublicProfile): string {
+  const fullName = [profile.first_name, profile.last_name].filter(Boolean).join(' ')
+  return profile.name || fullName || 'Użytkownik'
+}
+
+async function loadPublicProfiles(page: number) {
+  if (!friendSearchQuery.value) return
+
+  const requestId = ++friendsRequestId
+  friendsLoading.value = true
+  friendsError.value = ''
+
+  try {
+    const result = await getPublicProfiles(page, friendSearchQuery.value)
+    if (requestId !== friendsRequestId) return
+    publicProfiles.value = result.data
+    friendsCurrentPage.value = result.meta.current_page
+    friendsLastPage.value = result.meta.last_page
+    friendsTotal.value = result.meta.total
+  } catch (cause: unknown) {
+    if (requestId !== friendsRequestId) return
+    friendsError.value =
+      cause instanceof Error ? cause.message : 'Nie udało się wyszukać publicznych profili.'
+  } finally {
+    if (requestId === friendsRequestId) friendsLoading.value = false
+  }
+}
+
+function searchPublicProfiles() {
+  friendSearchQuery.value = friendSearch.value.trim()
+  friendSearchSubmitted.value = friendSearchQuery.value.length > 0
+  friendsError.value = ''
+
+  if (!friendSearchSubmitted.value) {
+    friendsRequestId += 1
+    friendsLoading.value = false
+    publicProfiles.value = []
+    friendsTotal.value = 0
+    friendsCurrentPage.value = 1
+    friendsLastPage.value = 1
+    return
+  }
+
+  void loadPublicProfiles(1)
+}
+
 function selectStatsYear(event: Event) {
   const value = (event.target as HTMLSelectElement).value
   selectedYear.value = value === '' ? null : Number(value)
@@ -581,7 +639,94 @@ async function saveProfile() {
 
         <div class="tab-panel" role="tabpanel" :aria-labelledby="`tab-${activeTab}`">
           <UserTripsList v-if="activeTab === 'trips'" />
-          <p v-else-if="activeTab === 'friends'">Lista znajomych pojawi się tutaj.</p>
+          <section v-else-if="activeTab === 'friends'" class="friends-panel">
+            <form class="friends-search-form" @submit.prevent="searchPublicProfiles">
+              <label for="friend-search">Szukaj znajomego</label>
+              <div class="friends-search-controls">
+                <input
+                  id="friend-search"
+                  v-model="friendSearch"
+                  type="search"
+                  maxlength="100"
+                  placeholder="Wpisz nazwę użytkownika"
+                  autocomplete="off"
+                />
+                <button type="submit" :disabled="friendsLoading">Szukaj</button>
+              </div>
+            </form>
+
+            <p class="friends-note">
+              Wysyłanie zaproszeń będzie dostępne po wdrożeniu endpointów opisanych w
+              <code>docs/friends-backend-contract.md</code>.
+            </p>
+
+            <p v-if="friendsLoading" class="friends-status" role="status">Szukanie profili...</p>
+            <div v-else-if="friendsError" class="friends-status friends-error" role="alert">
+              <p>{{ friendsError }}</p>
+              <button type="button" @click="loadPublicProfiles(friendsCurrentPage)">
+                Spróbuj ponownie
+              </button>
+            </div>
+            <p v-else-if="!friendSearchSubmitted" class="friends-status">
+              Wpisz nazwę użytkownika i wybierz „Szukaj”, aby znaleźć publiczny profil.
+            </p>
+            <p v-else-if="publicProfiles.length === 0" class="friends-status">
+              Nie znaleziono pasujących publicznych profili.
+            </p>
+            <template v-else>
+              <p class="friends-count">Publiczne profile: {{ friendsTotal }}</p>
+              <ul class="friends-list">
+                <li v-for="profile in publicProfiles" :key="profile.id">
+                  <img
+                    v-if="profile.avatar_path"
+                    class="friend-avatar"
+                    :src="getPublicAvatarUrl(profile.avatar_path)"
+                    alt=""
+                  />
+                  <span v-else class="friend-avatar friend-avatar-placeholder" aria-hidden="true">
+                    {{ publicProfileName(profile).slice(0, 1).toLocaleUpperCase() }}
+                  </span>
+                  <div>
+                    <strong>{{ publicProfileName(profile) }}</strong>
+                    <span v-if="profile.city">{{ profile.city }}</span>
+                  </div>
+                  <RouterLink :to="{ name: 'public-profile', params: { id: profile.id } }">
+                    Zobacz profil
+                  </RouterLink>
+                  <button
+                    class="add-friend-button"
+                    type="button"
+                    disabled
+                    :aria-label="`Dodaj znajomego: ${publicProfileName(profile)}. Funkcja będzie dostępna po wdrożeniu backendu.`"
+                    title="Wysyłanie zaproszeń będzie dostępne po wdrożeniu backendu"
+                  >
+                    Dodaj znajomego
+                  </button>
+                </li>
+              </ul>
+              <nav
+                v-if="friendsLastPage > 1"
+                class="friends-pagination"
+                aria-label="Stronicowanie profili"
+              >
+                <button
+                  type="button"
+                  :disabled="friendsCurrentPage <= 1 || friendsLoading"
+                  @click="loadPublicProfiles(friendsCurrentPage - 1)"
+                >
+                  Poprzednia
+                </button>
+                <span>Strona {{ friendsCurrentPage }} z {{ friendsLastPage }}</span>
+                <button
+                  type="button"
+                  :disabled="friendsCurrentPage >= friendsLastPage || friendsLoading"
+                  @click="loadPublicProfiles(friendsCurrentPage + 1)"
+                >
+                  Następna
+                </button>
+              </nav>
+            </template>
+          </section>
           <div v-else-if="statsLoadState === 'loading'" class="stats-message" role="status">
             Pobieranie statystyk...
           </div>
@@ -1058,6 +1203,164 @@ input {
 .tab-panel {
   min-height: 12rem;
   padding-top: 1rem;
+}
+
+.friends-panel {
+  display: grid;
+  gap: 0.75rem;
+  max-width: 42rem;
+}
+
+.friends-panel > label {
+  font-weight: 700;
+}
+
+.friends-search-form {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.friends-search-form label {
+  font-weight: 700;
+}
+
+.friends-search-controls {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.friends-search-controls input {
+  flex: 1;
+  width: 100%;
+  min-height: 2.75rem;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--color-border);
+  border-radius: 0.5rem;
+  color: inherit;
+  background: var(--color-background);
+  font: inherit;
+}
+
+.friends-search-controls button,
+.add-friend-button {
+  padding: 0.55rem 0.8rem;
+  border: 1px solid #386a54;
+  border-radius: 0.5rem;
+  color: white;
+  background: #386a54;
+  font: inherit;
+  font-weight: 600;
+}
+
+.friends-search-controls button {
+  cursor: pointer;
+}
+
+.friends-search-controls button:disabled,
+.add-friend-button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.friends-note {
+  margin: 0;
+  color: #64746c;
+  font-size: 0.9rem;
+}
+
+.friends-note code {
+  overflow-wrap: anywhere;
+}
+
+.friends-status,
+.friends-count {
+  margin: 0;
+  color: #64746c;
+}
+
+.friends-error {
+  color: #b42318;
+}
+
+.friends-error button,
+.friends-pagination button {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #386a54;
+  border-radius: 0.5rem;
+  color: #294d3d;
+  background: transparent;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.friends-list {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.friends-list li {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  border: 1px solid var(--color-border);
+  border-radius: 0.75rem;
+}
+
+.friend-avatar {
+  display: grid;
+  flex: 0 0 2.75rem;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 50%;
+}
+
+img.friend-avatar {
+  object-fit: cover;
+}
+
+.friend-avatar-placeholder {
+  color: white;
+  background: #386a54;
+  font-weight: 700;
+}
+
+.friends-list li > div {
+  display: grid;
+  flex: 1;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.friends-list li > div + a {
+  flex: 0 0 auto;
+}
+
+.friends-list li > div span {
+  color: #64746c;
+  font-size: 0.9rem;
+}
+
+.friends-list a {
+  color: #386a54;
+  font-weight: 700;
+}
+
+.friends-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+}
+
+.friends-pagination button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .stats-content,

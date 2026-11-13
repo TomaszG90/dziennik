@@ -770,6 +770,14 @@ paths:
       operationId: publicProfile.index
       tags:
         - PublicProfile
+      parameters:
+        - name: search
+          in: query
+          required: false
+          description: Search public name, first name, last name, or city fields only.
+          schema:
+            type: string
+            maxLength: 100
       responses:
         "200":
           description: Paginated set of `PublicUserResource`

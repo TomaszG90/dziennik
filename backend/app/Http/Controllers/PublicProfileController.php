@@ -19,10 +19,31 @@ class PublicProfileController extends Controller
         private readonly StatsService $statsService,
     ) {}
 
-    public function index(): AnonymousResourceCollection
+    public function index(Request $request): AnonymousResourceCollection
     {
+        $validated = $request->validate([
+            'search' => ['sometimes', 'string', 'max:100'],
+        ]);
+        $search = trim($validated['search'] ?? '');
+
         $users = User::query()
             ->where('profile_visibility', 'public')
+            ->when($search !== '', function ($query) use ($search) {
+                $query->where(function ($query) use ($search) {
+                    foreach ([
+                        'name' => 'name',
+                        'firstName' => 'first_name',
+                        'lastName' => 'last_name',
+                        'city' => 'city',
+                    ] as $privacyKey => $column) {
+                        $query->orWhere(function ($fieldQuery) use ($privacyKey, $column, $search) {
+                            $fieldQuery
+                                ->whereJsonContains("privacy_settings->{$privacyKey}", true)
+                                ->where($column, 'like', '%'.$search.'%');
+                        });
+                    }
+                });
+            })
             ->orderBy('id')
             ->paginate(20);
 
