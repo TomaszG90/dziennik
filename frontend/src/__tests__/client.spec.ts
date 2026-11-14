@@ -9,6 +9,7 @@ vi.mock('@/api/token', () => ({
 import { getAuthToken, clearAuthToken } from '@/api/token'
 import { apiClient } from '@/api/client'
 import { ApiError } from '@/api/types'
+import * as toastService from '@/services/toast'
 
 // ── helpers ───────────────────────────────────────────────────
 let lastConfig: InternalAxiosRequestConfig | undefined
@@ -26,7 +27,13 @@ function mockSuccess(data: unknown = { ok: true }) {
 function mockHttpError(status: number, data: unknown) {
   apiClient.defaults.adapter = async (config) => {
     lastConfig = config
-    const response = { data, status, statusText: String(status), headers: {}, config } as AxiosResponse
+    const response = {
+      data,
+      status,
+      statusText: String(status),
+      headers: {},
+      config,
+    } as AxiosResponse
     throw new AxiosError(
       `Request failed with status code ${status}`,
       status >= 500 ? AxiosError.ERR_BAD_RESPONSE : AxiosError.ERR_BAD_REQUEST,
@@ -103,6 +110,15 @@ describe('apiClient', () => {
     expect(event.type).toBe('auth:unauthorized')
   })
 
+  it('odpowiedź 403 emituje zdarzenie przekierowania do strony braku dostępu', async () => {
+    const dispatchSpy = vi.spyOn(window, 'dispatchEvent')
+    mockHttpError(403, { message: 'Forbidden.' })
+
+    await apiClient.get('/secure').catch(() => undefined)
+
+    expect(dispatchSpy.mock.calls.map(([event]) => event.type)).toContain('api:forbidden')
+  })
+
   it('odpowiedź 422 mapuje validationErrors na instancję ApiError', async () => {
     const errors = {
       email: ['Email jest nieprawidłowy'],
@@ -123,6 +139,7 @@ describe('apiClient', () => {
   })
 
   it('odpowiedź 500 zachowuje status i nie usuwa tokena', async () => {
+    const toastSpy = vi.spyOn(toastService, 'showErrorToast')
     vi.mocked(getAuthToken).mockReturnValue('valid-token')
     mockHttpError(500, { message: 'Błąd serwera' })
 
@@ -132,9 +149,11 @@ describe('apiClient', () => {
     expect((error as ApiError).status).toBe(500)
     expect((error as ApiError).message).toBe('Błąd serwera')
     expect(clearAuthToken).not.toHaveBeenCalled()
+    expect(toastSpy).toHaveBeenCalledWith('Coś poszło nie tak. Spróbuj ponownie.')
   })
 
   it('błąd sieciowy (brak odpowiedzi z serwera) rzuca ApiError bez statusu', async () => {
+    const toastSpy = vi.spyOn(toastService, 'showErrorToast')
     mockNetworkError()
 
     const error = await apiClient.get('/trips').catch((e: unknown) => e)
@@ -143,5 +162,6 @@ describe('apiClient', () => {
     expect((error as ApiError).status).toBeUndefined()
     expect((error as ApiError).message).toBe('Network Error')
     expect(clearAuthToken).not.toHaveBeenCalled()
+    expect(toastSpy).toHaveBeenCalledWith('Coś poszło nie tak. Spróbuj ponownie.')
   })
 })

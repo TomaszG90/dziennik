@@ -6,7 +6,8 @@ use App\Http\Requests\StoreTripRequest;
 use App\Http\Requests\UpdateTripRequest;
 use App\Http\Resources\TripResource;
 use App\Models\Trip;
-use App\Models\TripInvitation;
+use App\Models\User;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -14,45 +15,102 @@ use Illuminate\Support\Facades\Gate;
 
 class TripController extends Controller
 {
+    public function years(Request $request): JsonResponse
+    {
+        $dates = $this->accessibleTripsQuery($request->user())
+            ->get(['start_date', 'end_date']);
+
+        $years = $dates
+            ->flatMap(fn (Trip $trip) => [$trip->start_date, $trip->end_date])
+            ->filter()
+            ->map(fn ($date) => (int) $date->format('Y'))
+            ->unique()
+            ->sortDesc()
+            ->values();
+
+        return response()->json(['data' => $years], Response::HTTP_OK);
+    }
+
     /**
-     * List trips belonging to the authenticated user.
+     * List trips accessible to the authenticated user.
      */
     public function index(Request $request): JsonResponse
     {
         Gate::authorize('viewAny', Trip::class);
 
+        $validated = $request->validate([
+            'page' => ['sometimes', 'integer', 'min:1'],
+            'per_page' => ['sometimes', 'integer', 'min:1', 'max:5'],
+            'search' => ['sometimes', 'nullable', 'string', 'max:100'],
+            'year' => ['sometimes', 'nullable', 'integer', 'min:1', 'max:9999'],
+            'status' => ['sometimes', 'in:all,planned,past'],
+        ]);
         $user = $request->user();
+        $today = now()->toDateString();
 
-        // Pobierz własne wycieczki
-        $ownTrips = $user->trips()->orderBy('start_date')->get();
-
-        // Pobierz wycieczki gdzie użytkownik jest gościem (zaakceptowane zaproszenia)
-        $guestTrips = TripInvitation::where('invitee_id', $user->id)
-            ->where('status', 'accepted')
-            ->with('trip')
-            ->get()
-            ->pluck('trip')
-            ->filter()
-            ->unique('id')
-            ->values();
-
-        // Połącz i posortuj
-        $allTrips = $ownTrips->merge($guestTrips)
-            ->unique('id')
-            ->sortBy('start_date')
-            ->values();
-
-        // Oznacz wycieczki gdzie użytkownik jest gościem
-        $guestTripIds = $guestTrips->pluck('id')->toArray();
+        $trips = $this->accessibleTripsQuery($user)
+            ->when($validated['search'] ?? null, function (Builder $query, string $search) {
+                $search = mb_strtolower($search);
+                $query->where(function (Builder $query) use ($search) {
+                    $query->whereRaw('LOWER(name) LIKE ?', ['%'.$search.'%'])
+                        ->orWhereRaw('LOWER(description) LIKE ?', ['%'.$search.'%']);
+                });
+            })
+            ->when($validated['year'] ?? null, function (Builder $query, int $year) {
+                $query->where(function (Builder $query) use ($year) {
+                    $query->whereYear('start_date', $year)
+                        ->orWhere(function (Builder $query) use ($year) {
+                            $query->whereNull('start_date')
+                                ->whereYear('end_date', $year);
+                        });
+                });
+            })
+            ->when(($validated['status'] ?? 'all') === 'past', function (Builder $query) use ($today) {
+                $query->whereRaw('COALESCE(end_date, start_date) < ?', [$today]);
+            })
+            ->when(($validated['status'] ?? 'all') === 'planned', function (Builder $query) use ($today) {
+                $query->where(function (Builder $query) use ($today) {
+                    $query->whereNull('start_date')
+                        ->whereNull('end_date')
+                        ->orWhereRaw('COALESCE(end_date, start_date) >= ?', [$today]);
+                });
+            })
+            ->when(
+                ($validated['status'] ?? 'all') === 'planned',
+                fn (Builder $query) => $query->orderByRaw('COALESCE(start_date, end_date) ASC'),
+                fn (Builder $query) => ($validated['status'] ?? 'all') === 'past'
+                    ? $query->orderByRaw('COALESCE(end_date, start_date) DESC')
+                    : $query->orderByDesc('start_date'),
+            )
+            ->orderBy('id')
+            ->paginate(min((int) ($validated['per_page'] ?? 5), 5));
 
         return response()->json([
-            'data' => $allTrips->map(function ($trip) use ($guestTripIds) {
+            'data' => $trips->getCollection()->map(function (Trip $trip) use ($user) {
                 $data = (new TripResource($trip))->toArray(request());
-                $data['is_guest'] = in_array($trip->id, $guestTripIds);
+                $data['is_guest'] = $trip->user_id !== $user->id;
 
                 return $data;
             }),
+            'meta' => [
+                'current_page' => $trips->currentPage(),
+                'last_page' => $trips->lastPage(),
+                'per_page' => $trips->perPage(),
+                'total' => $trips->total(),
+            ],
         ], Response::HTTP_OK);
+    }
+
+    private function accessibleTripsQuery(User $user): Builder
+    {
+        return Trip::query()
+            ->where(function (Builder $query) use ($user) {
+                $query->where('user_id', $user->id)
+                    ->orWhereHas('invitations', function (Builder $invitations) use ($user) {
+                        $invitations->where('invitee_id', $user->id)
+                            ->where('status', 'accepted');
+                    });
+            });
     }
 
     /**

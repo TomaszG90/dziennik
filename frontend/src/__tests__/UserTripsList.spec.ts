@@ -15,6 +15,23 @@ function createTestRouter() {
   })
 }
 
+function tripsPage(
+  data: tripsApi.Trip[],
+  currentPage = 1,
+  total = data.length,
+  lastPage = Math.max(1, Math.ceil(total / 5)),
+) {
+  return {
+    data,
+    meta: {
+      current_page: currentPage,
+      last_page: lastPage,
+      per_page: 5,
+      total,
+    },
+  }
+}
+
 describe('UserTripsList', () => {
   beforeEach(() => {
     vi.restoreAllMocks()
@@ -26,7 +43,7 @@ describe('UserTripsList', () => {
 
   it('shows loading state while fetching trips', async () => {
     // Hang promise to keep loading state
-    vi.spyOn(tripsApi, 'getTrips').mockImplementation(() => new Promise(() => {}))
+    vi.spyOn(tripsApi, 'getTripsPage').mockImplementation(() => new Promise(() => {}))
     const router = createTestRouter()
 
     const wrapper = mount(UserTripsList, {
@@ -38,11 +55,61 @@ describe('UserTripsList', () => {
     expect(wrapper.text()).toContain('Ładowanie podróży...')
   })
 
+  it('appends five more trips when requesting the next batch', async () => {
+    const firstPageTrips: tripsApi.Trip[] = Array.from({ length: 5 }, (_, index) => ({
+      id: index + 1,
+      name: `Wycieczka ${index + 1}`,
+      start_date: '2030-08-01',
+      end_date: '2030-08-05',
+      description: null,
+      created_at: '',
+      updated_at: '',
+    }))
+    const getTripsPageSpy = vi
+      .spyOn(tripsApi, 'getTripsPage')
+      .mockImplementation((query = {}) => {
+        const { page, status } = query
+        if (status === 'planned' && page === 1) {
+          return Promise.resolve(tripsPage(firstPageTrips, 1, 6, 2))
+        }
+        if (status === 'planned') {
+          return Promise.resolve(
+            tripsPage([{ ...firstPageTrips[0]!, id: 6, name: 'Wycieczka 6' }], 2, 6),
+          )
+        }
+        return Promise.resolve(tripsPage([]))
+      })
+    const wrapper = mount(UserTripsList, {
+      global: { plugins: [createTestRouter()] },
+      props: { autoFetch: true },
+    })
+
+    await flushPromises()
+    expect(getTripsPageSpy).toHaveBeenNthCalledWith(1, { page: 1, status: 'planned' })
+    expect(getTripsPageSpy).toHaveBeenNthCalledWith(2, { page: 1, status: 'past' })
+    expect(wrapper.findAll('[data-testid="trip-card"]')).toHaveLength(5)
+    expect(wrapper.text()).toContain('Wyświetlono 5 z 6 zaplanowanych wycieczek')
+
+    await wrapper.get('.planned-section button.load-more-button').trigger('click')
+    await flushPromises()
+
+    expect(getTripsPageSpy).toHaveBeenNthCalledWith(3, { page: 2, status: 'planned' })
+    expect(wrapper.findAll('[data-testid="trip-card"]')).toHaveLength(6)
+    expect(wrapper.text()).toContain('Wycieczka 1')
+    expect(wrapper.text()).toContain('Wycieczka 6')
+    expect(wrapper.text()).toContain('Wyświetlono 6 z 6 zaplanowanych wycieczek')
+  })
+
   it('shows error state when API fails and retries on button click', async () => {
-    const getTripsSpy = vi
-      .spyOn(tripsApi, 'getTrips')
-      .mockRejectedValueOnce(new Error('Serwer niedostępny'))
-      .mockResolvedValueOnce([])
+    let plannedRequestCount = 0
+    const getTripsPageSpy = vi
+      .spyOn(tripsApi, 'getTripsPage')
+      .mockImplementation((query = {}) => {
+        if (query.status === 'planned' && plannedRequestCount++ === 0) {
+          return Promise.reject(new Error('Serwer niedostępny'))
+        }
+        return Promise.resolve(tripsPage([]))
+      })
     const router = createTestRouter()
 
     const wrapper = mount(UserTripsList, {
@@ -59,12 +126,12 @@ describe('UserTripsList', () => {
     await retryBtn.trigger('click')
     await flushPromises()
 
-    expect(getTripsSpy).toHaveBeenCalledTimes(2)
+    expect(getTripsPageSpy).toHaveBeenCalledTimes(3)
     expect(wrapper.find('[role="alert"]').exists()).toBe(false)
   })
 
   it('renders section 1 with "Stwórz nową podróż" button and handles click', async () => {
-    vi.spyOn(tripsApi, 'getTrips').mockResolvedValue([])
+    vi.spyOn(tripsApi, 'getTripsPage').mockResolvedValue(tripsPage([]))
     const router = createTestRouter()
 
     const wrapper = mount(UserTripsList, {
@@ -86,7 +153,7 @@ describe('UserTripsList', () => {
   })
 
   it('displays empty state "Pora zaplanować nową wycieczkę" when there are no planned trips', async () => {
-    vi.spyOn(tripsApi, 'getTrips').mockResolvedValue([])
+    vi.spyOn(tripsApi, 'getTripsPage').mockResolvedValue(tripsPage([]))
     const router = createTestRouter()
 
     const wrapper = mount(UserTripsList, {
@@ -140,7 +207,7 @@ describe('UserTripsList', () => {
       },
     ]
 
-    vi.spyOn(tripsApi, 'getTrips').mockResolvedValue(mockTrips)
+    vi.spyOn(tripsApi, 'getTripsPage').mockResolvedValue(tripsPage(mockTrips))
     const router = createTestRouter()
 
     const wrapper = mount(UserTripsList, {
@@ -162,6 +229,59 @@ describe('UserTripsList', () => {
     const pastSection = wrapper.get('[data-testid="past-section"]')
     expect(pastSection.text()).toContain('Mazury 2020')
     expect(pastSection.find('[data-testid="past-empty-state"]').exists()).toBe(false)
+  })
+
+  it('sorts planned trips newest-first and past trips oldest-first', async () => {
+    const trips: tripsApi.Trip[] = [
+      {
+        id: 1,
+        name: 'Planowana starsza',
+        start_date: '2030-05-01',
+        end_date: '2030-05-03',
+        description: null,
+        created_at: '',
+        updated_at: '',
+      },
+      {
+        id: 2,
+        name: 'Planowana nowsza',
+        start_date: '2031-05-01',
+        end_date: '2031-05-03',
+        description: null,
+        created_at: '',
+        updated_at: '',
+      },
+      {
+        id: 3,
+        name: 'Odbyta starsza',
+        start_date: '2020-05-01',
+        end_date: '2020-05-03',
+        description: null,
+        created_at: '',
+        updated_at: '',
+      },
+      {
+        id: 4,
+        name: 'Odbyta nowsza',
+        start_date: '2021-05-01',
+        end_date: '2021-05-03',
+        description: null,
+        created_at: '',
+        updated_at: '',
+      },
+    ]
+
+    const wrapper = mount(UserTripsList, {
+      global: { plugins: [createTestRouter()] },
+      props: { initialTrips: trips, autoFetch: false },
+    })
+
+    expect(
+      wrapper.findAll('[data-testid="trip-card"] .trip-name').map((item) => item.text()),
+    ).toEqual(['Planowana starsza', 'Planowana nowsza'])
+    expect(
+      wrapper.findAll('[data-testid="past-trip-card"] .trip-name').map((item) => item.text()),
+    ).toEqual(['Odbyta nowsza', 'Odbyta starsza'])
   })
 
   it('highlights planned and past trip dates and their matching list cards', async () => {
@@ -220,7 +340,9 @@ describe('UserTripsList', () => {
       'trip-item--calendar-highlighted',
     )
 
-    await wrapper.get('[aria-label="Pokaż termin podróży Wypad w góry w kalendarzu"]').trigger('click')
+    await wrapper
+      .get('[aria-label="Pokaż termin podróży Wypad w góry w kalendarzu"]')
+      .trigger('click')
     expect(wrapper.get('.calendar-month').text()).toBe('czerwiec 2026')
     expect(wrapper.get('[data-date="2026-06-20"]').attributes('aria-pressed')).toBe('true')
     expect(wrapper.get('[data-testid="trip-card"]').classes()).toContain(
@@ -241,7 +363,7 @@ describe('UserTripsList', () => {
       },
     ]
 
-    vi.spyOn(tripsApi, 'getTrips').mockResolvedValue(mockTrips)
+    vi.spyOn(tripsApi, 'getTripsPage').mockResolvedValue(tripsPage(mockTrips))
     const router = createTestRouter()
 
     const wrapper = mount(UserTripsList, {

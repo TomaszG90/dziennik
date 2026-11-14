@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
+import { RouterLink } from 'vue-router'
 import MapView from '@/components/MapView.vue'
 import { getUserMap, type UserMapData } from '@/api/trips'
 
@@ -113,11 +114,18 @@ onMounted(() => void loadMap())
           </div>
           <ul class="trip-filter-list">
             <li v-for="trip in visibleTrips" :key="trip.id">
-              <label>
+              <label class="trip-filter-option">
                 <input v-model="selectedTripIds" type="checkbox" :value="trip.id" />
-                <span>{{ trip.name }}</span>
+                <span class="trip-filter-name">{{ trip.name }}</span>
                 <span class="trip-filter-year">{{ tripYear(trip) }}</span>
               </label>
+              <RouterLink
+                class="trip-details-link"
+                :to="{ name: 'trip-details', params: { id: trip.id } }"
+                :aria-label="`Szczegóły podróży ${trip.name}`"
+              >
+                Szczegóły
+              </RouterLink>
             </li>
           </ul>
         </fieldset>
@@ -270,10 +278,17 @@ onMounted(() => void loadMap())
   list-style: none;
 }
 
-.trip-filter-list label {
+.trip-filter-list li {
   display: flex;
   align-items: center;
   gap: 0.6rem;
+}
+
+.trip-filter-option {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex: 1;
   min-height: 2.5rem;
   padding: 0.45rem 0.65rem;
   border: 1px solid rgba(56, 106, 84, 0.14);
@@ -286,8 +301,15 @@ onMounted(() => void loadMap())
   accent-color: #256348;
 }
 
-.trip-filter-list label span:nth-child(2) {
+.trip-filter-name {
   flex: 1;
+}
+
+.trip-details-link {
+  color: #256348;
+  font-size: 0.85rem;
+  font-weight: 650;
+  text-decoration: underline;
 }
 
 .trip-filter-year {

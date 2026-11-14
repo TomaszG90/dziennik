@@ -43,6 +43,21 @@ class PublicProfileTest extends TestCase
             ->assertJsonFragment(['id' => $user->id]);
     }
 
+    public function test_public_users_search_is_case_insensitive(): void
+    {
+        $user = User::factory()->publicProfile()->create([
+            'name' => 'Jan Kowalski',
+            'privacy_settings' => array_merge(
+                User::DEFAULT_PRIVACY_SETTINGS,
+                ['name' => true]
+            ),
+        ]);
+
+        $this->getJson('/api/v1/public/users?search=jAN')
+            ->assertOk()
+            ->assertJsonFragment(['id' => $user->id]);
+    }
+
     public function test_public_profile_returns_allowed_user_data(): void
     {
         $user = User::factory()->publicProfile()->create([
@@ -127,7 +142,44 @@ class PublicProfileTest extends TestCase
             ->assertJsonFragment([
                 'id' => $trip->id,
                 'name' => 'Public Trip',
+            ])
+            ->assertJsonPath('meta.total', 1)
+            ->assertJsonPath('meta.per_page', 5);
+    }
+
+    public function test_public_profile_trips_can_be_filtered_by_year_and_are_paginated(): void
+    {
+        $user = User::factory()->publicProfile()->create();
+        for ($index = 1; $index <= 6; $index++) {
+            Trip::factory()->create([
+                'user_id' => $user->id,
+                'name' => "Trip {$index}",
+                'start_date' => '2024-06-01',
             ]);
+        }
+        $otherYearTrip = Trip::factory()->create([
+            'user_id' => $user->id,
+            'name' => 'Trip 2025',
+            'start_date' => '2025-06-01',
+        ]);
+
+        $this->getJson("/api/v1/public/users/{$user->id}/trips?year=2024")
+            ->assertOk()
+            ->assertJsonCount(5, 'data')
+            ->assertJsonPath('meta.current_page', 1)
+            ->assertJsonPath('meta.last_page', 2)
+            ->assertJsonPath('meta.total', 6)
+            ->assertJsonMissing(['id' => $otherYearTrip->id]);
+
+        $this->getJson("/api/v1/public/users/{$user->id}/trips?year=2024&page=2")
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('meta.current_page', 2)
+            ->assertJsonPath('meta.total', 6);
+
+        $this->getJson("/api/v1/public/users/{$user->id}/trips?year=10000")
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['year']);
     }
 
     public function test_private_profile_trips_return_not_found(): void
