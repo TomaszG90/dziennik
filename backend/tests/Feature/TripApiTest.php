@@ -40,6 +40,69 @@ class TripApiTest extends TestCase
             ->assertJsonMissing(['name' => 'Other user trip']);
     }
 
+    public function test_trip_list_is_paginated_with_a_maximum_of_five_trips_per_page(): void
+    {
+        $user = User::factory()->create();
+        $trips = [];
+        for ($index = 1; $index <= 7; $index++) {
+            $trips[] = $this->createTrip($user, ['name' => "Trip {$index}"]);
+        }
+
+        Sanctum::actingAs($user);
+
+        $this->getJson('/api/v1/trips?per_page=5&page=2')
+            ->assertOk()
+            ->assertJsonCount(2, 'data')
+            ->assertJsonPath('meta.current_page', 2)
+            ->assertJsonPath('meta.last_page', 2)
+            ->assertJsonPath('meta.per_page', 5)
+            ->assertJsonPath('meta.total', 7)
+            ->assertJsonFragment(['id' => $trips[5]->id])
+            ->assertJsonFragment(['id' => $trips[6]->id]);
+
+        $this->getJson('/api/v1/trips?per_page=6')
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['per_page']);
+    }
+
+    public function test_trip_list_filters_before_paginating(): void
+    {
+        $user = User::factory()->create();
+        for ($index = 1; $index <= 6; $index++) {
+            $this->createTrip($user, ['name' => "Trip {$index}"]);
+        }
+        $matchingTrip = $this->createTrip($user, [
+            'name' => 'Matching trip',
+            'description' => 'Searchable destination',
+            'start_date' => '2000-08-01',
+            'end_date' => '2000-08-05',
+        ]);
+
+        Sanctum::actingAs($user);
+
+        $this->getJson('/api/v1/trips?search=searchable&year=2000&status=past')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.id', $matchingTrip->id)
+            ->assertJsonPath('meta.total', 1);
+    }
+
+    public function test_trip_years_returns_distinct_years_for_accessible_trips(): void
+    {
+        $user = User::factory()->create();
+        $this->createTrip($user, ['start_date' => '2024-08-01', 'end_date' => '2025-08-05']);
+        $this->createTrip($user, ['start_date' => '2024-09-01', 'end_date' => '2024-09-05']);
+        $this->createTrip(User::factory()->create(), [
+            'start_date' => '2030-01-01',
+            'end_date' => '2030-01-05',
+        ]);
+        Sanctum::actingAs($user);
+
+        $this->getJson('/api/v1/trips/years')
+            ->assertOk()
+            ->assertExactJson(['data' => [2025, 2024]]);
+    }
+
     public function test_authenticated_user_can_create_trip(): void
     {
         $user = User::factory()->create();

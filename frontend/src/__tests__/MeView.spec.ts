@@ -37,7 +37,10 @@ async function mountMeView() {
 
 describe('MeView', () => {
   it('renders UserTripsList in place of the trips tab placeholder', async () => {
-    vi.spyOn(tripsApi, 'getTrips').mockResolvedValue([])
+    vi.spyOn(tripsApi, 'getTripsPage').mockResolvedValue({
+      data: [],
+      meta: { current_page: 1, last_page: 1, per_page: 5, total: 0 },
+    })
 
     const { wrapper } = await mountMeView()
 
@@ -53,7 +56,10 @@ describe('MeView', () => {
   })
 
   it('switches tabs and hides UserTripsList when on friends tab', async () => {
-    vi.spyOn(tripsApi, 'getTrips').mockResolvedValue([])
+    vi.spyOn(tripsApi, 'getTripsPage').mockResolvedValue({
+      data: [],
+      meta: { current_page: 1, last_page: 1, per_page: 5, total: 0 },
+    })
     const getPublicProfiles = vi.spyOn(publicProfilesApi, 'getPublicProfiles')
 
     const { wrapper } = await mountMeView()
@@ -69,7 +75,10 @@ describe('MeView', () => {
   })
 
   it('searches only after submit and shows profile and add-friend actions', async () => {
-    vi.spyOn(tripsApi, 'getTrips').mockResolvedValue([])
+    vi.spyOn(tripsApi, 'getTripsPage').mockResolvedValue({
+      data: [],
+      meta: { current_page: 1, last_page: 1, per_page: 5, total: 0 },
+    })
     vi.spyOn(friendsApi, 'getFriends').mockResolvedValue([])
     vi.spyOn(friendsApi, 'getFriendRequests').mockResolvedValue([])
     const getPublicProfiles = vi.spyOn(publicProfilesApi, 'getPublicProfiles').mockResolvedValue({
@@ -103,17 +112,11 @@ describe('MeView', () => {
   })
 
   it('filters statistics by year and shows distance by transport', async () => {
-    vi.spyOn(tripsApi, 'getTrips').mockResolvedValue([
-      {
-        id: 1,
-        name: 'Podróż',
-        start_date: '2024-06-01',
-        end_date: null,
-        description: null,
-        created_at: '',
-        updated_at: '',
-      },
-    ])
+    vi.spyOn(tripsApi, 'getTripsPage').mockResolvedValue({
+      data: [],
+      meta: { current_page: 1, last_page: 1, per_page: 5, total: 0 },
+    })
+    vi.spyOn(tripsApi, 'getTripYears').mockResolvedValue([2024])
     const getTravelStats = vi.spyOn(statsApi, 'getTravelStats')
     getTravelStats
       .mockResolvedValueOnce({

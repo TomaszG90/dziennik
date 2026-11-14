@@ -52,6 +52,7 @@ Route::prefix('v1')->group(function () {
         Route::get('/stats', [StatsController::class, 'index']);
         Route::get('/map', MapController::class);
 
+        Route::get('/trips/years', [TripController::class, 'years']);
         Route::apiResource('trips', TripController::class);
 
         // Places

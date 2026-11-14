@@ -1,6 +1,7 @@
 import axios, { AxiosError, type AxiosInstance, type InternalAxiosRequestConfig } from 'axios'
 import { getAuthToken, clearAuthToken } from './token'
 import { ApiError, type ApiValidationErrorPayload } from './types'
+import { showErrorToast } from '@/services/toast'
 
 export const apiClient: AxiosInstance = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api/v1',
@@ -32,8 +33,11 @@ apiClient.interceptors.response.use(
 
     if (status === 401) {
       clearAuthToken()
-      // Opcjonalnie: dispatch custom event dla przekierowania lub czyszczenia store
       window.dispatchEvent(new CustomEvent('auth:unauthorized'))
+    } else if (status === 403) {
+      window.dispatchEvent(new CustomEvent('api:forbidden'))
+    } else if (status === undefined || status >= 500) {
+      showErrorToast('Coś poszło nie tak. Spróbuj ponownie.')
     }
 
     const message = data?.message || error.message || 'Wystąpił nieoczekiwany błąd'
