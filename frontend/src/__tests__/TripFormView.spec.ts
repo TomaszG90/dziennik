@@ -98,6 +98,48 @@ describe('TripFormView', () => {
     )
   })
 
+  it('rejects a trip longer than 360 days before calling the API', async () => {
+    const router = createTestRouter('/trips/new')
+    await router.isReady()
+    const createSpy = vi.spyOn(tripsApi, 'createTrip')
+    const wrapper = mount(TripFormView, { global: { plugins: [router] } })
+
+    await wrapper.get('[data-testid="trip-name-input"]').setValue('Za długa podróż')
+    await wrapper.get('[data-testid="trip-start-date-input"]').setValue('2026-01-01')
+    await wrapper.get('[data-testid="trip-end-date-input"]').setValue('2026-12-28')
+    await wrapper.get('form').trigger('submit.prevent')
+    await flushPromises()
+
+    expect(createSpy).not.toHaveBeenCalled()
+    expect(wrapper.get('[data-testid="end-date-error"]').text()).toContain(
+      'Wycieczka nie może trwać dłużej niż 360 dni',
+    )
+  })
+
+  it('allows a trip lasting exactly 360 days', async () => {
+    const router = createTestRouter('/trips/new')
+    await router.isReady()
+    const createSpy = vi.spyOn(tripsApi, 'createTrip').mockResolvedValue({
+      id: 12,
+      name: 'Podróż 360 dni',
+      start_date: '2026-01-01',
+      end_date: '2026-12-27',
+      description: null,
+      created_at: '2026-01-01T00:00:00Z',
+      updated_at: '2026-01-01T00:00:00Z',
+    })
+    const wrapper = mount(TripFormView, { global: { plugins: [router] } })
+
+    await wrapper.get('[data-testid="trip-name-input"]').setValue('Podróż 360 dni')
+    await wrapper.get('[data-testid="trip-start-date-input"]').setValue('2026-01-01')
+    await wrapper.get('[data-testid="trip-end-date-input"]').setValue('2026-12-27')
+    await wrapper.get('form').trigger('submit.prevent')
+    await flushPromises()
+
+    expect(createSpy).toHaveBeenCalled()
+    expect(wrapper.find('[data-testid="end-date-error"]').exists()).toBe(false)
+  })
+
   it('allows an end date equal to the start date and normalizes empty optional fields', async () => {
     const router = createTestRouter('/trips/new')
     await router.isReady()

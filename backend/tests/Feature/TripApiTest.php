@@ -195,6 +195,31 @@ class TripApiTest extends TestCase
             ->assertJsonValidationErrors(['end_date']);
     }
 
+    public function test_trip_creation_rejects_a_duration_longer_than_360_days(): void
+    {
+        $user = User::factory()->create();
+        Sanctum::actingAs($user);
+
+        $this->postJson('/api/v1/trips', [
+            'name' => 'Too long trip',
+            'start_date' => '2026-01-01',
+            'end_date' => '2026-12-28',
+        ])->assertUnprocessable()
+            ->assertJsonValidationErrors(['end_date']);
+    }
+
+    public function test_trip_creation_accepts_a_duration_of_exactly_360_days(): void
+    {
+        $user = User::factory()->create();
+        Sanctum::actingAs($user);
+
+        $this->postJson('/api/v1/trips', [
+            'name' => 'Maximum duration trip',
+            'start_date' => '2026-01-01',
+            'end_date' => '2026-12-27',
+        ])->assertCreated();
+    }
+
     public function test_trip_update_rejects_start_date_after_existing_end_date(): void
     {
         $user = User::factory()->create();
@@ -227,6 +252,23 @@ class TripApiTest extends TestCase
         $this->assertDatabaseHas('trips', [
             'id' => $trip->id,
             'start_date' => '2026-11-01',
+            'end_date' => '2026-11-05',
+        ]);
+    }
+
+    public function test_trip_update_rejects_a_duration_longer_than_360_days(): void
+    {
+        $user = User::factory()->create();
+        $trip = $this->createTrip($user);
+        Sanctum::actingAs($user);
+
+        $this->patchJson("/api/v1/trips/{$trip->id}", [
+            'end_date' => '2027-10-28',
+        ])->assertUnprocessable()
+            ->assertJsonValidationErrors(['end_date']);
+
+        $this->assertDatabaseHas('trips', [
+            'id' => $trip->id,
             'end_date' => '2026-11-05',
         ]);
     }
