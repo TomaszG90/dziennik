@@ -146,4 +146,30 @@ class StatsTest extends TestCase
         $response->assertStatus(200)
             ->assertJsonPath('data.trips_count', 0);
     }
+
+    public function test_get_stats_excludes_trips_that_have_not_finished(): void
+    {
+        $user = User::factory()->create();
+        $token = $user->createToken('test-token')->plainTextToken;
+
+        $completedTrip = Trip::factory()->create([
+            'user_id' => $user->id,
+            'start_date' => now()->subDays(5)->toDateString(),
+            'end_date' => now()->subDays(3)->toDateString(),
+        ]);
+        $plannedTrip = Trip::factory()->create([
+            'user_id' => $user->id,
+            'start_date' => now()->addDays(3)->toDateString(),
+            'end_date' => now()->addDays(5)->toDateString(),
+        ]);
+
+        Place::factory()->create(['trip_id' => $completedTrip->id, 'country_code' => 'PL']);
+        Place::factory()->create(['trip_id' => $plannedTrip->id, 'country_code' => 'DE']);
+
+        $this->withToken($token)->getJson('/api/v1/stats')
+            ->assertOk()
+            ->assertJsonPath('data.trips_count', 1)
+            ->assertJsonPath('data.countries', ['PL'])
+            ->assertJsonPath('data.places_count', 1);
+    }
 }

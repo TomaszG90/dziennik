@@ -60,4 +60,22 @@ class LoginServiceTest extends TestCase
             'password' => 'password123',
         ]);
     }
+
+    public function test_login_throws_exception_when_account_is_not_activated(): void
+    {
+        User::factory()->unverified()->create([
+            'email' => 'unverified@example.com',
+            'password' => bcrypt('password123'),
+        ]);
+
+        $service = new LoginService(Auth::getFacadeRoot());
+
+        $this->expectException(ValidationException::class);
+        $this->expectExceptionMessage('Konto nie jest jeszcze aktywne');
+
+        $service->login([
+            'email' => 'unverified@example.com',
+            'password' => 'password123',
+        ]);
+    }
 }

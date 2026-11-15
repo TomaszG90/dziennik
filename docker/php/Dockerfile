@@ -12,7 +12,8 @@ RUN apk add --no-cache \
     postgresql-dev \
     icu-dev \
     oniguruma-dev \
-    linux-headers
+    linux-headers \
+&& update-ca-certificates
 
 # Instalacja rozszerzeń PHP
 RUN docker-php-ext-install \

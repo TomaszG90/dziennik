@@ -41,6 +41,9 @@ describe('AppHeader', () => {
   it('shows the unified account link to a guest', async () => {
     const { wrapper } = await mountHeader()
 
+    expect(wrapper.get('.brand-icon').text()).toBe('🗺️')
+    expect(wrapper.get('.brand').text()).toContain('Dziennik podróży')
+    expect(wrapper.get('.brand-icon').attributes('aria-hidden')).toBe('true')
     expect(wrapper.get('a[href="/auth"]').text()).toBe('Konto')
     expect(wrapper.find('a[href="/users"]').exists()).toBe(false)
     expect(wrapper.find('button').exists()).toBe(false)

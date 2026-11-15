@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AccountActivationController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\FriendController;
 use App\Http\Controllers\FriendRequestController;
@@ -41,6 +42,10 @@ Route::prefix('v1')->group(function () {
     Route::post('/auth/register', [AuthController::class, 'register']);
     Route::post('/auth/login', [AuthController::class, 'login']);
     Route::post('/auth/logout', [AuthController::class, 'logout'])->middleware('auth:sanctum');
+    Route::get('/auth/verify-email/{id}/{hash}', [AccountActivationController::class, 'verify'])
+        ->name('verification.verify');
+    Route::post('/auth/email/resend', [AccountActivationController::class, 'resend'])
+        ->middleware('throttle:resend-activation');
     Route::post('/forgot-password', [PasswordResetController::class, 'sendResetLink'])
         ->middleware('throttle:6,1');
     Route::post('/reset-password', [PasswordResetController::class, 'reset']);
