@@ -6,7 +6,7 @@ import { getTravelStats, type TravelStats } from '@/api/stats'
 import { getPublicAvatarUrl, getPublicProfiles, type PublicProfile } from '@/api/publicProfiles'
 import type { UpdateProfilePayload } from '@/api/auth'
 import type { ProfilePrivacySettings } from '@/api/types'
-import { getTrips } from '@/api/trips'
+import { getTripYears } from '@/api/trips'
 import {
   acceptFriendRequest,
   acceptTripInvitation,
@@ -84,7 +84,9 @@ const requestsError = ref('')
 const requestsTab = ref<'incoming' | 'outgoing'>('incoming')
 
 // Friend state map: tracks whether a profile is already a friend or has a pending request
-const friendStateMap = ref<Record<number, 'friend' | 'pending_sent' | 'pending_received' | null>>({})
+const friendStateMap = ref<Record<number, 'friend' | 'pending_sent' | 'pending_received' | null>>(
+  {},
+)
 
 // Email invite
 const inviteEmail = ref('')
@@ -353,26 +355,13 @@ async function loadStats() {
   }
 }
 
-function yearFromDate(date: string | null): number | null {
-  const match = date?.match(/^(\d{4})-\d{2}-\d{2}/)
-  return match ? Number(match[1]) : null
-}
-
 async function loadAvailableYears() {
   if (yearsLoading.value || yearsLoaded.value) return
 
   yearsLoading.value = true
   yearsError.value = false
   try {
-    const trips = await getTrips()
-    const years = new Set<number>()
-    for (const trip of trips) {
-      const startYear = yearFromDate(trip.start_date)
-      const endYear = yearFromDate(trip.end_date)
-      if (startYear !== null) years.add(startYear)
-      if (endYear !== null) years.add(endYear)
-    }
-    availableYears.value = [...years].sort((first, second) => second - first)
+    availableYears.value = await getTripYears()
     yearsLoaded.value = true
   } catch {
     yearsError.value = true
@@ -882,8 +871,12 @@ async function saveProfile() {
                 </button>
               </div>
 
-              <p v-if="requestsLoading" class="friends-status" role="status">Ładowanie zaproszeń...</p>
-              <p v-else-if="requestsError" class="friends-status friends-error" role="alert">{{ requestsError }}</p>
+              <p v-if="requestsLoading" class="friends-status" role="status">
+                Ładowanie zaproszeń...
+              </p>
+              <p v-else-if="requestsError" class="friends-status friends-error" role="alert">
+                {{ requestsError }}
+              </p>
 
               <template v-else>
                 <div v-if="requestsTab === 'incoming'" class="requests-list">
@@ -898,7 +891,11 @@ async function saveProfile() {
                         :src="getPublicAvatarUrl(req.user.avatar_path)"
                         alt=""
                       />
-                      <span v-else class="friend-avatar friend-avatar-placeholder" aria-hidden="true">
+                      <span
+                        v-else
+                        class="friend-avatar friend-avatar-placeholder"
+                        aria-hidden="true"
+                      >
                         {{ requestUserName(req).slice(0, 1).toLocaleUpperCase() }}
                       </span>
                       <div>
@@ -934,7 +931,11 @@ async function saveProfile() {
                         :src="getPublicAvatarUrl(req.user.avatar_path)"
                         alt=""
                       />
-                      <span v-else class="friend-avatar friend-avatar-placeholder" aria-hidden="true">
+                      <span
+                        v-else
+                        class="friend-avatar friend-avatar-placeholder"
+                        aria-hidden="true"
+                      >
                         {{ requestUserName(req).slice(0, 1).toLocaleUpperCase() }}
                       </span>
                       <div>
@@ -958,8 +959,12 @@ async function saveProfile() {
             <!-- Accepted friends list -->
             <div class="accepted-friends-section">
               <h3>Znajomi ({{ friends.length }})</h3>
-              <p v-if="friendsListLoading" class="friends-status" role="status">Ładowanie znajomych...</p>
-              <p v-else-if="friendsListError" class="friends-status friends-error" role="alert">{{ friendsListError }}</p>
+              <p v-if="friendsListLoading" class="friends-status" role="status">
+                Ładowanie znajomych...
+              </p>
+              <p v-else-if="friendsListError" class="friends-status friends-error" role="alert">
+                {{ friendsListError }}
+              </p>
               <p v-else-if="friends.length === 0" class="empty-state">
                 Nie masz jeszcze znajomych. Wyszukaj profil poniżej i wyślij zaproszenie.
               </p>
@@ -994,8 +999,12 @@ async function saveProfile() {
             <!-- Trip invitations -->
             <div class="trip-invitations-section">
               <h3>Zaproszenia do wycieczek ({{ tripInvitations.length }})</h3>
-              <p v-if="tripInvitationsLoading" class="friends-status" role="status">Ładowanie zaproszeń...</p>
-              <p v-else-if="tripInvitationsError" class="friends-status friends-error" role="alert">{{ tripInvitationsError }}</p>
+              <p v-if="tripInvitationsLoading" class="friends-status" role="status">
+                Ładowanie zaproszeń...
+              </p>
+              <p v-else-if="tripInvitationsError" class="friends-status friends-error" role="alert">
+                {{ tripInvitationsError }}
+              </p>
               <p v-else-if="tripInvitations.length === 0" class="empty-state">
                 Nie masz żadnych zaproszeń do wycieczek.
               </p>
@@ -1030,7 +1039,8 @@ async function saveProfile() {
             <div class="invite-email-section">
               <h3>Zaprosz przez e-mail</h3>
               <p class="invite-description">
-                Wyślij zaproszenie z linkiem do swojego profilu — odbiorca będzie mógł Cię łatwo znaleźć w aplikacji.
+                Wyślij zaproszenie z linkiem do swojego profilu — odbiorca będzie mógł Cię łatwo
+                znaleźć w aplikacji.
               </p>
               <form class="invite-email-form" @submit.prevent="showInvitePreviewDialog">
                 <label for="invite-email">Adres e-mail</label>
@@ -1046,8 +1056,12 @@ async function saveProfile() {
                   <button type="submit" :disabled="inviteLoading">Wyślij zaproszenie</button>
                 </div>
               </form>
-              <p v-if="inviteSuccess" class="friends-status friends-success" role="status">{{ inviteSuccess }}</p>
-              <p v-if="inviteError" class="friends-status friends-error" role="alert">{{ inviteError }}</p>
+              <p v-if="inviteSuccess" class="friends-status friends-success" role="status">
+                {{ inviteSuccess }}
+              </p>
+              <p v-if="inviteError" class="friends-status friends-error" role="alert">
+                {{ inviteError }}
+              </p>
             </div>
 
             <!-- Search for new friends -->
@@ -1068,7 +1082,9 @@ async function saveProfile() {
                 </div>
               </form>
 
-              <p v-if="friendsError" class="friends-status friends-error" role="alert">{{ friendsError }}</p>
+              <p v-if="friendsError" class="friends-status friends-error" role="alert">
+                {{ friendsError }}
+              </p>
               <p v-if="friendsLoading" class="friends-status" role="status">Szukanie profili...</p>
               <p v-else-if="!friendSearchSubmitted" class="friends-status">
                 Wpisz nazwę użytkownika i wybierz „Szukaj”, aby znaleźć publiczny profil.
@@ -1358,7 +1374,8 @@ async function saveProfile() {
 
         <p class="invite-preview-text">
           Poniżej znajduje się treść wiadomości, która zostanie wysłana na adres
-          <strong>{{ invitePreviewTo }}</strong>:
+          <strong>{{ invitePreviewTo }}</strong
+          >:
         </p>
 
         <div class="invite-preview-email">
@@ -1372,15 +1389,15 @@ async function saveProfile() {
             <p><strong>Profil:</strong> {{ auth.user?.name }}</p>
             <p v-if="auth.user?.city"><strong>Miasto:</strong> {{ auth.user?.city }}</p>
             <p>
-              <strong>Link do profilu:</strong><br>
+              <strong>Link do profilu:</strong><br />
               <a :href="inviteLink" target="_blank" rel="noopener">{{ inviteLink }}</a>
             </p>
           </div>
-          <p class="email-body">
-            Kliknij powyższy link, aby przejść bezpośrednio do profilu:
-          </p>
+          <p class="email-body">Kliknij powyższy link, aby przejść bezpośrednio do profilu:</p>
           <div class="email-button-wrapper">
-            <a :href="inviteLink" class="email-button" target="_blank" rel="noopener">Zobacz profil</a>
+            <a :href="inviteLink" class="email-button" target="_blank" rel="noopener"
+              >Zobacz profil</a
+            >
           </div>
           <p class="email-footer">
             Jeśli nie chcesz odwiedzać tego profilu, po prostu zignoruj tę wiadomość.
@@ -1389,7 +1406,12 @@ async function saveProfile() {
 
         <div class="invite-preview-actions">
           <button type="button" class="btn-cancel" @click="closeInvitePreview">Anuluj</button>
-          <button type="button" class="btn-confirm" :disabled="inviteLoading" @click="confirmAndSendInvite">
+          <button
+            type="button"
+            class="btn-confirm"
+            :disabled="inviteLoading"
+            @click="confirmAndSendInvite"
+          >
             {{ inviteLoading ? 'Wysyłanie…' : 'Potwierdź i wyślij' }}
           </button>
         </div>

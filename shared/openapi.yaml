@@ -1204,9 +1204,22 @@ paths:
           description: The user ID
           schema:
             type: integer
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+        - name: year
+          in: query
+          schema:
+            type:
+              - integer
+              - "null"
+            minimum: 1
+            maximum: 9999
       responses:
         "200":
-          description: Array of `TripResource`
+          description: ""
           content:
             application/json:
               schema:
@@ -1215,11 +1228,63 @@ paths:
                   data:
                     type: array
                     items:
-                      $ref: "#/components/schemas/TripResource"
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                        name:
+                          type: string
+                        start_date:
+                          type: string
+                        end_date:
+                          type:
+                            - string
+                            - "null"
+                        description:
+                          type:
+                            - string
+                            - "null"
+                        created_at:
+                          type:
+                            - string
+                            - "null"
+                          format: date-time
+                        updated_at:
+                          type:
+                            - string
+                            - "null"
+                          format: date-time
+                      required:
+                        - id
+                        - name
+                        - start_date
+                        - end_date
+                        - description
+                        - created_at
+                        - updated_at
+                  meta:
+                    type: object
+                    properties:
+                      current_page:
+                        type: integer
+                      last_page:
+                        type: integer
+                      per_page:
+                        type: integer
+                      total:
+                        type: integer
+                    required:
+                      - current_page
+                      - last_page
+                      - per_page
+                      - total
                 required:
                   - data
+                  - meta
         "404":
           $ref: "#/components/responses/ModelNotFoundException"
+        "422":
+          $ref: "#/components/responses/ValidationException"
       security: []
   /public/users/{user}/map:
     get:
@@ -1423,12 +1488,68 @@ paths:
           $ref: "#/components/responses/AuthenticationException"
         "422":
           $ref: "#/components/responses/ValidationException"
+  /trips/years:
+    get:
+      operationId: trip.years
+      tags:
+        - Trip
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: integer
+                required:
+                  - data
+        "401":
+          $ref: "#/components/responses/AuthenticationException"
   /trips:
     get:
       operationId: trips.index
-      summary: List trips belonging to the authenticated user
+      summary: List trips accessible to the authenticated user
       tags:
         - Trip
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+        - name: per_page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 5
+        - name: search
+          in: query
+          schema:
+            type:
+              - string
+              - "null"
+            maxLength: 100
+        - name: year
+          in: query
+          schema:
+            type:
+              - integer
+              - "null"
+            minimum: 1
+            maximum: 9999
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum:
+              - all
+              - planned
+              - past
       responses:
         "200":
           description: ""
@@ -1477,12 +1598,31 @@ paths:
                         - created_at
                         - updated_at
                         - is_guest
+                  meta:
+                    type: object
+                    properties:
+                      current_page:
+                        type: integer
+                      last_page:
+                        type: integer
+                      per_page:
+                        type: integer
+                      total:
+                        type: integer
+                    required:
+                      - current_page
+                      - last_page
+                      - per_page
+                      - total
                 required:
                   - data
+                  - meta
         "401":
           $ref: "#/components/responses/AuthenticationException"
         "403":
           $ref: "#/components/responses/AuthorizationException"
+        "422":
+          $ref: "#/components/responses/ValidationException"
     post:
       operationId: trips.store
       summary: Create a trip for the authenticated user

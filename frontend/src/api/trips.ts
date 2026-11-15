@@ -19,6 +19,23 @@ export interface Trip {
   inviter?: TripFriendInviter | null
 }
 
+export interface TripsPage {
+  data: Trip[]
+  meta: {
+    current_page: number
+    last_page: number
+    per_page: number
+    total: number
+  }
+}
+
+export interface TripsQuery {
+  page?: number
+  search?: string
+  year?: number
+  status?: 'all' | 'planned' | 'past'
+}
+
 export interface TripPayload {
   name: string
   start_date: string
@@ -79,9 +96,31 @@ export interface TripLegPayload {
 
 export type UpdateTripLegPayload = Partial<TripLegPayload>
 
-export async function getTrips(): Promise<Trip[]> {
-  const response = await apiClient.get<{ data: Trip[] }>('/trips')
+export async function getTripsPage(query: TripsQuery = {}): Promise<TripsPage> {
+  const response = await apiClient.get<TripsPage>('/trips', {
+    params: { ...query, per_page: 5 },
+  })
+  return response.data
+}
+
+export async function getTripYears(): Promise<number[]> {
+  const response = await apiClient.get<{ data: number[] }>('/trips/years')
   return response.data.data
+}
+
+export async function getTrips(): Promise<Trip[]> {
+  const trips: Trip[] = []
+  let page = 1
+  let lastPage = 1
+
+  do {
+    const result = await getTripsPage({ page })
+    trips.push(...result.data)
+    lastPage = result.meta.last_page
+    page += 1
+  } while (page <= lastPage)
+
+  return trips
 }
 
 export async function getTrip(id: string | number): Promise<Trip> {

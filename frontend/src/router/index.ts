@@ -9,6 +9,7 @@ import TripDetailsView from '../views/TripDetailsView.vue'
 import UserMapView from '../views/UserMapView.vue'
 import DashboardView from '../views/DashboardView.vue'
 import PublicProfileView from '../views/PublicProfileView.vue'
+import ForbiddenView from '../views/ForbiddenView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -28,6 +29,11 @@ const router = createRouter({
       name: 'auth',
       component: AuthView,
       meta: { guestOnly: true },
+    },
+    {
+      path: '/forbidden',
+      name: 'forbidden',
+      component: ForbiddenView,
     },
     {
       path: '/reset-password',
@@ -83,6 +89,11 @@ const router = createRouter({
       name: 'trip-details',
       component: TripDetailsView,
       meta: { requiresAuth: true },
+    },
+    {
+      path: '/:pathMatch(.*)*',
+      name: 'not-found',
+      component: () => import('../views/NotFoundView.vue'),
     },
   ],
 })

@@ -11,6 +11,11 @@ const auth = useAuthStore()
 
 <template>
   <div class="home-page">
+    <aside class="demo-banner" aria-label="Informacja o wersji demonstracyjnej">
+      <span class="demo-banner-label">Wersja demonstracyjna</span>
+      <p>Wersja demonstracyjna aplikacji przygotowana przez studentów informatyki 2026r</p>
+    </aside>
+
     <div class="hero-layout">
       <section class="hero">
         <p class="eyebrow">Twój dziennik podróży</p>
@@ -20,12 +25,14 @@ const auth = useAuthStore()
           Witaj ponownie, {{ auth.user?.name }}. Zacznij planować kolejną przygodę.
         </p>
         <p v-else class="intro">
-          Zapisuj odwiedzone miejsca, układaj trasy i wracaj do swoich podróżniczych
-          wspomnień.
+          Zapisuj odwiedzone miejsca, układaj trasy i wracaj do swoich podróżniczych wspomnień.
         </p>
 
         <div v-if="!auth.isAuthenticated" class="actions">
-          <RouterLink class="button button-primary" :to="{ name: 'auth', query: { mode: 'register' } }">
+          <RouterLink
+            class="button button-primary"
+            :to="{ name: 'auth', query: { mode: 'register' } }"
+          >
             Załóż konto
           </RouterLink>
           <RouterLink class="button button-secondary" :to="{ name: 'auth' }">
@@ -76,6 +83,34 @@ const auth = useAuthStore()
   display: grid;
   gap: 3rem;
   padding: 2rem 0 4rem;
+}
+
+.demo-banner {
+  display: grid;
+  justify-items: center;
+  gap: 0.75rem;
+  padding: clamp(2rem, 6vw, 4rem) clamp(1.25rem, 5vw, 3rem);
+  border: 1px solid #2e644d;
+  border-radius: 1.5rem;
+  background: linear-gradient(120deg, #1f513b, #34785a);
+  color: #fff;
+  text-align: center;
+  box-shadow: 0 1rem 2.5rem rgb(31 81 59 / 18%);
+}
+
+.demo-banner-label {
+  font-size: 0.875rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  opacity: 0.85;
+}
+
+.demo-banner p {
+  max-width: 34ch;
+  font-size: clamp(1.5rem, 4vw, 2.75rem);
+  font-weight: 750;
+  line-height: 1.15;
 }
 
 .hero-layout {
@@ -229,6 +264,12 @@ h1 {
 
 /* ── Dark mode ── */
 @media (prefers-color-scheme: dark) {
+  .demo-banner {
+    border-color: #3b8061;
+    background: linear-gradient(120deg, #173b2b, #24533d);
+    box-shadow: 0 1rem 2.5rem rgb(0 0 0 / 24%);
+  }
+
   .hero {
     background: linear-gradient(135deg, #1a2e24, #2a2618);
     color: #f3f4f6;

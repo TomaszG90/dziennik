@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { RouterLink } from 'vue-router'
-import { getTrips, type Trip } from '@/api/trips'
+import { getTripsPage, type Trip } from '@/api/trips'
 
 type TripStatus = 'all' | 'planned' | 'past'
 
@@ -9,8 +9,17 @@ const trips = ref<Trip[]>([])
 const isLoading = ref(true)
 const error = ref('')
 const search = ref('')
-const selectedYear = ref('all')
+const selectedYear = ref(String(new Date().getFullYear()))
 const selectedStatus = ref<TripStatus>('all')
+const currentPage = ref(1)
+const lastPage = ref(1)
+const totalTrips = ref(0)
+const isLoadingMore = ref(false)
+const filtersActive = computed(
+  () => !!search.value.trim() || !!selectedYear.value || selectedStatus.value !== 'all',
+)
+let requestId = 0
+let searchTimer: ReturnType<typeof setTimeout> | undefined
 
 function dateOnly(value: string | null | undefined): string | null {
   return value?.slice(0, 10) ?? null
@@ -37,14 +46,6 @@ function tripCountLabel(count: number): string {
     : 'wycieczek'
 }
 
-function normalize(value: string): string {
-  return value
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLocaleLowerCase('pl-PL')
-    .trim()
-}
-
 function formatDate(value: string | null): string {
   if (!value) return ''
   const [year, month, day] = value.slice(0, 10).split('-')
@@ -54,32 +55,16 @@ function formatDate(value: string | null): string {
 function dateRange(trip: Trip): string {
   const start = dateOnly(trip.start_date)
   const end = dateOnly(trip.end_date)
-  if (start && end) return start === end ? formatDate(start) : `${formatDate(start)} – ${formatDate(end)}`
+  if (start && end)
+    return start === end ? formatDate(start) : `${formatDate(start)} – ${formatDate(end)}`
   if (start) return `Od ${formatDate(start)}`
   if (end) return `Do ${formatDate(end)}`
   return 'Termin do ustalenia'
 }
 
-const years = computed(() => {
-  const values = new Set(trips.value.map(tripYear).filter((year) => year !== 'Bez daty'))
-  return [...values].sort((a, b) => Number(b) - Number(a))
-})
-
-const filteredTrips = computed(() => {
-  const query = normalize(search.value)
-  return trips.value.filter((trip) => {
-    const matchesSearch = !query || normalize(`${trip.name} ${trip.description ?? ''}`).includes(query)
-    const matchesYear = selectedYear.value === 'all' || tripYear(trip) === selectedYear.value
-    const matchesStatus =
-      selectedStatus.value === 'all' ||
-      (selectedStatus.value === 'past' ? isPastTrip(trip) : !isPastTrip(trip))
-    return matchesSearch && matchesYear && matchesStatus
-  })
-})
-
 const groupedTrips = computed(() => {
   const groups = new Map<string, Trip[]>()
-  for (const trip of filteredTrips.value) {
+  for (const trip of trips.value) {
     const year = tripYear(trip)
     groups.set(year, [...(groups.get(year) ?? []), trip])
   }
@@ -90,19 +75,64 @@ const groupedTrips = computed(() => {
   })
 })
 
-async function loadTrips() {
-  isLoading.value = true
+async function loadTrips(page = 1, append = false) {
+  if (append && isLoading.value) return
+  const id = ++requestId
+  isLoading.value = !append
+  isLoadingMore.value = append
   error.value = ''
   try {
-    trips.value = await getTrips()
+    const result = await getTripsPage({
+      page,
+      search: search.value.trim() || undefined,
+      year: selectedYear.value ? Number(selectedYear.value) : undefined,
+      status: selectedStatus.value,
+    })
+    if (id !== requestId) return
+    trips.value = append
+      ? [
+          ...trips.value,
+          ...result.data.filter((trip) => !trips.value.some(({ id }) => id === trip.id)),
+        ]
+      : result.data
+    currentPage.value = result.meta.current_page
+    lastPage.value = result.meta.last_page
+    totalTrips.value = result.meta.total
   } catch (cause: unknown) {
+    if (id !== requestId) return
     error.value = cause instanceof Error ? cause.message : 'Nie udało się pobrać listy wycieczek.'
   } finally {
-    isLoading.value = false
+    if (id === requestId) {
+      isLoading.value = false
+      isLoadingMore.value = false
+    }
   }
 }
 
-onMounted(() => void loadTrips())
+function loadMoreTrips() {
+  if (isLoading.value || isLoadingMore.value || currentPage.value >= lastPage.value) return
+  void loadTrips(currentPage.value + 1, true)
+}
+
+function clearFilters() {
+  search.value = ''
+  selectedYear.value = ''
+  selectedStatus.value = 'all'
+}
+
+watch([search, selectedYear, selectedStatus], () => {
+  requestId += 1
+  currentPage.value = 1
+  isLoading.value = true
+  isLoadingMore.value = false
+  if (searchTimer) clearTimeout(searchTimer)
+  searchTimer = setTimeout(() => void loadTrips(1), 250)
+})
+
+onMounted(() => void loadTrips(1))
+onBeforeUnmount(() => {
+  if (searchTimer) clearTimeout(searchTimer)
+})
 </script>
 
 <template>
@@ -114,7 +144,9 @@ onMounted(() => void loadTrips())
         <p>Przeglądaj swoje podróże według roku albo wyszukaj konkretną wycieczkę.</p>
       </div>
       <div class="dashboard-actions">
-        <RouterLink class="button-primary" :to="{ name: 'trip-create' }">＋ Nowa wycieczka</RouterLink>
+        <RouterLink class="button-primary" :to="{ name: 'trip-create' }"
+          >＋ Nowa wycieczka</RouterLink
+        >
         <RouterLink class="button-secondary" :to="{ name: 'user-map' }">Mapa podróży</RouterLink>
       </div>
     </header>
@@ -132,13 +164,14 @@ onMounted(() => void loadTrips())
       </label>
       <label>
         <span>Rok</span>
-        <select v-model="selectedYear" data-testid="trip-year-filter">
-          <option value="all">Wszystkie lata</option>
-          <option v-for="year in years" :key="year" :value="year">{{ year }}</option>
-          <option v-if="trips.some((trip) => tripYear(trip) === 'Bez daty')" value="Bez daty">
-            Bez daty
-          </option>
-        </select>
+        <input
+          v-model="selectedYear"
+          type="number"
+          min="1"
+          max="9999"
+          placeholder="Wszystkie lata"
+          data-testid="trip-year-filter"
+        />
       </label>
       <label>
         <span>Status</span>
@@ -148,12 +181,7 @@ onMounted(() => void loadTrips())
           <option value="past">Odbyte</option>
         </select>
       </label>
-      <button
-        class="reset-filters"
-        type="button"
-        :disabled="!search && selectedYear === 'all' && selectedStatus === 'all'"
-        @click="search = ''; selectedYear = 'all'; selectedStatus = 'all'"
-      >
+      <button class="reset-filters" type="button" :disabled="!filtersActive" @click="clearFilters">
         Wyczyść filtry
       </button>
     </section>
@@ -161,18 +189,27 @@ onMounted(() => void loadTrips())
     <div v-if="isLoading" class="dashboard-state" role="status" aria-live="polite">
       Ładowanie wycieczek…
     </div>
+    <section
+      v-else-if="error && trips.length === 0"
+      class="dashboard-state dashboard-error"
+      role="alert"
+    >
+      <p>{{ error }}</p>
+      <button type="button" @click="loadTrips()">Spróbuj ponownie</button>
+    </section>
     <section v-else-if="error" class="dashboard-state dashboard-error" role="alert">
       <p>{{ error }}</p>
-      <button type="button" @click="loadTrips">Spróbuj ponownie</button>
+      <button type="button" @click="loadMoreTrips">Spróbuj ponownie</button>
     </section>
-    <section v-else-if="trips.length === 0" class="dashboard-state">
+    <section v-else-if="totalTrips === 0 && !filtersActive">
       <h2>Twój dziennik jest jeszcze pusty</h2>
       <p>Dodaj pierwszą wycieczkę, aby zacząć zapisywać swoje podróże.</p>
       <RouterLink class="button-primary" :to="{ name: 'trip-create' }">Dodaj wycieczkę</RouterLink>
     </section>
-    <section v-else-if="filteredTrips.length === 0" class="dashboard-state">
+    <section v-else-if="totalTrips === 0" class="dashboard-state">
       <h2>Brak pasujących wycieczek</h2>
       <p>Zmień kryteria wyszukiwania lub wyczyść filtry.</p>
+      <button class="reset-filters" type="button" @click="clearFilters">Wyczyść filtry</button>
     </section>
     <div v-else class="year-groups" data-testid="trip-year-groups">
       <section v-for="[year, yearTrips] in groupedTrips" :key="year" class="year-group">
@@ -191,13 +228,29 @@ onMounted(() => void loadTrips())
               <p v-if="trip.description" class="trip-description">{{ trip.description }}</p>
             </div>
             <footer class="trip-card-actions">
-              <RouterLink :to="{ name: 'trip-details', params: { id: trip.id } }">Szczegóły</RouterLink>
+              <RouterLink :to="{ name: 'trip-details', params: { id: trip.id } }"
+                >Szczegóły</RouterLink
+              >
               <RouterLink :to="{ name: 'trip-edit', params: { id: trip.id } }">Edytuj</RouterLink>
             </footer>
           </article>
         </div>
       </section>
     </div>
+    <nav v-if="totalTrips > 0" class="trip-pagination" aria-label="Wycieczki">
+      <span>
+        Wyświetlono {{ trips.length }} z {{ totalTrips }}
+        {{ tripCountLabel(totalTrips) }}
+      </span>
+      <button
+        v-if="currentPage < lastPage"
+        type="button"
+        :disabled="isLoading || isLoadingMore"
+        @click="loadMoreTrips"
+      >
+        {{ isLoadingMore ? 'Ładowanie…' : 'Załaduj kolejne 5 wycieczek' }}
+      </button>
+    </nav>
   </main>
 </template>
 
@@ -342,6 +395,36 @@ onMounted(() => void loadTrips())
 .year-groups {
   display: grid;
   gap: 2rem;
+}
+
+.trip-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 1.5rem;
+  color: #64746c;
+}
+
+.trip-pagination > div {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.trip-pagination button {
+  min-height: 2.5rem;
+  padding: 0.45rem 0.8rem;
+  border: 1px solid #cbd8d0;
+  border-radius: 0.55rem;
+  background: #fff;
+  color: #256348;
+  font: inherit;
+  cursor: pointer;
+}
+
+.trip-pagination button:disabled {
+  color: #9aa9a0;
+  cursor: default;
 }
 
 .year-heading {

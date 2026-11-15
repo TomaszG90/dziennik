@@ -1809,7 +1809,10 @@ export type PublicProfileTripsData = {
          */
         user: number;
     };
-    query?: never;
+    query?: {
+        page?: number;
+        year?: number | null;
+    };
     url: '/public/users/{user}/trips';
 };
 
@@ -1823,16 +1826,42 @@ export type PublicProfileTripsErrors = {
          */
         message: string;
     };
+    /**
+     * Validation error
+     */
+    422: {
+        /**
+         * Errors overview.
+         */
+        message: string;
+        /**
+         * A detailed description of each field that failed validation.
+         */
+        errors: {
+            [key: string]: Array<string>;
+        };
+    };
 };
 
 export type PublicProfileTripsError = PublicProfileTripsErrors[keyof PublicProfileTripsErrors];
 
 export type PublicProfileTripsResponses = {
-    /**
-     * Array of `TripResource`
-     */
     200: {
-        data: Array<TripResource>;
+        data: Array<{
+            id: number;
+            name: string;
+            start_date: string;
+            end_date: string | null;
+            description: string | null;
+            created_at: string | null;
+            updated_at: string | null;
+        }>;
+        meta: {
+            current_page: number;
+            last_page: number;
+            per_page: number;
+            total: number;
+        };
     };
 };
 
@@ -2008,10 +2037,45 @@ export type StatsIndexResponses = {
 
 export type StatsIndexResponse = StatsIndexResponses[keyof StatsIndexResponses];
 
-export type TripsIndexData = {
+export type TripYearsData = {
     body?: never;
     path?: never;
     query?: never;
+    url: '/trips/years';
+};
+
+export type TripYearsErrors = {
+    /**
+     * Unauthenticated
+     */
+    401: {
+        /**
+         * Error overview.
+         */
+        message: string;
+    };
+};
+
+export type TripYearsError = TripYearsErrors[keyof TripYearsErrors];
+
+export type TripYearsResponses = {
+    200: {
+        data: Array<number>;
+    };
+};
+
+export type TripYearsResponse = TripYearsResponses[keyof TripYearsResponses];
+
+export type TripsIndexData = {
+    body?: never;
+    path?: never;
+    query?: {
+        page?: number;
+        per_page?: number;
+        search?: string | null;
+        year?: number | null;
+        status?: 'all' | 'planned' | 'past';
+    };
     url: '/trips';
 };
 
@@ -2034,6 +2098,21 @@ export type TripsIndexErrors = {
          */
         message: string;
     };
+    /**
+     * Validation error
+     */
+    422: {
+        /**
+         * Errors overview.
+         */
+        message: string;
+        /**
+         * A detailed description of each field that failed validation.
+         */
+        errors: {
+            [key: string]: Array<string>;
+        };
+    };
 };
 
 export type TripsIndexError = TripsIndexErrors[keyof TripsIndexErrors];
@@ -2050,6 +2129,12 @@ export type TripsIndexResponses = {
             updated_at: string | null;
             is_guest: boolean;
         }>;
+        meta: {
+            current_page: number;
+            last_page: number;
+            per_page: number;
+            total: number;
+        };
     };
 };
 

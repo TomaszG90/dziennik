@@ -44,6 +44,15 @@ class UpdateTripRequest extends FormRequest
                     'end_date',
                     'Data zakończenia nie może być wcześniejsza niż data rozpoczęcia.'
                 );
+            } elseif (
+                $startDate !== null
+                && $endDate !== null
+                && Carbon::parse($endDate)->gt(Carbon::parse($startDate)->addDays(360))
+            ) {
+                $validator->errors()->add(
+                    'end_date',
+                    'Wycieczka nie może trwać dłużej niż 360 dni.'
+                );
             }
         });
     }

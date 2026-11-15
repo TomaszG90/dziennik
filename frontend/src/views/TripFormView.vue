@@ -18,6 +18,8 @@ import {
 import { ApiError } from '@/api/types'
 import ConfirmModal from '@/components/common/ConfirmModal.vue'
 
+const MAX_TRIP_DURATION_DAYS = 360
+
 const props = defineProps<{
   tripId?: string | number
 }>()
@@ -39,6 +41,14 @@ const formData = reactive<TripPayload>({
   start_date: '',
   end_date: '',
   description: '',
+})
+
+const maxEndDate = computed<string>(() => {
+  if (!formData.start_date) return ''
+
+  const maxDate = new Date(`${formData.start_date}T00:00:00.000Z`)
+  maxDate.setUTCDate(maxDate.getUTCDate() + MAX_TRIP_DURATION_DAYS)
+  return maxDate.toISOString().slice(0, 10)
 })
 
 const errors = reactive<{
@@ -102,6 +112,9 @@ function validateClient(): boolean {
   if (formData.start_date && formData.end_date) {
     if (formData.end_date < formData.start_date) {
       errors.end_date.push('Data zakończenia nie może być wcześniejsza niż data rozpoczęcia.')
+      isValid = false
+    } else if (formData.end_date > maxEndDate.value) {
+      errors.end_date.push('Wycieczka nie może trwać dłużej niż 360 dni.')
       isValid = false
     }
   }
@@ -422,6 +435,7 @@ onMounted(() => {
                 type="date"
                 name="end_date"
                 :min="formData.start_date || undefined"
+                :max="maxEndDate || undefined"
                 :aria-invalid="errors.end_date.length > 0"
                 :aria-describedby="errors.end_date.length > 0 ? 'end-date-error' : undefined"
                 data-testid="trip-end-date-input"

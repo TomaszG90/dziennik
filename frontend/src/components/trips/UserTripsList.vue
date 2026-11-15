@@ -1,7 +1,9 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { getTrips, type Trip } from '@/api/trips'
+import { getTripsPage, type Trip } from '@/api/trips'
+
+type TripStatus = 'planned' | 'past'
 
 const props = withDefaults(
   defineProps<{
@@ -23,7 +25,15 @@ const router = useRouter()
 
 const trips = ref<Trip[]>(props.initialTrips ?? [])
 const isLoading = ref<boolean>(props.autoFetch && props.initialTrips === undefined)
-const error = ref<string | null>(null)
+const tripGroups = reactive({
+  planned: { currentPage: 1, lastPage: 1, total: 0, loading: false, error: null as string | null },
+  past: { currentPage: 1, lastPage: 1, total: 0, loading: false, error: null as string | null },
+})
+if (props.initialTrips) {
+  tripGroups.planned.total = props.initialTrips.filter((trip) => !isPastTrip(trip)).length
+  tripGroups.past.total = props.initialTrips.filter(isPastTrip).length
+}
+const requestIds: Record<TripStatus, number> = { planned: 0, past: 0 }
 const visibleMonth = ref(new Date(new Date().getFullYear(), new Date().getMonth(), 1))
 const selectedCalendarDate = ref<string | null>(null)
 const selectedTripId = ref<number | null>(null)
@@ -79,8 +89,20 @@ function formatDateRange(
   return `Do ${formatDate(normalizedEnd)}`
 }
 
-const plannedTrips = computed(() => trips.value.filter((trip) => !isPastTrip(trip)))
-const pastTrips = computed(() => trips.value.filter((trip) => isPastTrip(trip)))
+function tripSortDate(trip: Trip): string {
+  return dateOnly(trip.start_date) ?? dateOnly(trip.end_date) ?? ''
+}
+
+const plannedTrips = computed(() =>
+  trips.value
+    .filter((trip) => !isPastTrip(trip))
+    .sort((a, b) => tripSortDate(a).localeCompare(tripSortDate(b))),
+)
+const pastTrips = computed(() =>
+  trips.value
+    .filter((trip) => isPastTrip(trip))
+    .sort((a, b) => tripSortDate(b).localeCompare(tripSortDate(a))),
+)
 const monthLabel = computed(() =>
   new Intl.DateTimeFormat('pl-PL', { month: 'long', year: 'numeric' }).format(visibleMonth.value),
 )
@@ -156,25 +178,58 @@ function isTripHighlighted(trip: Trip): boolean {
   if (selectedTripId.value !== null) return selectedTripId.value === trip.id
   if (!selectedCalendarDate.value) return false
   const range = tripDateRange(trip)
-  return range !== null && selectedCalendarDate.value >= range[0] && selectedCalendarDate.value <= range[1]
+  return (
+    range !== null &&
+    selectedCalendarDate.value >= range[0] &&
+    selectedCalendarDate.value <= range[1]
+  )
 }
 
-async function loadTrips() {
-  isLoading.value = true
-  error.value = null
+async function loadTrips(status: TripStatus, page = 1, append = false) {
+  const group = tripGroups[status]
+  if (append && group.loading) return
+  const id = ++requestIds[status]
+  group.loading = true
+  group.error = null
 
   try {
-    const data = await getTrips()
-    trips.value = data
+    const result = await getTripsPage({ page, status })
+    if (id !== requestIds[status]) return
+    const otherStatusTrips = trips.value.filter((trip) =>
+      status === 'past' ? !isPastTrip(trip) : isPastTrip(trip),
+    )
+    const statusTrips = append
+      ? [
+          ...trips.value.filter((trip) => (status === 'past') === isPastTrip(trip)),
+          ...result.data.filter((trip) => !trips.value.some(({ id }) => id === trip.id)),
+        ]
+      : result.data
+    trips.value = [...otherStatusTrips, ...statusTrips]
+    group.currentPage = result.meta.current_page
+    group.lastPage = result.meta.last_page
+    group.total = result.meta.total
   } catch (err: unknown) {
+    if (id !== requestIds[status]) return
     if (err instanceof Error) {
-      error.value = err.message
+      group.error = err.message
     } else {
-      error.value = 'Nie udało się pobrać listy podróży.'
+      group.error = 'Nie udało się pobrać listy podróży.'
     }
   } finally {
-    isLoading.value = false
+    if (id === requestIds[status]) group.loading = false
   }
+}
+
+function loadMoreTrips(status: TripStatus) {
+  const group = tripGroups[status]
+  if (group.loading || group.currentPage >= group.lastPage) return
+  void loadTrips(status, group.currentPage + 1, true)
+}
+
+async function loadTripGroups() {
+  isLoading.value = true
+  await Promise.all([loadTrips('planned'), loadTrips('past')])
+  isLoading.value = false
 }
 
 function handleCreateTrip() {
@@ -197,7 +252,7 @@ function handleEditTrip(id: number) {
 
 onMounted(() => {
   if (props.autoFetch && props.initialTrips === undefined) {
-    void loadTrips()
+    void loadTripGroups()
   }
 })
 </script>
@@ -230,27 +285,9 @@ onMounted(() => {
       </div>
     </section>
 
-    <!-- Stan błędu -->
-    <div v-if="error" class="feedback-card error-card" role="alert">
-      <div class="feedback-icon" aria-hidden="true">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <circle cx="12" cy="12" r="10" />
-          <line x1="12" y1="8" x2="12" y2="12" />
-          <line x1="12" y1="16" x2="12.01" y2="16" />
-        </svg>
-      </div>
-      <div class="feedback-content">
-        <p class="feedback-title">Błąd ładowania wycieczek</p>
-        <p class="feedback-text">{{ error }}</p>
-      </div>
-      <button type="button" class="retry-button" @click="loadTrips">
-        Spróbuj ponownie
-      </button>
-    </div>
-
     <!-- Stan ładowania -->
     <div
-      v-else-if="isLoading"
+      v-if="isLoading && trips.length === 0"
       class="feedback-card loading-card"
       role="status"
       aria-live="polite"
@@ -270,20 +307,40 @@ onMounted(() => {
       >
         <section class="trip-calendar" aria-label="Kalendarz podróży">
           <div class="calendar-header">
-            <button type="button" class="calendar-nav-button" aria-label="Poprzedni miesiąc" @click="changeMonth(-1)">
+            <button
+              type="button"
+              class="calendar-nav-button"
+              aria-label="Poprzedni miesiąc"
+              @click="changeMonth(-1)"
+            >
               <span aria-hidden="true">&lsaquo;</span>
             </button>
             <h4 class="calendar-month" aria-live="polite">{{ monthLabel }}</h4>
-            <button type="button" class="calendar-nav-button" aria-label="Następny miesiąc" @click="changeMonth(1)">
+            <button
+              type="button"
+              class="calendar-nav-button"
+              aria-label="Następny miesiąc"
+              @click="changeMonth(1)"
+            >
               <span aria-hidden="true">&rsaquo;</span>
             </button>
           </div>
           <div class="calendar-grid" role="grid" :aria-label="monthLabel">
-            <span v-for="weekday in ['Pn', 'Wt', 'Śr', 'Cz', 'Pt', 'So', 'Nd']" :key="weekday" class="calendar-weekday" role="columnheader">
+            <span
+              v-for="weekday in ['Pn', 'Wt', 'Śr', 'Cz', 'Pt', 'So', 'Nd']"
+              :key="weekday"
+              class="calendar-weekday"
+              role="columnheader"
+            >
               {{ weekday }}
             </span>
             <template v-for="(date, index) in calendarDays" :key="date ?? `empty-${index}`">
-              <span v-if="!date" class="calendar-day calendar-day--empty" role="gridcell" aria-hidden="true"></span>
+              <span
+                v-if="!date"
+                class="calendar-day calendar-day--empty"
+                role="gridcell"
+                aria-hidden="true"
+              ></span>
               <button
                 v-else
                 type="button"
@@ -301,26 +358,36 @@ onMounted(() => {
               >
                 <span>{{ Number(date.slice(-2)) }}</span>
                 <span v-if="tripsOnDate(date).length" class="calendar-markers" aria-hidden="true">
-                  <i v-for="trip in tripsOnDate(date)" :key="trip.id" class="calendar-marker" :class="tripColorClass(trip)"></i>
+                  <i
+                    v-for="trip in tripsOnDate(date)"
+                    :key="trip.id"
+                    class="calendar-marker"
+                    :class="tripColorClass(trip)"
+                  ></i>
                 </span>
               </button>
             </template>
           </div>
-          <p class="calendar-hint">Wybierz dzień podróży, aby podświetlić ją na liście. Kliknij termin na liście, aby przejść do jego miesiąca.</p>
+          <p class="calendar-hint">
+            Wybierz dzień podróży, aby podświetlić ją na liście. Kliknij termin na liście, aby
+            przejść do jego miesiąca.
+          </p>
         </section>
         <header class="section-header">
           <div>
             <h3 id="heading-planned-trips" class="section-title">Zaplanowane wycieczki</h3>
             <p class="section-subtitle">(własne i zaproszenia na wycieczki od znajomych)</p>
           </div>
-          <span v-if="plannedTrips.length > 0" class="badge-count">
-            {{ plannedTrips.length }}
+          <span v-if="tripGroups.planned.total > 0" class="badge-count">
+            {{ tripGroups.planned.total }}
           </span>
         </header>
 
         <!-- Pusty stan dla zaplanowanych: Pora zaplanować nową wycieczkę -->
         <div
-          v-if="plannedTrips.length === 0"
+          v-if="
+            plannedTrips.length === 0 && tripGroups.planned.total === 0 && !tripGroups.planned.error
+          "
           class="empty-card"
           data-testid="planned-empty-state"
         >
@@ -335,17 +402,13 @@ onMounted(() => {
           <p class="empty-text">
             Nie masz jeszcze żadnych zaplanowanych wycieczek ani zaproszeń od znajomych.
           </p>
-          <button
-            type="button"
-            class="empty-action-button"
-            @click="handleCreateTrip"
-          >
+          <button type="button" class="empty-action-button" @click="handleCreateTrip">
             Zaplanuj podróż
           </button>
         </div>
 
         <!-- Lista zaplanowanych podróży -->
-        <ul v-else class="trips-list" role="list">
+        <ul v-else-if="plannedTrips.length > 0" class="trips-list" role="list">
           <li
             v-for="trip in plannedTrips"
             :key="trip.id"
@@ -420,13 +483,52 @@ onMounted(() => {
                 @click="handleViewTrip(trip.id)"
               >
                 Szczegóły
-                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <svg
+                  viewBox="0 0 24 24"
+                  width="16"
+                  height="16"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  aria-hidden="true"
+                >
                   <path d="M5 12h14M12 5l7 7-7 7" />
                 </svg>
               </button>
             </div>
           </li>
         </ul>
+        <div v-if="tripGroups.planned.error" class="feedback-card error-card" role="alert">
+          <p class="feedback-text">{{ tripGroups.planned.error }}</p>
+          <button
+            type="button"
+            class="retry-button"
+            @click="
+              loadTrips(
+                'planned',
+                tripGroups.planned.currentPage > 1 ? tripGroups.planned.currentPage + 1 : 1,
+                tripGroups.planned.currentPage > 1,
+              )
+            "
+          >
+            Spróbuj ponownie
+          </button>
+        </div>
+        <button
+          v-if="tripGroups.planned.currentPage < tripGroups.planned.lastPage"
+          type="button"
+          class="load-more-button"
+          :disabled="tripGroups.planned.loading"
+          @click="loadMoreTrips('planned')"
+        >
+          {{
+            tripGroups.planned.loading ? 'Ładowanie…' : 'Załaduj kolejne 5 zaplanowanych wycieczek'
+          }}
+        </button>
+        <p v-if="tripGroups.planned.total > 0" class="trip-group-count">
+          Wyświetlono {{ plannedTrips.length }} z {{ tripGroups.planned.total }} zaplanowanych
+          wycieczek
+        </p>
       </section>
 
       <!-- Sekcja 3: Odbyte wycieczki -->
@@ -439,14 +541,14 @@ onMounted(() => {
           <div>
             <h3 id="heading-past-trips" class="section-title">Odbyte wycieczki</h3>
           </div>
-          <span v-if="pastTrips.length > 0" class="badge-count">
-            {{ pastTrips.length }}
+          <span v-if="tripGroups.past.total > 0" class="badge-count">
+            {{ tripGroups.past.total }}
           </span>
         </header>
 
         <!-- Pusty stan dla odbytych wycieczek -->
         <div
-          v-if="pastTrips.length === 0"
+          v-if="pastTrips.length === 0 && tripGroups.past.total === 0 && !tripGroups.past.error"
           class="empty-card"
           data-testid="past-empty-state"
         >
@@ -457,13 +559,11 @@ onMounted(() => {
             </svg>
           </div>
           <h4 class="empty-title">Brak odbytych wycieczek</h4>
-          <p class="empty-text">
-            Twoje zakończone podróże pojawią się w tej sekcji.
-          </p>
+          <p class="empty-text">Twoje zakończone podróże pojawią się w tej sekcji.</p>
         </div>
 
         <!-- Lista odbytych podróży -->
-        <ul v-else class="trips-list" role="list">
+        <ul v-else-if="pastTrips.length > 0" class="trips-list" role="list">
           <li
             v-for="trip in pastTrips"
             :key="trip.id"
@@ -538,19 +638,78 @@ onMounted(() => {
                 @click="handleViewTrip(trip.id)"
               >
                 Szczegóły
-                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <svg
+                  viewBox="0 0 24 24"
+                  width="16"
+                  height="16"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  aria-hidden="true"
+                >
                   <path d="M5 12h14M12 5l7 7-7 7" />
                 </svg>
               </button>
             </div>
           </li>
         </ul>
+        <div v-if="tripGroups.past.error" class="feedback-card error-card" role="alert">
+          <p class="feedback-text">{{ tripGroups.past.error }}</p>
+          <button
+            type="button"
+            class="retry-button"
+            @click="
+              loadTrips(
+                'past',
+                tripGroups.past.currentPage > 1 ? tripGroups.past.currentPage + 1 : 1,
+                tripGroups.past.currentPage > 1,
+              )
+            "
+          >
+            Spróbuj ponownie
+          </button>
+        </div>
+        <button
+          v-if="tripGroups.past.currentPage < tripGroups.past.lastPage"
+          type="button"
+          class="load-more-button"
+          :disabled="tripGroups.past.loading"
+          @click="loadMoreTrips('past')"
+        >
+          {{ tripGroups.past.loading ? 'Ładowanie…' : 'Załaduj kolejne 5 odbytych wycieczek' }}
+        </button>
+        <p v-if="tripGroups.past.total > 0" class="trip-group-count">
+          Wyświetlono {{ pastTrips.length }} z {{ tripGroups.past.total }} odbytych wycieczek
+        </p>
       </section>
     </div>
   </div>
 </template>
 
 <style scoped>
+.load-more-button {
+  display: block;
+  min-height: 2.5rem;
+  margin: 1rem auto 0;
+  padding: 0.45rem 0.8rem;
+  border: 1px solid #cbd8d0;
+  border-radius: 0.55rem;
+  background: #fff;
+  color: #256348;
+  font: inherit;
+  cursor: pointer;
+}
+
+.load-more-button:disabled {
+  color: #9aa9a0;
+  cursor: default;
+}
+
+.trip-group-count {
+  margin: 0.75rem 0 0;
+  color: #64746c;
+}
+
 .user-trips-container {
   display: flex;
   flex-direction: column;
@@ -851,10 +1010,18 @@ button.calendar-day:focus-visible {
   background: #386a54;
 }
 
-.calendar-marker--color-1 { background: #2563eb; }
-.calendar-marker--color-2 { background: #c2410c; }
-.calendar-marker--color-3 { background: #9333ea; }
-.calendar-marker--color-4 { background: #be123c; }
+.calendar-marker--color-1 {
+  background: #2563eb;
+}
+.calendar-marker--color-2 {
+  background: #c2410c;
+}
+.calendar-marker--color-3 {
+  background: #9333ea;
+}
+.calendar-marker--color-4 {
+  background: #be123c;
+}
 
 .calendar-day--selected .calendar-marker {
   background: #fff;

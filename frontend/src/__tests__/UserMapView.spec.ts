@@ -22,6 +22,7 @@ async function mountUserMap() {
     routes: [
       { path: '/map', name: 'user-map', component: UserMapView },
       { path: '/me', name: 'me', component: { template: '<div />' } },
+      { path: '/trips/:id', name: 'trip-details', component: { template: '<div />' } },
     ],
   })
   await router.push('/map')
@@ -97,6 +98,9 @@ describe('UserMapView', () => {
     const wrapper = await mountUserMap()
 
     expect(wrapper.findAll('.trip-filter-list input')).toHaveLength(3)
+    expect(wrapper.get('a[aria-label="Szczegóły podróży Podróż A"]').attributes('href')).toBe(
+      '/trips/1',
+    )
     expect(wrapper.text()).not.toContain('Planowana')
     expect(wrapper.get('.user-map-summary').text()).toContain('3 podróży')
     expect(wrapper.findComponent({ name: 'MapView' }).props('places')).toHaveLength(3)

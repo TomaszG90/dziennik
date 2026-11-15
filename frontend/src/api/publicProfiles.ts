@@ -1,5 +1,5 @@
 import { apiClient } from './client'
-import type { Trip, UserMapData } from './trips'
+import type { TripsPage, UserMapData } from './trips'
 
 export interface PublicProfile {
   id: number
@@ -46,9 +46,15 @@ export async function getPublicProfile(id: string | number): Promise<PublicProfi
   return response.data.data
 }
 
-export async function getPublicProfileTrips(id: string | number): Promise<Trip[]> {
-  const response = await apiClient.get<{ data: Trip[] }>(`/public/users/${id}/trips`)
-  return response.data.data
+export async function getPublicProfileTrips(
+  id: string | number,
+  page = 1,
+  year?: number,
+): Promise<TripsPage> {
+  const response = await apiClient.get<TripsPage>(`/public/users/${id}/trips`, {
+    params: { page, year },
+  })
+  return response.data
 }
 
 export async function getPublicProfileMap(id: string | number): Promise<UserMapData> {

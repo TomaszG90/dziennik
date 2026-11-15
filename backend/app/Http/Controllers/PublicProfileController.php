@@ -25,21 +25,22 @@ class PublicProfileController extends Controller
             'search' => ['required', 'string', 'max:100'],
         ]);
         $search = trim($validated['search']);
+        $normalizedSearch = mb_strtolower($search);
 
         $users = User::query()
             ->where('profile_visibility', 'public')
-            ->when($search !== '', function ($query) use ($search) {
-                $query->where(function ($query) use ($search) {
+            ->when($search !== '', function ($query) use ($normalizedSearch) {
+                $query->where(function ($query) use ($normalizedSearch) {
                     foreach ([
                         'name' => 'name',
                         'firstName' => 'first_name',
                         'lastName' => 'last_name',
                         'city' => 'city',
                     ] as $privacyKey => $column) {
-                        $query->orWhere(function ($fieldQuery) use ($privacyKey, $column, $search) {
+                        $query->orWhere(function ($fieldQuery) use ($privacyKey, $column, $normalizedSearch) {
                             $fieldQuery
                                 ->whereJsonContains("privacy_settings->{$privacyKey}", true)
-                                ->where($column, 'like', '%'.$search.'%');
+                                ->whereRaw('LOWER('.$column.') LIKE ?', ['%'.$normalizedSearch.'%']);
                         });
                     }
                 });
@@ -57,15 +58,40 @@ class PublicProfileController extends Controller
         return new PublicUserResource($user);
     }
 
-    public function trips(User $user): AnonymousResourceCollection
+    public function trips(Request $request, User $user): JsonResponse
     {
         $this->ensurePublicProfile($user);
 
-        $trips = $user->trips()
-            ->orderBy('start_date')
-            ->get();
+        $validated = $request->validate([
+            'page' => ['sometimes', 'integer', 'min:1'],
+            'year' => ['sometimes', 'nullable', 'integer', 'min:1', 'max:9999'],
+        ]);
 
-        return TripResource::collection($trips);
+        $trips = $user->trips()
+            ->when($validated['year'] ?? null, function ($query, int $year) {
+                $query->where(function ($query) use ($year) {
+                    $query->whereYear('start_date', $year)
+                        ->orWhere(function ($query) use ($year) {
+                            $query->whereNull('start_date')
+                                ->whereYear('end_date', $year);
+                        });
+                });
+            })
+            ->orderByDesc('start_date')
+            ->orderBy('id')
+            ->paginate(5);
+
+        return response()->json([
+            'data' => $trips->getCollection()->map(
+                fn ($trip) => (new TripResource($trip))->toArray($request)
+            ),
+            'meta' => [
+                'current_page' => $trips->currentPage(),
+                'last_page' => $trips->lastPage(),
+                'per_page' => $trips->perPage(),
+                'total' => $trips->total(),
+            ],
+        ]);
     }
 
     public function map(User $user): JsonResponse

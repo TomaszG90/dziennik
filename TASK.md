@@ -143,9 +143,9 @@ Utwórz Issue, korzystając z szablonu funkcji w `.github/ISSUE_TEMPLATE/feature
 
 | ID | Zadanie | Obszar | Zależy od | Rozmiar |
 |---|---|---|---|---|
-| PR-45 | Seeder z danymi demo (użytkownik, przykładowa podróż z Legnicy na Majorkę z README) | backend | PR-22 | M |
-| PR-46 | Obsługa błędów i stanów w UI: toasty, strony 404/403, ekrany ładowania i pusty stan | frontend | PR-15 | M |
-| PR-47 | Responsywność i dostępność (mobile, kontrast, nawigacja klawiaturą) | frontend | PR-41 | M |
+| ~~PR-45~~ | Seeder z danymi demo (użytkownik, przykładowa podróż z Legnicy na Majorkę z README) | backend | PR-22 | M |
+| ~~PR-46~~ | Obsługa błędów i stanów w UI: toasty, strony 404/403, ekrany ładowania i pusty stan | frontend | PR-15 | M |
+| ~~PR-47~~ | Responsywność i dostępność (mobile, kontrast, nawigacja klawiaturą) | frontend | PR-41 | M |
 | PR-48 | Optymalizacja: indeksy w bazie, cache wyników tras i geokodowania, eliminacja zapytań N+1 | backend | PR-30 | M |
 | PR-49 | Testy end-to-end kluczowej ścieżki (rejestracja, dodanie podróży, mapa, statystyki) | frontend | PR-42 | L |
 | PR-50 | Dokumentacja końcowa: aktualizacja README, opis API, instrukcja wdrożenia | docs | wszystkie | M |
