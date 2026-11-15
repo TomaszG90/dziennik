@@ -22,7 +22,8 @@ class StatsService
      */
     public function calculateStats(User $user, ?int $year = null): array
     {
-        $tripsQuery = $user->trips();
+        $tripsQuery = $user->trips()
+            ->whereRaw('COALESCE(end_date, start_date) < ?', [now()->toDateString()]);
 
         if ($year !== null) {
             $tripsQuery->where(function ($query) use ($year) {

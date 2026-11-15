@@ -13,7 +13,10 @@ async function handleLogout() {
 
 <template>
   <header class="app-header">
-    <RouterLink class="brand" to="/">Dziennik podróży</RouterLink>
+    <RouterLink class="brand" to="/">
+      <span class="brand-icon" aria-hidden="true">🗺️</span>
+      <span>Dziennik podróży</span>
+    </RouterLink>
 
     <nav aria-label="Nawigacja główna">
       <RouterLink to="/">Strona główna</RouterLink>
@@ -54,10 +57,19 @@ async function handleLogout() {
 }
 
 .brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
   color: #294d3d;
   font-size: 1.4rem;
   font-weight: 800;
   letter-spacing: -0.02em;
+  text-decoration: none;
+}
+
+.brand-icon {
+  font-size: 1.6rem;
+  line-height: 1;
 }
 
 nav {

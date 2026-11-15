@@ -7,6 +7,13 @@ use RuntimeException;
 
 class RegisterService
 {
+    private AccountActivationService $activationService;
+
+    public function __construct(?AccountActivationService $activationService = null)
+    {
+        $this->activationService = $activationService ?? app(AccountActivationService::class);
+    }
+
     /**
      * Register a new user.
      */
@@ -18,12 +25,16 @@ class RegisterService
             throw new RuntimeException('No avatar images found in public/avatars.');
         }
 
-        return User::create([
+        $user = User::create([
             'name' => $data['name'],
             'email' => $data['email'],
             'password' => $data['password'],
             'profile_visibility' => $data['profile_visibility'],
             'avatar_path' => basename($avatars[random_int(0, count($avatars) - 1)]),
         ]);
+
+        $this->activationService->sendActivationEmail($user);
+
+        return $user;
     }
 }

@@ -27,6 +27,109 @@ paths:
                   - status
                   - timestamp
       security: []
+  /auth/verify-email/{id}/{hash}:
+    get:
+      operationId: verification.verify
+      summary: Verify user email and activate account via signed link
+      tags:
+        - AccountActivation
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type:
+              - string
+              - integer
+        - name: hash
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                anyOf:
+                  - type: object
+                    properties:
+                      message:
+                        type: string
+                        const: Konto zostało pomyślnie aktywowane.
+                    required:
+                      - message
+                  - type: object
+                    properties:
+                      message:
+                        type: string
+                        const: Konto zostało już wcześniej aktywowane.
+                    required:
+                      - message
+        "302":
+          description: ""
+          headers:
+            Location:
+              required: true
+              schema:
+                type: string
+        "403":
+          description: ""
+          content:
+            application/json:
+              schema:
+                anyOf:
+                  - type: object
+                    properties:
+                      message:
+                        type: string
+                        const: Link aktywacyjny jest nieprawidłowy.
+                    required:
+                      - message
+                  - type: object
+                    properties:
+                      message:
+                        type: string
+                        const: Link aktywacyjny jest nieprawidłowy lub wygasł.
+                    required:
+                      - message
+      security: []
+  /auth/email/resend:
+    post:
+      operationId: accountActivation.resend
+      summary: Resend the activation email
+      tags:
+        - AccountActivation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  format: email
+                  maxLength: 255
+              required:
+                - email
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    const: Jeśli konto z podanym adresem istnieje i nie zostało jeszcze aktywowane, wysłaliśmy nowy link aktywacyjny.
+                required:
+                  - message
+        "422":
+          $ref: "#/components/responses/ValidationException"
+      security: []
   /auth/register:
     post:
       operationId: auth.register

@@ -283,6 +283,73 @@ export type GetHealthResponses = {
 
 export type GetHealthResponse = GetHealthResponses[keyof GetHealthResponses];
 
+export type VerificationVerifyData = {
+    body?: never;
+    path: {
+        id: string | number;
+        hash: string;
+    };
+    query?: never;
+    url: '/auth/verify-email/{id}/{hash}';
+};
+
+export type VerificationVerifyErrors = {
+    403: {
+        message: 'Link aktywacyjny jest nieprawidłowy.';
+    } | {
+        message: 'Link aktywacyjny jest nieprawidłowy lub wygasł.';
+    };
+};
+
+export type VerificationVerifyError = VerificationVerifyErrors[keyof VerificationVerifyErrors];
+
+export type VerificationVerifyResponses = {
+    200: {
+        message: 'Konto zostało pomyślnie aktywowane.';
+    } | {
+        message: 'Konto zostało już wcześniej aktywowane.';
+    };
+};
+
+export type VerificationVerifyResponse = VerificationVerifyResponses[keyof VerificationVerifyResponses];
+
+export type AccountActivationResendData = {
+    body: {
+        email: string;
+    };
+    path?: never;
+    query?: never;
+    url: '/auth/email/resend';
+};
+
+export type AccountActivationResendErrors = {
+    /**
+     * Validation error
+     */
+    422: {
+        /**
+         * Errors overview.
+         */
+        message: string;
+        /**
+         * A detailed description of each field that failed validation.
+         */
+        errors: {
+            [key: string]: Array<string>;
+        };
+    };
+};
+
+export type AccountActivationResendError = AccountActivationResendErrors[keyof AccountActivationResendErrors];
+
+export type AccountActivationResendResponses = {
+    200: {
+        message: 'Jeśli konto z podanym adresem istnieje i nie zostało jeszcze aktywowane, wysłaliśmy nowy link aktywacyjny.';
+    };
+};
+
+export type AccountActivationResendResponse = AccountActivationResendResponses[keyof AccountActivationResendResponses];
+
 export type AuthRegisterData = {
     body: RegisterRequest;
     path?: never;

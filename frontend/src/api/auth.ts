@@ -45,3 +45,14 @@ export async function requestPasswordReset(payload: PasswordResetRequest): Promi
 export async function resetPassword(payload: PasswordResetPayload): Promise<void> {
   await apiClient.post('/reset-password', payload)
 }
+
+export interface ResendActivationPayload {
+  email: string
+}
+
+export async function resendActivationEmail(
+  payload: ResendActivationPayload,
+): Promise<{ message: string }> {
+  const { data } = await apiClient.post<{ message: string }>('/auth/email/resend', payload)
+  return data
+}

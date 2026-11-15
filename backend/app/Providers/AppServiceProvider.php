@@ -34,5 +34,17 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('geocode', function (Request $request) {
             return Limit::perMinute(60)->by($request->ip());
         });
+
+        RateLimiter::for('resend-activation', function (Request $request) {
+            $email = (string) $request->input('email');
+            $response = fn () => response()->json([
+                'message' => 'Zbyt wiele prób wysyłki wiadomości. Limit wynosi 20 wiadomości na godzinę. Spróbuj ponownie później.',
+            ], 429);
+
+            return [
+                Limit::perHour(20)->by($request->ip())->response($response),
+                Limit::perHour(20)->by($email !== '' ? $email : $request->ip())->response($response),
+            ];
+        });
     }
 }

@@ -1272,6 +1272,9 @@ async function saveProfile() {
                     </div>
                   </li>
                 </ul>
+                <p class="distance-total" data-testid="transport-distance-total">
+                  Łącznie: <strong>{{ formatDistance(totalTransportDistance) }} km</strong>
+                </p>
               </div>
             </section>
           </div>
@@ -2234,6 +2237,15 @@ img.friend-avatar {
 .distance-chart li {
   display: grid;
   gap: 0.4rem;
+}
+
+.distance-total {
+  grid-column: 1 / -1;
+  justify-self: end;
+  margin: 0;
+  padding-top: 0.75rem;
+  border-top: 1px solid rgb(56 106 84 / 22%);
+  font-variant-numeric: tabular-nums;
 }
 
 .chart-row-labels {

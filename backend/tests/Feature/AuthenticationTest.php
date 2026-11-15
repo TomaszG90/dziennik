@@ -190,4 +190,27 @@ class AuthenticationTest extends TestCase
 
         $response->assertStatus(401);
     }
+
+    public function test_login_fails_when_user_email_is_not_verified(): void
+    {
+        $user = User::factory()->unverified()->create([
+            'email' => 'unverified@example.com',
+            'password' => bcrypt('password123'),
+        ]);
+
+        $response = $this->postJson('/api/v1/auth/login', [
+            'email' => 'unverified@example.com',
+            'password' => 'password123',
+        ]);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['email']);
+
+        $this->assertEquals(
+            'Konto nie jest jeszcze aktywne, sprawdź swoją skrzynkę e-mail lub kliknij w ten link aby wysłać jeszcze raz',
+            $response->json('errors.email.0')
+        );
+
+        $this->assertDatabaseCount('personal_access_tokens', 0);
+    }
 }

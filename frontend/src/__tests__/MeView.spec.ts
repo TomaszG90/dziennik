@@ -141,8 +141,15 @@ describe('MeView', () => {
     expect(wrapper.get('#stats-year').text()).toContain('Cała historia')
     expect(wrapper.get('#stats-year').text()).toContain('2024')
     expect(getTravelStats).toHaveBeenNthCalledWith(1, undefined)
+    expect(wrapper.find('[role="application"][aria-label="Interaktywna mapa"]').exists()).toBe(
+      false,
+    )
     expect(wrapper.get('.distance-chart').text()).toContain('Samochodem')
     expect(wrapper.get('.distance-chart').text()).toContain('Pociągiem')
+    expect(wrapper.get('[data-testid="transport-distance-total"]').text()).toBe('Łącznie: 120 km')
+    expect(wrapper.get('.transport-charts').element.lastElementChild).toBe(
+      wrapper.get('[data-testid="transport-distance-total"]').element,
+    )
     expect(wrapper.get('.transport-donut').attributes('aria-label')).toContain('Udział')
     expect(wrapper.findAll('.donut-segment')).toHaveLength(2)
     expect(wrapper.get('.distance-legend').text()).toContain('66,7%')
@@ -160,5 +167,6 @@ describe('MeView', () => {
     expect(getTravelStats).toHaveBeenNthCalledWith(2, 2024)
     expect(wrapper.get('.distance-chart').text()).toContain('30 km')
     expect(wrapper.get('.distance-chart').text()).not.toContain('Pociągiem')
+    expect(wrapper.get('[data-testid="transport-distance-total"]').text()).toBe('Łącznie: 30 km')
   })
 })

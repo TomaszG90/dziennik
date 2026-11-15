@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ApiError, registerUser, requestPasswordReset, resetPassword } from '@/api'
+import { ApiError, registerUser, requestPasswordReset, resendActivationEmail, resetPassword } from '@/api'
 import type { RegisterPayload } from '@/api/auth'
 import { useAuthStore } from '@/stores/auth'
 
@@ -46,6 +46,15 @@ const resetErrors = ref<{ email: string[]; password: string[] }>({
 })
 const isSubmitting = ref(false)
 
+const isUnverifiedError = computed(() => {
+  return loginErrors.value.email.some(
+    (msg) =>
+      msg.toLowerCase().includes('aktywne') ||
+      msg.toLowerCase().includes('aktywowane') ||
+      msg.toLowerCase().includes('aktywacyjny'),
+  )
+})
+
 watch(mode, () => {
   formError.value = ''
   statusMessage.value = ''
@@ -53,6 +62,23 @@ watch(mode, () => {
   registerErrors.value = {}
   resetErrors.value = { email: [], password: [] }
 })
+
+watch(
+  () => route.query.verified,
+  (verified) => {
+    if (verified === '1') {
+      statusMessage.value = 'Twoje konto zostało pomyślnie aktywowane! Możesz się teraz zalogować.'
+      formError.value = ''
+    } else if (verified === 'already') {
+      statusMessage.value = 'Twoje konto zostało już wcześniej aktywowane. Możesz się zalogować.'
+      formError.value = ''
+    } else if (verified === '0') {
+      formError.value = 'Link aktywacyjny jest nieprawidłowy lub wygasł.'
+      statusMessage.value = ''
+    }
+  },
+  { immediate: true }
+)
 
 async function setMode(nextMode: 'login' | 'register' | 'forgot') {
   await router.replace({
@@ -133,7 +159,8 @@ async function submitRegister() {
   try {
     await registerUser({ ...registerForm })
     await setMode('login')
-    statusMessage.value = 'Konto zostało utworzone. Możesz się teraz zalogować.'
+    statusMessage.value =
+      'Konto zostało utworzone! Na Twój adres e-mail wysłaliśmy link aktywacyjny. Kliknij w niego, aby aktywować konto przed logowaniem.'
   } catch (error) {
     if (error instanceof ApiError) {
       registerErrors.value = error.validationErrors ?? {}
@@ -215,6 +242,30 @@ async function submitResetPassword() {
     isSubmitting.value = false
   }
 }
+
+async function handleQuickResend() {
+  const targetEmail = loginEmail.value.trim()
+  if (!targetEmail) {
+    return
+  }
+
+  isSubmitting.value = true
+  formError.value = ''
+  statusMessage.value = ''
+  try {
+    const res = await resendActivationEmail({ email: targetEmail })
+    statusMessage.value =
+      res.message || 'Wysłaliśmy nowy link aktywacyjny. Sprawdź swoją skrzynkę e-mail.'
+  } catch (error) {
+    if (error instanceof ApiError) {
+      formError.value = error.message
+    } else {
+      formError.value = 'Wystąpił błąd podczas wysyłania linku aktywacyjnego. Spróbuj ponownie.'
+    }
+  } finally {
+    isSubmitting.value = false
+  }
+}
 </script>
 
 <template>
@@ -286,7 +337,18 @@ async function submitResetPassword() {
               :aria-invalid="loginErrors.email.length > 0"
               aria-describedby="email-error"
             />
-            <p v-if="loginErrors.email.length" id="email-error" class="field-error">
+            <p v-if="isUnverifiedError" id="email-error" class="field-error">
+              Konto nie jest jeszcze aktywne, sprawdź swoją skrzynkę e-mail lub
+              <button
+                type="button"
+                class="inline-resend-link"
+                :disabled="isSubmitting"
+                @click="handleQuickResend"
+              >
+                kliknij w ten link aby wysłać jeszcze raz
+              </button>
+            </p>
+            <p v-else-if="loginErrors.email.length" id="email-error" class="field-error">
               {{ loginErrors.email[0] }}
             </p>
           </div>
@@ -580,6 +642,24 @@ button:disabled {
 
 .status-message {
   color: #294d3d;
+}
+
+.inline-resend-link {
+  display: inline;
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  font-weight: 600;
+  color: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+  min-height: auto;
+}
+
+.inline-resend-link:hover:not(:disabled) {
+  opacity: 0.8;
 }
 
 @media (prefers-color-scheme: dark) {
