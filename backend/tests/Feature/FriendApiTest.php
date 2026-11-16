@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\FriendRequest;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 class FriendApiTest extends TestCase
@@ -110,5 +111,30 @@ class FriendApiTest extends TestCase
     public function test_friends_requires_authentication(): void
     {
         $this->getJson('/api/v1/friends')->assertUnauthorized();
+    }
+
+    public function test_get_friends_does_not_cause_n_plus_one_queries(): void
+    {
+        $user = User::factory()->publicProfile()->create();
+        $friends = [];
+        for ($index = 1; $index <= 5; $index++) {
+            $friend = User::factory()->publicProfile()->create(['name' => "Friend {$index}"]);
+            $friends[] = $friend;
+            FriendRequest::create([
+                'sender_id' => $user->id,
+                'recipient_id' => $friend->id,
+                'status' => 'accepted',
+            ]);
+        }
+
+        DB::enableQueryLog();
+
+        $this->actingAs($user)->getJson('/api/v1/friends');
+
+        $queryCount = count(DB::getQueryLog());
+
+        DB::disableQueryLog();
+
+        $this->assertLessThanOrEqual(2, $queryCount, "Expected at most 2 queries, got {$queryCount}");
     }
 }
