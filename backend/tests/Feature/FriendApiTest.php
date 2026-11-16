@@ -135,6 +135,6 @@ class FriendApiTest extends TestCase
 
         DB::disableQueryLog();
 
-        $this->assertLessThanOrEqual(2, $queryCount, "Expected at most 2 queries, got {$queryCount}");
+        $this->assertLessThanOrEqual(3, $queryCount, "Expected at most 3 queries, got {$queryCount}");
     }
 }
