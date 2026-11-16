@@ -104,6 +104,7 @@ class TripController extends Controller
     private function accessibleTripsQuery(User $user): Builder
     {
         return Trip::query()
+            ->with(['invitations'])
             ->where(function (Builder $query) use ($user) {
                 $query->where('user_id', $user->id)
                     ->orWhereHas('invitations', function (Builder $invitations) use ($user) {
