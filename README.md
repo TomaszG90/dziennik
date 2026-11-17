@@ -8,18 +8,19 @@ Po kilku latach korzystania z aplikacji można otworzyć mapę i zobaczyć wszys
 
 ### Konta użytkowników (częściowo zaimplementowane)
 - Rejestracja, logowanie i wylogowywanie przez API
+- Weryfikacja adresu e-mail linkiem aktywacyjnym
 - Połączony widok logowania i rejestracji pod adresem `/auth`
-- Reset hasła przez e-mail (PR-17E): żądanie linku oraz ustawienie nowego hasła po jego otwarciu
+- Reset hasła przez e-mail: żądanie linku oraz ustawienie nowego hasła po jego otwarciu
 - Edycja profilu, wybór predefiniowanego awatara i ustawienia prywatności
 - Developerskie konta demonstracyjne: publiczne, prywatne i częściowo ukryte
-- Przeglądanie podróży innych użytkowników (tylko profile publiczne) — w planach
+- Przeglądanie publicznych profili i podróży
 
-### Zarządzanie podróżami (API zaimplementowane, interfejs w planach)
-- Dodawanie, edycja, usuwanie i wyświetlanie podróży przez API
+### Zarządzanie podróżami
+- Dodawanie, edycja, usuwanie i wyświetlanie podróży
 - Nazwa, data lub zakres dat, opcjonalny opis
-- Dodawanie, edycja, usuwanie i zmiana kolejności punktów podróży przez API
-- Dodawanie, edycja i usuwanie odcinków oraz wybór transportu przez API
-- Automatyczne wyznaczanie geometrii tras i dystansu odcinków — w planach
+- Dodawanie, edycja, usuwanie i zmiana kolejności punktów podróży
+- Dodawanie, edycja i usuwanie odcinków oraz wybór transportu
+- Automatyczne wyznaczanie geometrii tras i dystansu odcinków
 
 Przykład podróży:
 
@@ -29,27 +30,27 @@ Przykład podróży:
 4. Majorka → Berlin (samolot)
 5. Berlin → Legnica (samochód)
 
-### Środki transportu (w planach)
+### Środki transportu
 
 | Transport | Prezentacja na mapie | Obliczanie dystansu |
 |---|---|---|
-| Samochód | Trasa po rzeczywistej sieci dróg | Z API wyznaczającego trasy |
+| Samochód | Trasa po drogach | Z API wyznaczającego trasy |
 | Samolot | Łuk między punktami | Odległość po kuli ziemskiej |
 | Pociąg | Linia prosta | Odległość w linii prostej |
 | Inne | Uproszczone połączenie | Odległość w linii prostej |
 
-### Geokodowanie (API zaimplementowane)
+### Geokodowanie
 - Wyszukiwanie miejsc przez API geokodowania
+- Ustalanie kodu kraju na podstawie współrzędnych
 - Cache wyników oraz ograniczanie liczby zapytań
 
-### Interaktywna mapa (w planach)
+### Interaktywna mapa
 - Pojedyncza podróż z punktami i odcinkami
 - Rozróżnienie transportu kolorami, ikonami lub stylem linii
 - Wszystkie podróże użytkownika na jednej mapie
-- Automatyczne oznaczanie odwiedzonych państw na podstawie zapisanych podróży
 - Przybliżanie mapy i podgląd szczegółów tras
 
-### Statystyki (API zaimplementowane, interfejs w planach)
+### Statystyki
 Endpoint `GET /api/v1/stats` (wymaga tokenu Sanctum) zwraca statystyki zalogowanego użytkownika. Parametr `year` jest opcjonalny; po jego podaniu uwzględniane są podróże, których zakres dat przecina wskazany rok. Statystyki takiej podróży obejmują wszystkie jej miejsca i odcinki.
 
 Dane są dostępne dla całej historii lub dla wybranego roku kalendarzowego:
@@ -62,7 +63,7 @@ Dane są dostępne dla całej historii lub dla wybranego roku kalendarzowego:
 
 ## Architektura
 
-Aplikacja składa się z backendu Laravel, aplikacji Vue SPA i rozwijanej natywnej aplikacji Android. Vue korzysta ze wspólnego REST API (`/api/v1`); aplikacja Android będzie korzystać z tego samego API. Backend udostępnia m.in. funkcje kont, profilu, podróży, punktów, odcinków, geokodowania i statystyk. Interfejs mapy i statystyk jest w planach. Aplikacja Android jest na etapie pustego szkieletu i nie ma jeszcze funkcji użytkowych.
+Aplikacja składa się z backendu Laravel, aplikacji Vue SPA i natywnego szkieletu Android. Vue korzysta ze wspólnego REST API (`/api/v1`); Android będzie korzystać z tego samego API, zgodnie z kontraktem `shared/openapi.yaml`. Backend i frontend obsługują konta, podróże, punkty, odcinki, mapy, geokodowanie i statystyki. Aplikacja Android nie ma jeszcze funkcji użytkowych.
 
 ```
 backend/    # Laravel: REST API
@@ -82,21 +83,21 @@ docs/       # Dokumentacja projektu
 | Kontrakt API | Laravel Scramble, OpenAPI 3.1 (`shared/openapi.yaml`) |
 | Baza danych | PostgreSQL 16 |
 | Konteneryzacja | Docker, Docker Compose |
-| Mapa | Leaflet lub MapLibre GL (do ustalenia) |
-| Wyznaczanie tras | OpenRouteService lub OSRM (do ustalenia) |
-| Geokodowanie | Nominatim / Photon lub inne (do ustalenia) |
+| Mapa | Leaflet |
+| Wyznaczanie tras | OpenRouteService |
+| Geokodowanie | Photon |
 | Granice państw | GeoJSON (np. Natural Earth) |
-| Testy | PHPUnit, Vitest |
+| Testy | PHPUnit, Vitest; testy Android są w backlogu |
 | Jakość kodu | Laravel Pint, ESLint, Prettier |
 | CI/CD | GitHub Actions |
 
-Zewnętrzne API i biblioteki mapowe zostaną wybrane i skonfigurowane w ramach zadań opisanych w backlogu.
+Mapa korzysta z kafelków OpenStreetMap; backend używa Photon do geokodowania i OpenRouteService do tras samochodowych.
 
 Stack mobilny opisuje [ADR-002](docs/ADR-002-mobile-stack.md), a instrukcja aplikacji Android znajduje się w [mobile/README.md](mobile/README.md).
 
 ## Praca nad Androidem
 
-`mobile/` to osobna aplikacja natywna w Kotlinie. Na tym etapie zawiera tylko szkielet Compose, bez ekranów i funkcji. Pierwszy build uruchomisz z katalogu repozytorium:
+`mobile/` to osobna aplikacja natywna w Kotlinie i Jetpack Compose. Na tym etapie zawiera tylko szkielet, bez ekranów i funkcji. Do builda potrzebne są JDK 17 i Android SDK Platform 36. Pierwszy build uruchomisz z katalogu repozytorium:
 
 ```bash
 cd mobile
@@ -181,7 +182,7 @@ docker compose exec backend php artisan <komenda>
 
 ## Konfiguracja
 
-Zmienne środowiskowe ustawiasz w plikach `.env` (nie commituj ich do repozytorium). Wartości w głównym `.env` i `backend/.env` muszą być zgodne. Lokalnego hasła do bazy nie używaj na środowisku produkcyjnym.
+Zmienne środowiskowe ustawiasz w plikach `.env` (nie commituj ich do repozytorium). Wartości w głównym `.env` i `backend/.env` muszą być zgodne. Lokalnego hasła do bazy nie używaj na środowisku produkcyjnym. Dla lokalnego developmentu ustaw w `backend/.env` `MAIL_MAILER=log`, chyba że świadomie konfigurujesz SMTP.
 
 W pliku `backend/.env` dla środowiska Docker hostem bazy danych jest nazwa kontenera `postgres`:
 
@@ -197,8 +198,7 @@ DB_PASSWORD=local_dev_password
 | Zmienna | Opis |
 |---|---|
 | `DB_*` | Dane połączenia z bazą (backend) |
-| `ROUTING_API_KEY` | Klucz do API wyznaczania tras (do skonfigurowania, gdy funkcja zostanie wdrożona) |
-| `GEOCODING_API_KEY` | Klucz do API geokodowania (do skonfigurowania, gdy funkcja zostanie wdrożona) |
+| `ROUTING_API_KEY` | Klucz do OpenRouteService używany przez backend do wyznaczania tras |
 | `VITE_API_BASE_URL` | Bazowy adres API frontendu (domyślnie `http://localhost:8000/api/v1`) |
 | `FRONTEND_URL` | Publiczny adres frontendu używany w linkach resetowania hasła (domyślnie `http://localhost:5173`) |
 
@@ -225,11 +225,11 @@ Kontrole aplikacji Android uruchamiaj z katalogu `mobile/`:
 
 W PowerShell: `cd mobile; .\gradlew.bat lintDebug testDebugUnitTest assembleDebug`.
 
-GitHub Actions uruchamia testy backendu i build frontendu dla zmian w backendzie, frontendzie lub kontrakcie; osobny workflow sprawdza lint/test/build frontendu, a zmiany w `mobile/` uruchamiają build debug Androida. Obecny workflow Android CI nie uruchamia jeszcze `lintDebug` ani `testDebugUnitTest`; dodaj je do CI wraz z pierwszymi zadaniami funkcjonalnymi.
+GitHub Actions uruchamia kontrole backendu i frontendu zależnie od zmienionych ścieżek. Zmiany w `mobile/` uruchamiają Android debug build; lint i testy Androida są obecnie lokalnymi kontrolami.
 
 ## Współpraca
 
-Zasady współpracy opisuje [CONTRIBUTING.md](CONTRIBUTING.md), procedura realizacji zadań jest w [TASK_ins.md](TASK_ins.md), a backlog w [TASK.md](TASK.md).
+Zasady współpracy opisuje [CONTRIBUTING.md](CONTRIBUTING.md), procedura realizacji zadań jest w [TASK_ins.md](TASK_ins.md), a backlog web i Android znajduje się w [TASK.md](TASK.md).
 
 ## Licencja
 

@@ -68,6 +68,7 @@ class PublicProfileController extends Controller
         ]);
 
         $trips = $user->trips()
+            ->with(['places', 'legs'])
             ->when($validated['year'] ?? null, function ($query, int $year) {
                 $query->where(function ($query) use ($year) {
                     $query->whereYear('start_date', $year)

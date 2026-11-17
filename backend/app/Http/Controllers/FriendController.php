@@ -18,6 +18,7 @@ class FriendController extends Controller
         $user = $request->user();
 
         $friendRequests = FriendRequest::query()
+            ->with(['sender', 'recipient'])
             ->where('status', 'accepted')
             ->where(function ($query) use ($user) {
                 $query->where('sender_id', $user->id)
@@ -27,8 +28,7 @@ class FriendController extends Controller
             ->get();
 
         $data = $friendRequests->map(function (FriendRequest $fr) use ($user) {
-            $friendId = $fr->sender_id === $user->id ? $fr->recipient_id : $fr->sender_id;
-            $friend = User::findOrFail($friendId);
+            $friend = $fr->sender_id === $user->id ? $fr->recipient : $fr->sender;
 
             return [
                 'id' => $friend->id,

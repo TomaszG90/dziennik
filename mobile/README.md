@@ -17,7 +17,7 @@ Decyzja architektoniczna i jej zakres: [`../docs/ADR-002-mobile-stack.md`](../do
 ## Wymagania
 
 - JDK 17 lub nowszy
-- Android SDK zgodny z `compileSdk` projektu
+- Android SDK Platform 36 i Build Tools 36.0.0 (zgodnie z `compileSdk` projektu)
 - Android Studio (zalecane) albo Gradle Wrapper z repozytorium
 
 ## Budowanie

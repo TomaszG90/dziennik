@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Trip;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
@@ -295,5 +296,25 @@ class TripApiTest extends TestCase
             'name' => 'Unauthenticated trip',
             'start_date' => '2026-11-01',
         ])->assertUnauthorized();
+    }
+
+    public function test_trip_list_does_not_cause_n_plus_one_queries(): void
+    {
+        $user = User::factory()->create();
+        for ($index = 1; $index <= 5; $index++) {
+            $this->createTrip($user, ['name' => "Trip {$index}"]);
+        }
+
+        Sanctum::actingAs($user);
+
+        DB::enableQueryLog();
+
+        $this->getJson('/api/v1/trips');
+
+        $queryCount = count(DB::getQueryLog());
+
+        DB::disableQueryLog();
+
+        $this->assertLessThanOrEqual(3, $queryCount, "Expected at most 3 queries, got {$queryCount}");
     }
 }

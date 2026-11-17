@@ -7,10 +7,10 @@ backend/    # Laravel: REST API (Sanctum)
 frontend/   # Vue 3 SPA (Vite)
 docker/     # konfiguracja środowiska Docker Compose (PHP, Nginx, Node)
 docs/       # dokumentacja, opis API
-mobile/     # rozwój aplikacji mobilnej (w planach)
+mobile/     # natywna aplikacja Android (Kotlin, Jetpack Compose)
 ```
 
-Docelowo frontend i aplikacja mobilna będą korzystać ze wspólnego API (`/api/v1`). Obecny backend jest szkieletem — zobacz [README.md](README.md) i backlog w [TASK.md](TASK.md).
+Frontend i aplikacja mobilna korzystają ze wspólnego API (`/api/v1`); mobilna aplikacja jest na etapie szkieletu. Zobacz [README.md](README.md) i backlog w [TASK.md](TASK.md).
 
 ## Pierwsze kroki (Docker)
 

@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Exceptions\RoutingProviderException;
 use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use InvalidArgumentException;
 
@@ -30,6 +31,14 @@ class RoutingService
     ): array {
         $this->validateCoordinates($fromLatitude, $fromLongitude);
         $this->validateCoordinates($toLatitude, $toLongitude);
+
+        $cacheKey = 'routing:car:'.md5($fromLatitude.','.$fromLongitude.','.$toLatitude.','.$toLongitude);
+
+        $cached = Cache::get($cacheKey);
+
+        if ($cached !== null) {
+            return $cached;
+        }
 
         $apiKey = config('services.routing.api_key');
 
@@ -65,7 +74,11 @@ class RoutingService
             throw RoutingProviderException::unavailable();
         }
 
-        return $this->normalizeResponse($response->json());
+        $result = $this->normalizeResponse($response->json());
+
+        Cache::put($cacheKey, $result, now()->addHours(48));
+
+        return $result;
     }
 
     /**

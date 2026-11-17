@@ -5,6 +5,7 @@ namespace Tests\Unit;
 use App\Exceptions\RoutingProviderException;
 use App\Services\RoutingService;
 use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use InvalidArgumentException;
 use Tests\TestCase;
@@ -14,6 +15,8 @@ class RoutingServiceTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+
+        Cache::flush();
 
         config([
             'services.routing.url' => 'https://api.heigit.org/openrouteservice/v2/directions/driving-car',
