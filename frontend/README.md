@@ -1,54 +1,32 @@
-# frontend
+# Frontend — Vue 3
 
-This template should help get you started developing with Vue 3 in Vite.
+Frontend to aplikacja SPA napisana w Vue 3, TypeScript i Vite. Wszystkie żądania backendu przechodzą przez klienta API w `src/api/` i korzystają z `/api/v1`.
 
-## Recommended IDE Setup
+Lokalne uruchomienie Docker Compose, konfigurację API i adresy usług opisuje [główny README](../README.md).
 
-[VS Code](https://code.visualstudio.com/) + [Vue (Official)](https://marketplace.visualstudio.com/items?itemName=Vue.volar) (and disable Vetur).
+## Wymagania
 
-## Recommended Browser Setup
+- Node.js `^22.18.0` lub `>=24.12.0`
+- npm
 
-- Chromium-based browsers (Chrome, Edge, Brave, etc.):
-  - [Vue.js devtools](https://chromewebstore.google.com/detail/vuejs-devtools/nhdogjmejiglipccpnnnanhbledajbpd)
-  - [Turn on Custom Object Formatter in Chrome DevTools](http://bit.ly/object-formatters)
-- Firefox:
-  - [Vue.js devtools](https://addons.mozilla.org/en-US/firefox/addon/vue-js-devtools/)
-  - [Turn on Custom Object Formatter in Firefox DevTools](https://fxdx.dev/firefox-devtools-custom-object-formatters/)
+## Polecenia
 
-## Type Support for `.vue` Imports in TS
+W kontenerze frontend:
 
-TypeScript cannot handle type information for `.vue` imports by default, so we replace the `tsc` CLI with `vue-tsc` for type checking. In editors, we need [Volar](https://marketplace.visualstudio.com/items?itemName=Vue.volar) to make the TypeScript language service aware of `.vue` types.
-
-## Customize configuration
-
-See [Vite Configuration Reference](https://vite.dev/config/).
-
-## Project Setup
-
-```sh
-npm install
+```bash
+docker compose exec frontend npm run dev
+docker compose exec frontend npm run lint
+docker compose exec frontend npm run test
+docker compose exec frontend npm run build
 ```
 
-### Compile and Hot-Reload for Development
+Uruchomienie bez Dockera, z katalogu `frontend/`:
 
-```sh
+```bash
+npm ci
 npm run dev
 ```
 
-### Type-Check, Compile and Minify for Production
+## Kontrakt API i typy
 
-```sh
-npm run build
-```
-
-### Run Unit Tests with [Vitest](https://vitest.dev/)
-
-```sh
-npm run test:unit
-```
-
-### Lint with [ESLint](https://eslint.org/)
-
-```sh
-npm run lint
-```
+Wspólny kontrakt OpenAPI znajduje się w [`../shared/openapi.yaml`](../shared/openapi.yaml). Typy w `src/api/generated/` są generowane na jego podstawie. Instrukcja eksportu i generowania jest w [`shared/README.md`](../shared/README.md); nie edytuj wygenerowanych plików ręcznie.

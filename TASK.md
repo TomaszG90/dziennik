@@ -6,7 +6,7 @@ Jak wykonać zadanie krok po kroku: [TASK_ins.md](TASK_ins.md).
 
 ## Aktualny stan
 
-Repozytorium zawiera backend Laravel 12 z Sanctum i PostgreSQL, wersjonowane API `/api/v1` (konta, profil, podróże, punkty i geokodowanie) oraz frontend Vue 3/Vite. Interaktywna mapa, dystanse i trasy, statystyki oraz profile publiczne pozostają w backlogu. Rozpoczęto bootstrap natywnej aplikacji Android w Kotlinie; zakres nowych zadań opisują PR-51–PR-54. Przed rozpoczęciem zadania sprawdź zależności i kryteria akceptacji z Issue.
+Repozytorium zawiera backend Laravel 12 z Sanctum i PostgreSQL, wersjonowane API `/api/v1`, frontend Vue 3/Vite oraz szkielet aplikacji Android w Kotlinie i Jetpack Compose. Podstawowe funkcje webowe obejmują konta, podróże, mapy, geokodowanie, statystyki i profile publiczne. W backlogu pozostają m.in. optymalizacja, testy end-to-end, dokumentacja wdrożenia i rozwój funkcji Androida. Przed rozpoczęciem zadania sprawdź zależności i kryteria akceptacji z Issue.
 
 ## Definicje Ready i Done
 
@@ -159,7 +159,7 @@ Utwórz Issue, korzystając z szablonu funkcji w `.github/ISSUE_TEMPLATE/feature
 | ~~PR-53~~ [#118](https://github.com/TomaszG90/dziennik/issues/118) | Filtry ścieżek CI dla backendu, frontendu, kontraktu API i `mobile/` | devops | PR-51, PR-52 | M |
 | ~~PR-54~~ [#119](https://github.com/TomaszG90/dziennik/issues/119) | Szkielet natywnej aplikacji Android w Kotlinie i Jetpack Compose, Gradle Wrapper, CI build oraz dokumentacja `mobile/README.md`; bez ekranów funkcjonalnych | mobile / devops / docs | PR-51, PR-53 | M |
 
-Decyzję stacku Android opisuje [ADR-002](docs/ADR-002-mobile-stack.md). Szczegółowy plan rozwoju aplikacji mobilnej od PR-55 znajduje się w [TASK2.md](TASK2.md). Zmiany backendowego API są źródłem kontraktu wspólnego dla Vue i Androida; aplikacja mobilna nie kopiuje definicji endpointów ręcznie.
+Decyzję stacku Android opisuje [ADR-002](docs/ADR-002-mobile-stack.md). Plan rozwoju aplikacji mobilnej znajduje się w Fazie 9 poniżej. Zmiany backendowego API są źródłem kontraktu wspólnego dla Vue i Androida; aplikacja mobilna nie kopiuje definicji endpointów ręcznie.
 
 Kryteria akceptacji nowych zadań:
 
@@ -167,6 +167,70 @@ Kryteria akceptacji nowych zadań:
 - **PR-52:** typy TypeScript są generowane z `shared/openapi.yaml`; regeneracja bez zmian źródła nie zmienia plików; CI wykrywa nieaktualne artefakty.
 - **PR-53:** workflow uruchamia właściwe kontrole przy zmianie backendu, frontendu, kontraktu i mobile; lockfile i pliki workflow są uwzględnione w filtrach.
 - **PR-54:** Gradle Wrapper i pusty projekt Android w Kotlinie budują wariant debug w CI; README opisuje wymagania i stack; brak funkcji produktowych.
+
+---
+
+## Faza 9: Aplikacja mobilna Android
+
+### Wymagane narzędzia i wersje
+
+| Narzędzie | Wersja / ustawienie |
+|---|---|
+| IDE zalecane | Najnowsza stabilna wersja Android Studio ([instalacja](https://developer.android.com/studio/install)) |
+| IntelliJ IDEA (alternatywnie) | Wersja z obsługą Androida i doinstalowanymi pluginami Android oraz Android Design Tools |
+| JDK | 17 |
+| Android SDK | Platform 36 (API 36), Build Tools 36.0.0 |
+| Android Gradle Plugin | 8.13.2 |
+| Gradle Wrapper | 8.13 |
+| Kotlin | 2.2.21 |
+
+Wersje Gradle i pluginów są przypięte w `mobile/gradle/wrapper/gradle-wrapper.properties` i `mobile/gradle/libs.versions.toml`. Zmiany wersji powinny być osobno sprawdzone; nie aktualizuj ich automatycznie przez IDE.
+
+### Przygotowanie i pierwsze uruchomienie
+
+Zainstaluj Android Studio wraz z Android SDK i emulatorem, otwórz katalog `mobile/`, wykonaj Gradle Sync i wybierz JDK 17 w ustawieniach Gradle. Do lokalnego builda potrzebny jest SDK Platform 36. Emulator lub fizyczne urządzenie są potrzebne do ręcznego uruchomienia aplikacji.
+
+Z katalogu repozytorium:
+
+```bash
+cd mobile
+./gradlew assembleDebug
+```
+
+W PowerShell użyj `cd mobile; .\gradlew.bat assembleDebug`. Android Studio może uruchomić konfigurację `app` na emulatorze lub urządzeniu; dostępne urządzenia sprawdzisz przez `adb devices`.
+
+Zależności dodawaj przez Gradle: wersje do `mobile/gradle/libs.versions.toml`, a biblioteki do `mobile/app/build.gradle.kts`. Nie dodawaj ręcznie pobranych bibliotek ani plików JAR do repozytorium.
+
+### Zadania
+
+| ID | Zadanie | Obszar | Zależy od | Rozmiar |
+|---|---|---|---|---|
+| PR-55 | Fundament aplikacji: nawigacja Compose, motyw, struktura UI/ViewModel/data, konfiguracja środowisk API, testy jednostkowe i rozszerzenie Android CI o lint/test | mobile / devops | PR-54 | M |
+| PR-56 | Klient API Ktor: serializacja, mapowanie błędów API, timeouty i bezpieczne przechowywanie/odtwarzanie sesji | mobile | PR-55 | L |
+| PR-57 | Uwierzytelnianie: logowanie, wylogowanie, rejestracja, walidacja i przekierowanie gościa/zalogowanego użytkownika | mobile | PR-56 | L |
+| PR-58 | Reset hasła: formularz żądania linku i ustawienia hasła z obsługą odpowiedzi API | mobile | PR-57 | M |
+| PR-59 | Profil: pobranie i edycja danych, widoczności, prywatności pól i awatara | mobile | PR-56 | L |
+| PR-60 | Podróże: lista, stany ładowania/pusty/błąd, tworzenie, edycja i usuwanie | mobile | PR-57 | L |
+| PR-61 | Szczegóły podróży i punkty: lista, tworzenie, edycja, usuwanie oraz zmiana kolejności miejsc | mobile | PR-60 | L |
+| PR-62 | Odcinki podróży: CRUD, wybór transportu i walidacja powiązań z punktami | mobile | PR-61 | M |
+| PR-63 | Mapa podróży Android: wybór biblioteki i dostawcy kafelków, markery miejsc oraz prezentacja geometrii odcinków | mobile | PR-30, PR-61, PR-62 | L |
+| PR-64 | Statystyki użytkownika: podsumowanie, dystans i transport na podstawie API | mobile | PR-40, PR-57 | M |
+| PR-65 | Profile publiczne: lista użytkowników oraz podgląd publicznych podróży i statystyk | mobile | PR-43 | L |
+| PR-66 | Przygotowanie wydania Android: identyfikator aplikacji, warianty builda, podpisywanie poza repozytorium i wewnętrzna dystrybucja testowa | mobile / devops | PR-57, PR-60 | M |
+
+PR-63, PR-64 i PR-65 wymagają odpowiednich funkcji backendu. Nie implementuj zastępczych endpointów ani nie obliczaj po stronie aplikacji danych, które mają pochodzić z backendu.
+
+### Kryteria akceptacji dla zadań mobilnych
+
+- Funkcja działa na wspieranej wersji Androida i korzysta ze wspólnego `/api/v1` oraz `shared/openapi.yaml`.
+- Każdy ekran obsługuje właściwe stany ładowania, pustej odpowiedzi, błędu i braku sieci.
+- UI nie wykonuje bezpośrednio żądań HTTP ani logiki biznesowej; przepływ prowadzi przez ViewModel i warstwę danych.
+- Tokenów nie zapisuje się w zwykłych preferencjach ani logach. Sekrety i klucze usług nie trafiają do aplikacji ani repozytorium.
+- Testy obejmują logikę ViewModel/warstwy danych; kluczowe zachowania UI sprawdzają odpowiednie testy.
+- `./gradlew lintDebug testDebugUnitTest assembleDebug` przechodzi lokalnie i w CI.
+- Nowe biblioteki, uprawnienia systemowe, dane offline i decyzje o mapach mają uzasadnienie w Issue; uprawnienia dodawaj dopiero, gdy wymaga ich funkcja.
+
+Poza zakresem tej fazy są iOS, Kotlin Multiplatform, synchronizacja offline, lokalizacja w tle, powiadomienia push i publiczna publikacja w sklepie — wymagają osobnych decyzji i zadań.
 
 ---
 
@@ -183,5 +247,5 @@ Dzięki temu na początku każdy ma co robić, a zadania blokujące (pogrubione)
 ## Zasada utrzymania listy
 
 - Zrobione zadania oznaczaj w Issue (zamknięcie) i skreślaj w tabeli (`~~PR-1~~`).
-- Nowe pomysły dopisuj na końcu jako kolejne numery (`PR-55`, `PR-56`, ...), nie zmieniaj numeracji istniejących. Zadania Androida opisuj w `TASK2.md`, zachowując globalną numerację.
+- Nowe pomysły dopisuj na końcu jako kolejne numery (`PR-67`, `PR-68`, ...), nie zmieniaj numeracji istniejących. Wszystkie zadania, także Androida, opisuj w tym pliku i zachowuj globalną numerację.
 - Zadanie `L` większe niż 2 dni dziel na mniejsze, dodając nowe numery.

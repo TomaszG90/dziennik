@@ -4,11 +4,11 @@ Ta instrukcja opisuje, **jak krok po kroku wykonać zadanie** od wybrania go z l
 
 Powiązane pliki:
 - [TASK.md](TASK.md): lista zadań oraz definicje Ready / Done
-- [TASK2.md](TASK2.md): szczegółowa faza rozwoju aplikacji Android
 - [CONTRIBUTING.md](CONTRIBUTING.md): zasady Git, commity, styl kodu
 - [README.md](README.md): opis projektu i uruchomienie w Dockerze
 
 ## Szybka ściągawka
+
 ```bash
 # start
 git checkout main && git pull
@@ -33,12 +33,10 @@ cd ..
 # wysyłka
 git push -u origin feature/pr-x-krotki-opis
 # → otwórz Pull Request do main
+```
 
 W PowerShell Android uruchom poleceniem `Set-Location mobile; .\gradlew.bat lintDebug testDebugUnitTest assembleDebug; Set-Location ..`.
 
-Sposób 1: Przez interfejs GitHub (najpopularniejszy)
-Sposób 2: Przez GitHub CLI (gh) – prosto z terminala
-```
 ---
 
 ## Zasady ogólne
@@ -78,11 +76,13 @@ Podczas pracy nad zadaniem często trzeba odświeżyć bazę danych — np. po z
 
 ### Czyszczenie bazy danych
 
+Poniższe polecenia usuwają dane. Uruchamiaj je tylko na lokalnej, deweloperskiej bazie po upewnieniu się, że kontener wskazuje właściwe środowisko.
+
 ```bash
-# Usuń wszystkie tabele i zacznij od zera (ostrożnie — na zawsze usuwa dane)
+# Usuń wszystkie tabele i dane
 docker compose exec backend php artisan db:wipe
 
-# Cofnij wszystkie migracje (zachowuje tabele, jeśli nie ma down())
+# Cofnij migracje
 docker compose exec backend php artisan migrate:reset
 ```
 
@@ -189,7 +189,7 @@ git checkout -b feature/pr-19-tworzenie-podrozy
 - Nie zostawiaj martwego kodu, `console.log` ani `dd()`.
 
 **Mobile (Android)**
-- Sprawdź kolejność, zależności i kryteria PR-55+ w [TASK2.md](TASK2.md); stosuj Kotlin, Jetpack Compose i decyzje z `docs/ADR-002-mobile-stack.md`.
+- Sprawdź kolejność, zależności i kryteria PR-55+ w Fazie 9 pliku [TASK.md](TASK.md); stosuj Kotlin, Jetpack Compose i decyzje z `docs/ADR-002-mobile-stack.md`.
 - Nie dodawaj zależności bez uzasadnienia w zadaniu; wersje zapisuj w `mobile/gradle/libs.versions.toml`.
 - Zachowuj podział UI, ViewModel i data/repository. Nie wywołuj API ani nie umieszczaj logiki biznesowej bezpośrednio w composable.
 - Korzystaj z `/api/v1` i kontraktu `shared/openapi.yaml`; token Sanctum wysyłaj jako Bearer. Nie utrzymuj typów request/response niezgodnych z kontraktem.
@@ -214,9 +214,10 @@ Jeśli zmieniasz endpoint, request lub response:
 1. Zaktualizuj backend i wygeneruj kontrakt Scramble:
    ```bash
    docker compose exec backend php artisan scramble:export --path=storage/app/openapi.json
-   cp backend/storage/app/openapi.json shared/openapi.json
-   cd frontend && npm run api:generate
+   docker compose cp backend:/var/www/backend/storage/app/openapi.json shared/openapi.json
+   docker compose exec frontend npm run api:generate
    ```
+   Polecenie `api:generate` zamienia `shared/openapi.json` na `shared/openapi.yaml` i generuje typy TypeScript.
 2. Dołącz `shared/openapi.yaml` i typy z `frontend/src/api/generated/` do tego samego PR-a.
 3. Sprawdź zmiany w wygenerowanych plikach. Nie edytuj ich ręcznie.
 4. Android korzysta z tego samego kontraktu; nie twórz osobnego API mobilnego.
