@@ -20,4 +20,7 @@ export default defineConfig({
       usePolling: true,
     },
   },
+  preview: {
+    allowedHosts: ['.up.railway.app', ...(process.env.RAILWAY_PUBLIC_DOMAIN ? [process.env.RAILWAY_PUBLIC_DOMAIN] : [])],
+  },
 })
