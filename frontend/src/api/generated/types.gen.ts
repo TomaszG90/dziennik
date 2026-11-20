@@ -338,6 +338,15 @@ export type AccountActivationResendErrors = {
             [key: string]: Array<string>;
         };
     };
+    /**
+     * Too many requests
+     */
+    429: {
+        /**
+         * Error overview.
+         */
+        message: string;
+    };
 };
 
 export type AccountActivationResendError = AccountActivationResendErrors[keyof AccountActivationResendErrors];
@@ -773,6 +782,15 @@ export type GeocodeErrors = {
         errors: {
             [key: string]: Array<string>;
         };
+    };
+    /**
+     * Too many requests
+     */
+    429: {
+        /**
+         * Error overview.
+         */
+        message: string;
     };
 };
 
@@ -1244,6 +1262,15 @@ export type PasswordResetSendResetLinkErrors = {
         errors: {
             [key: string]: Array<string>;
         };
+    };
+    /**
+     * Too many requests
+     */
+    429: {
+        /**
+         * Error overview.
+         */
+        message: string;
     };
 };
 
