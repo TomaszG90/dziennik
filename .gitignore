@@ -78,6 +78,7 @@ error_log
 .idea/caches/
 .idea/*.local.xml
 .idea/**/workspace.xml
+.idea/misc.xml
 
 # VS Code
 .vscode/*
