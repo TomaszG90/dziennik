@@ -97,14 +97,18 @@ Stack mobilny opisuje [ADR-002](docs/ADR-002-mobile-stack.md), a instrukcja apli
 
 ## Praca nad Androidem
 
-`mobile/` to osobna aplikacja natywna w Kotlinie i Jetpack Compose. Na tym etapie zawiera tylko szkielet, bez ekranów i funkcji. Do builda potrzebne są JDK 17 i Android SDK Platform 36. Pierwszy build uruchomisz z katalogu repozytorium:
+`mobile/` to osobna aplikacja natywna w Kotlinie i Jetpack Compose. Zawiera fundament aplikacji: architekturę UI / ViewModel / Data, motyw Material 3, nawigację Compose, konfigurację środowiska API oraz testy jednostkowe.
+
+Wszystkie polecenia weryfikacji uruchomisz z katalogu `mobile/`:
 
 ```bash
 cd mobile
-./gradlew assembleDebug
+./gradlew lintDebug testDebugUnitTest assembleDebug
 ```
 
-W PowerShell użyj `cd mobile; .\gradlew.bat assembleDebug`. W emulatorze Androida hostowy backend dostępny pod `localhost:8000` jest osiągalny przez `10.0.2.2:8000`; adres bazowy API konfiguruj zależnie od środowiska, nie wpisuj go na stałe w ekranach lub repozytoriach.
+W PowerShell użyj `cd mobile; .\gradlew.bat lintDebug testDebugUnitTest assembleDebug`.
+
+Pełną instrukcję konfiguracji środowiska, uruchamiania na emulatorze/telefonie oraz rozwiązywania problemów (np. wersje JDK, SDK, brak RAM-u) znajdziesz w [mobile/README.md](mobile/README.md).
 
 Nowe funkcje mobilne powinny konsumować `/api/v1` na podstawie [`shared/openapi.yaml`](shared/openapi.yaml). Tokeny uwierzytelniające przechowuj z użyciem bezpiecznego mechanizmu Androida, a kluczy serwisów zewnętrznych nie umieszczaj w aplikacji.
 
