@@ -8,26 +8,49 @@ import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 
 private val DarkColorScheme = darkColorScheme(
-    primary = PrimaryBlueDarkTheme,
-    secondary = SecondaryTealDarkTheme,
+    primary = MintPrimaryDark,
+    onPrimary = Color(0xFF003822),
+    primaryContainer = DeepForestDark,
+    onPrimaryContainer = MintSecondaryDark,
+    secondary = MintSecondaryDark,
+    onSecondary = Color(0xFF003822),
     background = BackgroundDark,
-    surface = SurfaceDark
+    onBackground = TextPrimaryDark,
+    surface = SurfaceDark,
+    onSurface = TextPrimaryDark,
+    surfaceVariant = SurfaceVariantDark,
+    onSurfaceVariant = TextSecondaryDark,
+    outline = BorderDark,
+    error = ErrorDark,
+    onError = Color(0xFF601410)
 )
 
 private val LightColorScheme = lightColorScheme(
-    primary = PrimaryBlue,
-    secondary = SecondaryTeal,
+    primary = ForestGreenPrimary,
+    onPrimary = Color.White,
+    primaryContainer = SageContainerLight,
+    onPrimaryContainer = ForestGreenDark,
+    secondary = ForestGreenSecondary,
+    onSecondary = Color.White,
     background = BackgroundLight,
-    surface = SurfaceLight
+    onBackground = TextPrimaryLight,
+    surface = SurfaceLight,
+    onSurface = TextPrimaryLight,
+    surfaceVariant = WarmSandSurfaceVariant,
+    onSurfaceVariant = TextSecondaryLight,
+    outline = BorderLight,
+    error = ErrorLight,
+    onError = Color.White
 )
 
 @Composable
 fun DziennikPodrozyTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    dynamicColor: Boolean = true,
+    dynamicColor: Boolean = false,
     content: @Composable () -> Unit
 ) {
     val colorScheme = when {
