@@ -17,8 +17,11 @@ import pl.dziennikpodrozy.mobile.data.remote.ApiError
 import pl.dziennikpodrozy.mobile.data.remote.ApiExceptionMapper
 import pl.dziennikpodrozy.mobile.data.remote.dto.LoginRequestDto
 import pl.dziennikpodrozy.mobile.data.remote.dto.LoginResponseDto
+import pl.dziennikpodrozy.mobile.data.remote.dto.ForgotPasswordRequestDto
+import pl.dziennikpodrozy.mobile.data.remote.dto.PasswordResetResponseDto
 import pl.dziennikpodrozy.mobile.data.remote.dto.RegisterRequestDto
 import pl.dziennikpodrozy.mobile.data.remote.dto.RegisterResponseDto
+import pl.dziennikpodrozy.mobile.data.remote.dto.ResetPasswordRequestDto
 import pl.dziennikpodrozy.mobile.data.session.SessionStore
 
 class AuthRepository(
@@ -39,6 +42,50 @@ class AuthRepository(
 
         if (response.status.isSuccess()) {
             return response.body<RegisterResponseDto>()
+        }
+
+        val error = try {
+            Json.decodeFromString<ApiError>(response.bodyAsText())
+        } catch (_: SerializationException) {
+            null
+        }
+
+        throw ApiExceptionMapper.map(
+            statusCode = response.status.value,
+            error = error
+        )
+    }
+
+    suspend fun sendPasswordResetLink(email: String): PasswordResetResponseDto {
+        val response = client.post("${apiConfig.baseUrl}/forgot-password") {
+            contentType(ContentType.Application.Json)
+            setBody(ForgotPasswordRequestDto(email))
+        }
+
+        if (response.status.isSuccess()) {
+            return response.body<PasswordResetResponseDto>()
+        }
+
+        val error = try {
+            Json.decodeFromString<ApiError>(response.bodyAsText())
+        } catch (_: SerializationException) {
+            null
+        }
+
+        throw ApiExceptionMapper.map(
+            statusCode = response.status.value,
+            error = error
+        )
+    }
+
+    suspend fun resetPassword(request: ResetPasswordRequestDto): PasswordResetResponseDto {
+        val response = client.post("${apiConfig.baseUrl}/reset-password") {
+            contentType(ContentType.Application.Json)
+            setBody(request)
+        }
+
+        if (response.status.isSuccess()) {
+            return response.body<PasswordResetResponseDto>()
         }
 
         val error = try {

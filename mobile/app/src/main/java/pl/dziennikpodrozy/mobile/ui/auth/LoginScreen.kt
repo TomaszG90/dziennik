@@ -46,6 +46,7 @@ import pl.dziennikpodrozy.mobile.ui.theme.DziennikPodrozyTheme
 fun LoginScreen(
     viewModel: LoginViewModel,
     onNavigateToRegister: () -> Unit,
+    onNavigateToForgotPassword: () -> Unit,
     onLoginSuccess: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -64,6 +65,7 @@ fun LoginScreen(
         onPasswordChange = viewModel::onPasswordChange,
         onLoginClick = viewModel::login,
         onNavigateToRegister = onNavigateToRegister,
+        onNavigateToForgotPassword = onNavigateToForgotPassword,
         modifier = modifier
     )
 }
@@ -76,6 +78,7 @@ fun LoginContent(
     onPasswordChange: (String) -> Unit,
     onLoginClick: () -> Unit,
     onNavigateToRegister: () -> Unit,
+    onNavigateToForgotPassword: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     var isPasswordVisible by remember { mutableStateOf(false) }
@@ -200,6 +203,10 @@ fun LoginContent(
 
             Spacer(modifier = Modifier.height(16.dp))
 
+            TextButton(onClick = onNavigateToForgotPassword) {
+                Text("Nie pamiętasz hasła?")
+            }
+
             TextButton(onClick = onNavigateToRegister) {
                 Text("Nie masz konta? Zarejestruj się")
             }
@@ -217,7 +224,8 @@ private fun LoginScreenPreview() {
             onEmailChange = {},
             onPasswordChange = {},
             onLoginClick = {},
-            onNavigateToRegister = {}
+            onNavigateToRegister = {},
+            onNavigateToForgotPassword = {}
         )
     }
 }

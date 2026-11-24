@@ -1,5 +1,6 @@
 package pl.dziennikpodrozy.mobile.ui.navigation
 
+import android.net.Uri
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -21,21 +22,31 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import pl.dziennikpodrozy.mobile.data.config.ApiConfig
 import pl.dziennikpodrozy.mobile.data.repository.AuthRepository
 import pl.dziennikpodrozy.mobile.ui.auth.LoginScreen
 import pl.dziennikpodrozy.mobile.ui.auth.LoginViewModel
+import pl.dziennikpodrozy.mobile.ui.auth.ForgotPasswordScreen
+import pl.dziennikpodrozy.mobile.ui.auth.PasswordResetViewModel
 import pl.dziennikpodrozy.mobile.ui.auth.RegisterScreen
 import pl.dziennikpodrozy.mobile.ui.auth.RegisterViewModel
+import pl.dziennikpodrozy.mobile.ui.auth.ResetPasswordScreen
 import pl.dziennikpodrozy.mobile.ui.home.HomeScreen
 import pl.dziennikpodrozy.mobile.ui.home.HomeViewModel
 
 sealed class Screen(val route: String) {
     data object Login : Screen("login")
     data object Register : Screen("register")
+    data object ForgotPassword : Screen("forgot-password")
+    data object ResetPassword : Screen("reset-password?email={email}&token={token}") {
+        fun createRoute(email: String = "", token: String = ""): String =
+            "reset-password?email=${Uri.encode(email)}&token=${Uri.encode(token)}"
+    }
     data object Home : Screen("home")
     data object About : Screen("about")
 }
@@ -63,9 +74,63 @@ fun AppNavGraph(
                 onNavigateToRegister = {
                     navController.navigate(Screen.Register.route)
                 },
+                onNavigateToForgotPassword = {
+                    navController.navigate(Screen.ForgotPassword.route)
+                },
                 onLoginSuccess = {
                     navController.navigate(Screen.Home.route) {
                         popUpTo(Screen.Login.route) { inclusive = true }
+                        launchSingleTop = true
+                    }
+                }
+            )
+        }
+        composable(Screen.ForgotPassword.route) {
+            val viewModel: PasswordResetViewModel = viewModel(
+                factory = PasswordResetViewModel.provideFactory(authRepository)
+            )
+            ForgotPasswordScreen(
+                viewModel = viewModel,
+                onNavigateToReset = { email ->
+                    navController.navigate(Screen.ResetPassword.createRoute(email))
+                },
+                onNavigateToLogin = {
+                    if (!navController.popBackStack(Screen.Login.route, inclusive = false)) {
+                        navController.navigate(Screen.Login.route) {
+                            popUpTo(Screen.ForgotPassword.route) { inclusive = true }
+                            launchSingleTop = true
+                        }
+                    }
+                }
+            )
+        }
+        composable(
+            route = Screen.ResetPassword.route,
+            arguments = listOf(
+                navArgument("email") {
+                    type = NavType.StringType
+                    defaultValue = ""
+                },
+                navArgument("token") {
+                    type = NavType.StringType
+                    defaultValue = ""
+                }
+            )
+        ) { backStackEntry ->
+            val email = backStackEntry.arguments?.getString("email").orEmpty()
+            val token = backStackEntry.arguments?.getString("token").orEmpty()
+            val viewModel: PasswordResetViewModel = viewModel(
+                factory = PasswordResetViewModel.provideFactory(
+                    authRepository = authRepository,
+                    initialEmail = email,
+                    initialToken = token
+                )
+            )
+            ResetPasswordScreen(
+                viewModel = viewModel,
+                onNavigateToLogin = {
+                    navController.navigate(Screen.Login.route) {
+                        popUpTo(Screen.Login.route) { inclusive = false }
                         launchSingleTop = true
                     }
                 }
