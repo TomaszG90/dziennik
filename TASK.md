@@ -206,8 +206,8 @@ Zależności dodawaj przez Gradle: wersje do `mobile/gradle/libs.versions.toml`,
 | ID | Zadanie | Obszar | Zależy od | Rozmiar |
 |---|---|---|---|---|
 | ~~PR-55~~ | Fundament aplikacji: nawigacja Compose, motyw, struktura UI/ViewModel/data, konfiguracja środowisk API, testy jednostkowe i rozszerzenie Android CI o lint/test | mobile / devops | PR-54 | M |
-| PR-56 | Klient API Ktor: serializacja, mapowanie błędów API, timeouty i bezpieczne przechowywanie/odtwarzanie sesji | mobile | PR-55 | L |
-| PR-57 | Uwierzytelnianie: logowanie, wylogowanie, rejestracja, walidacja i przekierowanie gościa/zalogowanego użytkownika | mobile | PR-56 | L |
+| ~~PR-56~~ | Klient API Ktor: serializacja, mapowanie błędów API, timeouty i bezpieczne przechowywanie/odtwarzanie sesji | mobile | PR-55 | L |
+| ~~PR-57~~ | Uwierzytelnianie: logowanie, wylogowanie, rejestracja, walidacja i przekierowanie gościa/zalogowanego użytkownika | mobile | PR-56 | L |
 | PR-58 | Reset hasła: formularz żądania linku i ustawienia hasła z obsługą odpowiedzi API | mobile | PR-57 | M |
 | PR-59 | Profil: pobranie i edycja danych, widoczności, prywatności pól i awatara | mobile | PR-56 | L |
 | PR-60 | Podróże: lista, stany ładowania/pusty/błąd, tworzenie, edycja i usuwanie | mobile | PR-57 | L |

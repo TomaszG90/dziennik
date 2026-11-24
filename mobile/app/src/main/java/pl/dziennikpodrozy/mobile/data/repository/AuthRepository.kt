@@ -1,15 +1,15 @@
-
 package pl.dziennikpodrozy.mobile.data.repository
 
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
+import io.ktor.client.request.header
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
-import io.ktor.client.request.header
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
 import io.ktor.http.isSuccess
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
 import pl.dziennikpodrozy.mobile.data.config.ApiConfig
@@ -17,6 +17,8 @@ import pl.dziennikpodrozy.mobile.data.remote.ApiError
 import pl.dziennikpodrozy.mobile.data.remote.ApiExceptionMapper
 import pl.dziennikpodrozy.mobile.data.remote.dto.LoginRequestDto
 import pl.dziennikpodrozy.mobile.data.remote.dto.LoginResponseDto
+import pl.dziennikpodrozy.mobile.data.remote.dto.RegisterRequestDto
+import pl.dziennikpodrozy.mobile.data.remote.dto.RegisterResponseDto
 import pl.dziennikpodrozy.mobile.data.session.SessionStore
 
 class AuthRepository(
@@ -24,6 +26,32 @@ class AuthRepository(
     private val apiConfig: ApiConfig,
     private val sessionManager: SessionStore
 ) {
+
+    val isAuthenticated: StateFlow<Boolean> = sessionManager.isAuthenticated
+
+    suspend fun register(
+        request: RegisterRequestDto
+    ): RegisterResponseDto {
+        val response = client.post("${apiConfig.baseUrl}/auth/register") {
+            contentType(ContentType.Application.Json)
+            setBody(request)
+        }
+
+        if (response.status.isSuccess()) {
+            return response.body<RegisterResponseDto>()
+        }
+
+        val error = try {
+            Json.decodeFromString<ApiError>(response.bodyAsText())
+        } catch (_: SerializationException) {
+            null
+        }
+
+        throw ApiExceptionMapper.map(
+            statusCode = response.status.value,
+            error = error
+        )
+    }
 
     suspend fun login(
         email: String,
@@ -41,9 +69,7 @@ class AuthRepository(
 
         if (response.status.isSuccess()) {
             val loginResponse = response.body<LoginResponseDto>()
-
             sessionManager.saveSession(loginResponse.data.token)
-
             return loginResponse
         }
 
@@ -67,7 +93,6 @@ class AuthRepository(
         return sessionManager.hasActiveSession()
     }
 
-
     suspend fun logout() {
         val token = sessionManager.getToken() ?: return
 
@@ -79,12 +104,9 @@ class AuthRepository(
                 )
             }
         } finally {
-            // Czyścimy lokalną sesję również wtedy,
-            // gdy serwer jest niedostępny.
             sessionManager.clearSession()
         }
 
-        // 401 oznacza, że token jest już nieważny.
         if (!response.status.isSuccess() && response.status.value != 401) {
             val error = try {
                 Json.decodeFromString<ApiError>(response.bodyAsText())
@@ -98,5 +120,4 @@ class AuthRepository(
             )
         }
     }
-
 }
