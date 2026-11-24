@@ -1,5 +1,6 @@
 package pl.dziennikpodrozy.mobile.ui.home
 
+import android.content.res.Configuration
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -19,10 +20,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import pl.dziennikpodrozy.mobile.ui.theme.DziennikPodrozyTheme
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     viewModel: HomeViewModel,
@@ -30,7 +32,20 @@ fun HomeScreen(
     modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    HomeContent(
+        uiState = uiState,
+        onNavigateToAbout = onNavigateToAbout,
+        modifier = modifier
+    )
+}
 
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun HomeContent(
+    uiState: HomeUiState,
+    onNavigateToAbout: () -> Unit,
+    modifier: Modifier = Modifier
+) {
     Scaffold(
         topBar = {
             TopAppBar(
@@ -78,5 +93,20 @@ fun HomeScreen(
                 Text(text = "O aplikacji (test nawigacji)")
             }
         }
+    }
+}
+
+@Preview(name = "Light Mode", showBackground = true)
+@Preview(name = "Dark Mode", uiMode = Configuration.UI_MODE_NIGHT_YES, showBackground = true)
+@Composable
+private fun HomeScreenPreview() {
+    DziennikPodrozyTheme {
+        HomeContent(
+            uiState = HomeUiState(
+                appName = "Dziennik Podróży",
+                apiBaseUrl = "https://dziennik-production.up.railway.app/api"
+            ),
+            onNavigateToAbout = {}
+        )
     }
 }
