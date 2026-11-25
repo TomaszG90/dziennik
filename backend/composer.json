@@ -8,7 +8,7 @@
     "require": {
         "php": "^8.3",
         "dedoc/scramble": "^0.13.53",
-        "laravel/framework": "^12.0",
+        "laravel/framework": "^13.43",
         "laravel/sanctum": "^4.0",
         "laravel/tinker": "^3.2.0",
         "resend/resend-php": "^1.19"
