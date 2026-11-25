@@ -1,8 +1,6 @@
-
 package pl.dziennikpodrozy.mobile.data.remote.dto
 
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.json.JsonElement
 
 @Serializable
 data class UserDto(
@@ -15,7 +13,7 @@ data class UserDto(
     val birth_date: String? = null,
     val avatar_path: String? = null,
     val profile_visibility: String,
-    val privacy_settings: List<JsonElement> = emptyList(),
+    val privacy_settings: Map<String, Boolean> = emptyMap(),
     val created_at: String? = null,
     val updated_at: String? = null
 )

@@ -27,6 +27,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -45,9 +46,14 @@ fun TripsScreen(
     onCreateTripClick: () -> Unit,
     onEditTripClick: (Int) -> Unit,
     onTripDetailsClick: (Int) -> Unit,
+    onNavigateBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+
+    LaunchedEffect(Unit) {
+        viewModel.loadTrips()
+    }
 
     TripsContent(
         uiState = uiState,
@@ -57,6 +63,7 @@ fun TripsScreen(
         onDeleteTripConfirm = viewModel::deleteTrip,
         onRetryClick = viewModel::loadTrips,
         onClearDeleteError = viewModel::clearDeleteError,
+        onNavigateBack = onNavigateBack,
         modifier = modifier
     )
 }
@@ -71,6 +78,7 @@ fun TripsContent(
     onDeleteTripConfirm: (Int) -> Unit,
     onRetryClick: () -> Unit,
     onClearDeleteError: () -> Unit,
+    onNavigateBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     var tripToDelete by remember { mutableStateOf<TripDto?>(null) }
@@ -79,6 +87,14 @@ fun TripsContent(
         topBar = {
             TopAppBar(
                 title = { Text("Moje podróże") },
+                navigationIcon = {
+                    TextButton(onClick = onNavigateBack) {
+                        Text(
+                            text = "← Wstecz",
+                            color = MaterialTheme.colorScheme.onPrimary
+                        )
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primary,
                     titleContentColor = MaterialTheme.colorScheme.onPrimary
@@ -345,7 +361,8 @@ private fun TripsScreenPreview() {
             onTripDetailsClick = {},
             onDeleteTripConfirm = {},
             onRetryClick = {},
-            onClearDeleteError = {}
+            onClearDeleteError = {},
+            onNavigateBack = {}
         )
     }
 }

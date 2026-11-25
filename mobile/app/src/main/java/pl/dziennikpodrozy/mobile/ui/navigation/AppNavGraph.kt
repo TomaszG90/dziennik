@@ -188,7 +188,8 @@ fun AppNavGraph(
                     viewModel = viewModel,
                     onCreateTripClick = { navController.navigate(Screen.CreateTrip.route) },
                     onEditTripClick = { tripId -> navController.navigate(Screen.EditTrip.createRoute(tripId)) },
-                    onTripDetailsClick = { tripId -> navController.navigate(Screen.EditTrip.createRoute(tripId)) }
+                    onTripDetailsClick = { tripId -> navController.navigate(Screen.EditTrip.createRoute(tripId)) },
+                    onNavigateBack = { navController.popBackStack() }
                 )
             }
         }
