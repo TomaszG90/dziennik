@@ -11,14 +11,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -26,10 +20,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -100,9 +91,9 @@ fun TripsContent(
                 containerColor = MaterialTheme.colorScheme.primary,
                 contentColor = MaterialTheme.colorScheme.onPrimary
             ) {
-                Icon(
-                    imageVector = Icons.Default.Add,
-                    contentDescription = "Dodaj nową podróż"
+                Text(
+                    text = "+",
+                    style = MaterialTheme.typography.titleLarge
                 )
             }
         },
@@ -166,13 +157,6 @@ fun TripsContent(
                                 modifier = Modifier.padding(24.dp),
                                 horizontalAlignment = Alignment.CenterHorizontally
                             ) {
-                                Icon(
-                                    imageVector = Icons.Default.Info,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(48.dp),
-                                    tint = MaterialTheme.colorScheme.primary
-                                )
-                                Spacer(modifier = Modifier.height(16.dp))
                                 Text(
                                     text = "Brak utworzonych podróży",
                                     style = MaterialTheme.typography.titleMedium
@@ -284,31 +268,23 @@ fun TripItemCard(
                 )
 
                 Row {
-                    IconButton(
+                    TextButton(
                         onClick = onEditClick,
                         enabled = !isDeleting
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.Edit,
-                            contentDescription = "Edytuj podróż",
-                            tint = MaterialTheme.colorScheme.primary
-                        )
+                        Text("Edytuj")
                     }
-                    IconButton(
+                    TextButton(
                         onClick = onDeleteClick,
                         enabled = !isDeleting
                     ) {
                         if (isDeleting) {
                             CircularProgressIndicator(
-                                modifier = Modifier.size(20.dp),
+                                modifier = Modifier.size(16.dp),
                                 strokeWidth = 2.dp
                             )
                         } else {
-                            Icon(
-                                imageVector = Icons.Default.Delete,
-                                contentDescription = "Usuń podróż",
-                                tint = MaterialTheme.colorScheme.error
-                            )
+                            Text("Usuń", color = MaterialTheme.colorScheme.error)
                         }
                     }
                 }

@@ -2,7 +2,6 @@ package pl.dziennikpodrozy.mobile.ui.trips
 
 import android.app.DatePickerDialog
 import android.content.res.Configuration
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -16,16 +15,11 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -209,11 +203,8 @@ fun TripFormContent(
                     label = { Text("Data rozpoczęcia (YYYY-MM-DD)") },
                     singleLine = true,
                     trailingIcon = {
-                        IconButton(onClick = { showDatePicker(uiState.startDate, onStartDateChange) }) {
-                            Icon(
-                                imageVector = Icons.Default.DateRange,
-                                contentDescription = "Wybierz datę rozpoczęcia"
-                            )
+                        TextButton(onClick = { showDatePicker(uiState.startDate, onStartDateChange) }) {
+                            Text("Wybierz")
                         }
                     },
                     keyboardOptions = KeyboardOptions(
@@ -235,11 +226,8 @@ fun TripFormContent(
                     label = { Text("Data zakończenia (opcjonalnie)") },
                     singleLine = true,
                     trailingIcon = {
-                        IconButton(onClick = { showDatePicker(uiState.endDate, onEndDateChange) }) {
-                            Icon(
-                                imageVector = Icons.Default.DateRange,
-                                contentDescription = "Wybierz datę zakończenia"
-                            )
+                        TextButton(onClick = { showDatePicker(uiState.endDate, onEndDateChange) }) {
+                            Text("Wybierz")
                         }
                     },
                     keyboardOptions = KeyboardOptions(
