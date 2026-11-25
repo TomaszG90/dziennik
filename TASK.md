@@ -210,7 +210,7 @@ Zależności dodawaj przez Gradle: wersje do `mobile/gradle/libs.versions.toml`,
 | ~~PR-57~~ | Uwierzytelnianie: logowanie, wylogowanie, rejestracja, walidacja i przekierowanie gościa/zalogowanego użytkownika | mobile | PR-56 | L |
 | ~~PR-58~~ | Reset hasła: formularz żądania linku i ustawienia hasła z obsługą odpowiedzi API | mobile | PR-57 | M |
 | PR-59 | Profil: pobranie i edycja danych, widoczności, prywatności pól i awatara | mobile | PR-56 | L |
-| PR-60 | Podróże: lista, stany ładowania/pusty/błąd, tworzenie, edycja i usuwanie | mobile | PR-57 | L |
+| ~~PR-60~~ | Podróże: lista, stany ładowania/pusty/błąd, tworzenie, edycja i usuwanie | mobile | PR-57 | L |
 | PR-61 | Szczegóły podróży i punkty: lista, tworzenie, edycja, usuwanie oraz zmiana kolejności miejsc | mobile | PR-60 | L |
 | PR-62 | Odcinki podróży: CRUD, wybór transportu i walidacja powiązań z punktami | mobile | PR-61 | M |
 | PR-63 | Mapa podróży Android: wybór biblioteki i dostawcy kafelków, markery miejsc oraz prezentacja geometrii odcinków | mobile | PR-30, PR-61, PR-62 | L |

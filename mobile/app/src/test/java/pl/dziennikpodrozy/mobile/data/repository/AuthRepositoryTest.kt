@@ -64,7 +64,7 @@ class AuthRepositoryTest {
                         "birth_date": null,
                         "avatar_path": null,
                         "profile_visibility": "public",
-                        "privacy_settings": [],
+                        "privacy_settings": {},
                         "created_at": null,
                         "updated_at": null
                     },
@@ -242,7 +242,7 @@ class AuthRepositoryTest {
                     "birth_date": null,
                     "avatar_path": null,
                     "profile_visibility": "public",
-                    "privacy_settings": [],
+                    "privacy_settings": {},
                     "created_at": null,
                     "updated_at": null
                 }
