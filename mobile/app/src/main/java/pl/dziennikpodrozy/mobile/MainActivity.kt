@@ -16,6 +16,7 @@ class MainActivity : ComponentActivity() {
             DziennikPodrozyTheme {
                 AppNavGraph(
                     authRepository = appContainer.authRepository,
+                    tripRepository = appContainer.tripRepository,
                     apiConfig = appContainer.apiConfig
                 )
             }

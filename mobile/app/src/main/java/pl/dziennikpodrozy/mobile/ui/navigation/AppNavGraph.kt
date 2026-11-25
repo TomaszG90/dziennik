@@ -29,6 +29,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import pl.dziennikpodrozy.mobile.data.config.ApiConfig
 import pl.dziennikpodrozy.mobile.data.repository.AuthRepository
+import pl.dziennikpodrozy.mobile.data.repository.TripRepository
 import pl.dziennikpodrozy.mobile.ui.auth.LoginScreen
 import pl.dziennikpodrozy.mobile.ui.auth.LoginViewModel
 import pl.dziennikpodrozy.mobile.ui.auth.ForgotPasswordScreen
@@ -38,6 +39,10 @@ import pl.dziennikpodrozy.mobile.ui.auth.RegisterViewModel
 import pl.dziennikpodrozy.mobile.ui.auth.ResetPasswordScreen
 import pl.dziennikpodrozy.mobile.ui.home.HomeScreen
 import pl.dziennikpodrozy.mobile.ui.home.HomeViewModel
+import pl.dziennikpodrozy.mobile.ui.trips.TripFormScreen
+import pl.dziennikpodrozy.mobile.ui.trips.TripFormViewModel
+import pl.dziennikpodrozy.mobile.ui.trips.TripsScreen
+import pl.dziennikpodrozy.mobile.ui.trips.TripsViewModel
 
 sealed class Screen(val route: String) {
     data object Login : Screen("login")
@@ -48,12 +53,18 @@ sealed class Screen(val route: String) {
             "reset-password?email=${Uri.encode(email)}&token=${Uri.encode(token)}"
     }
     data object Home : Screen("home")
+    data object Trips : Screen("trips")
+    data object CreateTrip : Screen("trips/create")
+    data object EditTrip : Screen("trips/{tripId}/edit") {
+        fun createRoute(tripId: Int): String = "trips/$tripId/edit"
+    }
     data object About : Screen("about")
 }
 
 @Composable
 fun AppNavGraph(
     authRepository: AuthRepository,
+    tripRepository: TripRepository? = null,
     apiConfig: ApiConfig = ApiConfig(),
     navController: NavHostController = rememberNavController()
 ) {
@@ -158,6 +169,7 @@ fun AppNavGraph(
             )
             HomeScreen(
                 viewModel = viewModel,
+                onNavigateToTrips = { navController.navigate(Screen.Trips.route) },
                 onNavigateToAbout = { navController.navigate(Screen.About.route) },
                 onLoggedOut = {
                     navController.navigate(Screen.Login.route) {
@@ -166,6 +178,51 @@ fun AppNavGraph(
                     }
                 }
             )
+        }
+        composable(Screen.Trips.route) {
+            if (tripRepository != null) {
+                val viewModel: TripsViewModel = viewModel(
+                    factory = TripsViewModel.provideFactory(tripRepository)
+                )
+                TripsScreen(
+                    viewModel = viewModel,
+                    onCreateTripClick = { navController.navigate(Screen.CreateTrip.route) },
+                    onEditTripClick = { tripId -> navController.navigate(Screen.EditTrip.createRoute(tripId)) },
+                    onTripDetailsClick = { tripId -> navController.navigate(Screen.EditTrip.createRoute(tripId)) }
+                )
+            }
+        }
+        composable(Screen.CreateTrip.route) {
+            if (tripRepository != null) {
+                val viewModel: TripFormViewModel = viewModel(
+                    factory = TripFormViewModel.provideFactory(tripRepository)
+                )
+                TripFormScreen(
+                    viewModel = viewModel,
+                    onNavigateBack = { navController.popBackStack() },
+                    onSaveSuccess = { navController.popBackStack() }
+                )
+            }
+        }
+        composable(
+            route = Screen.EditTrip.route,
+            arguments = listOf(
+                navArgument("tripId") {
+                    type = NavType.IntType
+                }
+            )
+        ) { backStackEntry ->
+            val tripId = backStackEntry.arguments?.getInt("tripId") ?: 0
+            if (tripRepository != null) {
+                val viewModel: TripFormViewModel = viewModel(
+                    factory = TripFormViewModel.provideFactory(tripRepository, tripId)
+                )
+                TripFormScreen(
+                    viewModel = viewModel,
+                    onNavigateBack = { navController.popBackStack() },
+                    onSaveSuccess = { navController.popBackStack() }
+                )
+            }
         }
         composable(Screen.About.route) {
             AboutScreen(
