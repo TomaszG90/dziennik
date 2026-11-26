@@ -5,6 +5,7 @@ import io.ktor.client.HttpClient
 import pl.dziennikpodrozy.mobile.data.config.ApiConfig
 import pl.dziennikpodrozy.mobile.data.remote.ApiClient
 import pl.dziennikpodrozy.mobile.data.repository.AuthRepository
+import pl.dziennikpodrozy.mobile.data.repository.PlaceRepository
 import pl.dziennikpodrozy.mobile.data.repository.TripRepository
 import pl.dziennikpodrozy.mobile.data.session.SecureTokenStorage
 import pl.dziennikpodrozy.mobile.data.session.SessionManager
@@ -16,6 +17,7 @@ interface AppContainer {
     val sessionStore: SessionStore
     val authRepository: AuthRepository
     val tripRepository: TripRepository
+    val placeRepository: PlaceRepository
 }
 
 class DefaultAppContainer(context: Context) : AppContainer {
@@ -29,5 +31,8 @@ class DefaultAppContainer(context: Context) : AppContainer {
     }
     override val tripRepository: TripRepository by lazy {
         TripRepository(httpClient, apiConfig, sessionStore)
+    }
+    override val placeRepository: PlaceRepository by lazy {
+        PlaceRepository(httpClient, apiConfig, sessionStore)
     }
 }
