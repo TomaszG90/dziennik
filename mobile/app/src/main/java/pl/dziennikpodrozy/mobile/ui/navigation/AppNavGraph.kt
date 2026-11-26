@@ -16,11 +16,14 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -40,6 +43,8 @@ import pl.dziennikpodrozy.mobile.ui.auth.RegisterViewModel
 import pl.dziennikpodrozy.mobile.ui.auth.ResetPasswordScreen
 import pl.dziennikpodrozy.mobile.ui.home.HomeScreen
 import pl.dziennikpodrozy.mobile.ui.home.HomeViewModel
+import pl.dziennikpodrozy.mobile.ui.trips.PlaceFormScreen
+import pl.dziennikpodrozy.mobile.ui.trips.PlaceFormViewModel
 import pl.dziennikpodrozy.mobile.ui.trips.TripDetailsScreen
 import pl.dziennikpodrozy.mobile.ui.trips.TripDetailsViewModel
 import pl.dziennikpodrozy.mobile.ui.trips.TripFormScreen
@@ -60,12 +65,18 @@ sealed class Screen(val route: String) {
     data object TripDetails : Screen("trips/{tripId}") {
         fun createRoute(tripId: Int): String = "trips/$tripId"
     }
+    data object PlaceForm : Screen("trips/{tripId}/place-form?placeId={placeId}") {
+        fun createRoute(tripId: Int, placeId: Int? = null): String =
+            "trips/$tripId/place-form" + (placeId?.let { "?placeId=$it" } ?: "")
+    }
     data object CreateTrip : Screen("trips/create")
     data object EditTrip : Screen("trips/{tripId}/edit") {
         fun createRoute(tripId: Int): String = "trips/$tripId/edit"
     }
     data object About : Screen("about")
 }
+
+private const val PLACE_SAVED = "placeSaved"
 
 @Composable
 fun AppNavGraph(
@@ -216,9 +227,46 @@ fun AppNavGraph(
                 val viewModel: TripDetailsViewModel = viewModel(
                     factory = TripDetailsViewModel.provideFactory(tripId, tripRepository, placeRepository)
                 )
+                val savedState = backStackEntry.savedStateHandle
+                val placeSaved by savedState.getStateFlow(PLACE_SAVED, false).collectAsStateWithLifecycle()
+                LaunchedEffect(placeSaved) {
+                    if (placeSaved) {
+                        viewModel.loadDetails()
+                        savedState[PLACE_SAVED] = false
+                    }
+                }
                 TripDetailsScreen(
                     viewModel = viewModel,
-                    onNavigateBack = { navController.popBackStack() }
+                    onNavigateBack = { navController.popBackStack() },
+                    onAddPlace = { navController.navigate(Screen.PlaceForm.createRoute(tripId)) },
+                    onEditPlace = { placeId -> navController.navigate(Screen.PlaceForm.createRoute(tripId, placeId)) }
+                )
+            }
+        }
+        composable(
+            route = Screen.PlaceForm.route,
+            arguments = listOf(
+                navArgument("tripId") { type = NavType.IntType },
+                navArgument("placeId") {
+                    type = NavType.IntType
+                    defaultValue = -1
+                }
+            )
+        ) { backStackEntry ->
+            if (placeRepository != null) {
+                val arguments = requireNotNull(backStackEntry.arguments)
+                val tripId = arguments.getInt("tripId")
+                val placeId = arguments.getInt("placeId").takeIf { it > 0 }
+                val viewModel: PlaceFormViewModel = viewModel(
+                    factory = PlaceFormViewModel.provideFactory(tripId, placeId, placeRepository)
+                )
+                PlaceFormScreen(
+                    viewModel = viewModel,
+                    onNavigateBack = { navController.popBackStack() },
+                    onSaveSuccess = {
+                        navController.previousBackStackEntry?.savedStateHandle?.set(PLACE_SAVED, true)
+                        navController.popBackStack()
+                    }
                 )
             }
         }

@@ -6,6 +6,7 @@ import io.ktor.client.engine.mock.respond
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
+import io.ktor.http.HttpMethod
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.headersOf
 import io.ktor.serialization.kotlinx.json.json
@@ -112,11 +113,50 @@ class TripDetailsViewModelTest {
         }
     }
 
-    private fun client(placesResponse: () -> Pair<String, HttpStatusCode>): HttpClient =
+    @Test
+    fun `delete removes place only after a successful response`() = runTest {
+        var attempt = 0
+        val places = """
+            {"data":[{"id":3,"trip_id":10,"name":"Wiedeń","latitude":"48.21","longitude":"16.37","position":1}]}
+        """.trimIndent()
+        client(
+            deleteResponse = {
+                attempt++
+                if (attempt == 1) {
+                    """{"message":"Brak dostępu."}""" to HttpStatusCode.Forbidden
+                } else {
+                    "" to HttpStatusCode.NoContent
+                }
+            },
+            placesResponse = { places to HttpStatusCode.OK }
+        ).use {
+            val viewModel = viewModel(it)
+            viewModel.uiState.first { !it.isLoading }
+            viewModel.deletePlace(3)
+            val failed = viewModel.uiState.first { it.deletingPlaceId == null }
+            assertEquals("Brak dostępu.", failed.deleteError)
+            assertEquals(3, failed.places.single().id)
+
+            viewModel.clearDeleteError()
+            viewModel.deletePlace(3)
+            val deleted = viewModel.uiState.first { it.deletingPlaceId == null }
+            assertTrue(deleted.places.isEmpty())
+            assertNull(deleted.deleteError)
+        }
+    }
+
+    private fun client(
+        deleteResponse: () -> Pair<String, HttpStatusCode> = { error("Unexpected delete") },
+        placesResponse: () -> Pair<String, HttpStatusCode>
+    ): HttpClient =
         HttpClient(MockEngine { request ->
             val (body, status) = when (request.url.encodedPath) {
                 "/api/v1/trips/10" -> tripResponse to HttpStatusCode.OK
                 "/api/v1/trips/10/places" -> placesResponse()
+                "/api/v1/trips/10/places/3" -> {
+                    assertEquals(HttpMethod.Delete, request.method)
+                    deleteResponse()
+                }
                 else -> error("Unexpected request: ${request.url}")
             }
             respond(body, status, headersOf(HttpHeaders.ContentType, ContentType.Application.Json.toString()))
