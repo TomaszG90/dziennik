@@ -308,27 +308,32 @@ fun TripItemCard(
 
             Spacer(modifier = Modifier.height(6.dp))
 
-            val dateText = if (trip.end_date.isNullOrBlank()) {
-                "Od: ${trip.start_date}"
-            } else {
-                "${trip.start_date} — ${trip.end_date}"
-            }
-
-            Text(
-                text = dateText,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.primary
-            )
-
-            if (!trip.description.isNullOrBlank()) {
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = trip.description,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
+            TripDateAndDescription(trip)
         }
+    }
+}
+
+@Composable
+internal fun TripDateAndDescription(trip: TripDto) {
+    val dateText = if (trip.end_date.isNullOrBlank()) {
+        "Od: ${trip.start_date}"
+    } else {
+        "${trip.start_date} — ${trip.end_date}"
+    }
+
+    Text(
+        text = dateText,
+        style = MaterialTheme.typography.bodyMedium,
+        color = MaterialTheme.colorScheme.primary
+    )
+
+    if (!trip.description.isNullOrBlank()) {
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = trip.description,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
     }
 }
 

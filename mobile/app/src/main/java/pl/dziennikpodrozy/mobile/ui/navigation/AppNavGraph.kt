@@ -29,6 +29,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import pl.dziennikpodrozy.mobile.data.config.ApiConfig
 import pl.dziennikpodrozy.mobile.data.repository.AuthRepository
+import pl.dziennikpodrozy.mobile.data.repository.PlaceRepository
 import pl.dziennikpodrozy.mobile.data.repository.TripRepository
 import pl.dziennikpodrozy.mobile.ui.auth.LoginScreen
 import pl.dziennikpodrozy.mobile.ui.auth.LoginViewModel
@@ -39,6 +40,8 @@ import pl.dziennikpodrozy.mobile.ui.auth.RegisterViewModel
 import pl.dziennikpodrozy.mobile.ui.auth.ResetPasswordScreen
 import pl.dziennikpodrozy.mobile.ui.home.HomeScreen
 import pl.dziennikpodrozy.mobile.ui.home.HomeViewModel
+import pl.dziennikpodrozy.mobile.ui.trips.TripDetailsScreen
+import pl.dziennikpodrozy.mobile.ui.trips.TripDetailsViewModel
 import pl.dziennikpodrozy.mobile.ui.trips.TripFormScreen
 import pl.dziennikpodrozy.mobile.ui.trips.TripFormViewModel
 import pl.dziennikpodrozy.mobile.ui.trips.TripsScreen
@@ -54,6 +57,9 @@ sealed class Screen(val route: String) {
     }
     data object Home : Screen("home")
     data object Trips : Screen("trips")
+    data object TripDetails : Screen("trips/{tripId}") {
+        fun createRoute(tripId: Int): String = "trips/$tripId"
+    }
     data object CreateTrip : Screen("trips/create")
     data object EditTrip : Screen("trips/{tripId}/edit") {
         fun createRoute(tripId: Int): String = "trips/$tripId/edit"
@@ -66,7 +72,8 @@ fun AppNavGraph(
     authRepository: AuthRepository,
     tripRepository: TripRepository? = null,
     apiConfig: ApiConfig = ApiConfig(),
-    navController: NavHostController = rememberNavController()
+    navController: NavHostController = rememberNavController(),
+    placeRepository: PlaceRepository? = null
 ) {
     val startDestination = remember(authRepository) {
         if (authRepository.hasActiveSession()) Screen.Home.route else Screen.Login.route
@@ -188,7 +195,29 @@ fun AppNavGraph(
                     viewModel = viewModel,
                     onCreateTripClick = { navController.navigate(Screen.CreateTrip.route) },
                     onEditTripClick = { tripId -> navController.navigate(Screen.EditTrip.createRoute(tripId)) },
-                    onTripDetailsClick = { tripId -> navController.navigate(Screen.EditTrip.createRoute(tripId)) },
+                    onTripDetailsClick = { tripId ->
+                        val destination = if (placeRepository == null) {
+                            Screen.EditTrip.createRoute(tripId)
+                        } else {
+                            Screen.TripDetails.createRoute(tripId)
+                        }
+                        navController.navigate(destination)
+                    },
+                    onNavigateBack = { navController.popBackStack() }
+                )
+            }
+        }
+        composable(
+            route = Screen.TripDetails.route,
+            arguments = listOf(navArgument("tripId") { type = NavType.IntType })
+        ) { backStackEntry ->
+            if (tripRepository != null && placeRepository != null) {
+                val tripId = requireNotNull(backStackEntry.arguments).getInt("tripId")
+                val viewModel: TripDetailsViewModel = viewModel(
+                    factory = TripDetailsViewModel.provideFactory(tripId, tripRepository, placeRepository)
+                )
+                TripDetailsScreen(
+                    viewModel = viewModel,
                     onNavigateBack = { navController.popBackStack() }
                 )
             }
