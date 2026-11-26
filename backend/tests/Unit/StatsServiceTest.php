@@ -246,12 +246,14 @@ class StatsServiceTest extends TestCase
             'trip_id' => $trip->id,
             'latitude' => 52.23,
             'longitude' => 21.01,
+            'position' => 1,
         ]);
 
         $place2 = Place::factory()->create([
             'trip_id' => $trip->id,
             'latitude' => 48.85,
             'longitude' => 2.35,
+            'position' => 2,
         ]);
 
         Leg::factory()->create([
