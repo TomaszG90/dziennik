@@ -4,10 +4,12 @@ import io.ktor.client.HttpClient
 import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.respond
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.client.request.HttpRequestData
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpMethod
 import io.ktor.http.HttpStatusCode
+import io.ktor.http.content.TextContent
 import io.ktor.http.headersOf
 import io.ktor.serialization.kotlinx.json.json
 import java.io.IOException
@@ -19,6 +21,7 @@ import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
+import kotlinx.serialization.json.Json
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -43,6 +46,7 @@ class TripDetailsViewModelTest {
         override fun clearSession() = Unit
     }
     private val tripResponse = """{"data":{"id":10,"name":"Austria","start_date":"2026-10-29"}}"""
+    private val initialOrder = placesResponse(3, 8, 12)
 
     @Before
     fun setUp() = Dispatchers.setMain(dispatcher)
@@ -145,14 +149,92 @@ class TripDetailsViewModelTest {
         }
     }
 
+    @Test
+    fun `moving either direction sends all place IDs and applies the saved order`() = runTest {
+        val requestedOrders = mutableListOf<String>()
+        client(
+            reorderResponse = { request ->
+                requestedOrders += (request.body as TextContent).text
+                val body = if (requestedOrders.size == 1) placesResponse(8, 3, 12) else initialOrder
+                body to HttpStatusCode.OK
+            },
+            placesResponse = { initialOrder to HttpStatusCode.OK }
+        ).use {
+            val viewModel = viewModel(it)
+            viewModel.uiState.first { !it.isLoading }
+
+            viewModel.movePlaceDown(3)
+            val pending = viewModel.uiState.value
+            assertTrue(pending.isReordering)
+            assertEquals(listOf(3, 8, 12), pending.places.map { place -> place.id })
+            viewModel.movePlaceDown(3)
+            val movedDown = viewModel.uiState.first { !it.isReordering }
+            assertEquals(listOf(8, 3, 12), movedDown.places.map { place -> place.id })
+
+            viewModel.movePlaceUp(3)
+            val movedUp = viewModel.uiState.first { !it.isReordering }
+            assertEquals(listOf(3, 8, 12), movedUp.places.map { place -> place.id })
+
+            assertEquals(
+                listOf("""{"place_ids":[8,3,12]}""", """{"place_ids":[3,8,12]}""")
+                    .map(Json::parseToJsonElement),
+                requestedOrders.map(Json::parseToJsonElement)
+            )
+        }
+    }
+
+    @Test
+    fun `first and last place stay within the list boundaries`() = runTest {
+        client { initialOrder to HttpStatusCode.OK }.use {
+            val viewModel = viewModel(it)
+            viewModel.uiState.first { !it.isLoading }
+
+            viewModel.movePlaceUp(3)
+            viewModel.movePlaceDown(12)
+
+            assertFalse(viewModel.uiState.value.isReordering)
+            assertEquals(listOf(3, 8, 12), viewModel.uiState.value.places.map { place -> place.id })
+        }
+    }
+
+    @Test
+    fun `failed reorder keeps the saved order and exposes the error`() = runTest {
+        client(
+            reorderResponse = { """{"message":"Nie można zmienić kolejności."}""" to HttpStatusCode.UnprocessableEntity },
+            placesResponse = { initialOrder to HttpStatusCode.OK }
+        ).use {
+            val viewModel = viewModel(it)
+            viewModel.uiState.first { !it.isLoading }
+            viewModel.movePlaceUp(8)
+
+            val failed = viewModel.uiState.first { !it.isReordering }
+            assertEquals(listOf(3, 8, 12), failed.places.map { place -> place.id })
+            assertEquals("Nie można zmienić kolejności.", failed.reorderError)
+            viewModel.clearReorderError()
+            assertNull(viewModel.uiState.value.reorderError)
+        }
+    }
+
+    private fun placesResponse(vararg ids: Int): String {
+        val places = ids.mapIndexed { index, id ->
+            """{"id":$id,"trip_id":10,"name":"Miejsce $id","latitude":"48","longitude":"16","position":${index + 1}}"""
+        }
+        return """{"data":[${places.joinToString(",")}]}"""
+    }
+
     private fun client(
         deleteResponse: () -> Pair<String, HttpStatusCode> = { error("Unexpected delete") },
+        reorderResponse: (HttpRequestData) -> Pair<String, HttpStatusCode> = { error("Unexpected reorder") },
         placesResponse: () -> Pair<String, HttpStatusCode>
     ): HttpClient =
         HttpClient(MockEngine { request ->
             val (body, status) = when (request.url.encodedPath) {
                 "/api/v1/trips/10" -> tripResponse to HttpStatusCode.OK
                 "/api/v1/trips/10/places" -> placesResponse()
+                "/api/v1/trips/10/places/reorder" -> {
+                    assertEquals(HttpMethod.Patch, request.method)
+                    reorderResponse(request)
+                }
                 "/api/v1/trips/10/places/3" -> {
                     assertEquals(HttpMethod.Delete, request.method)
                     deleteResponse()

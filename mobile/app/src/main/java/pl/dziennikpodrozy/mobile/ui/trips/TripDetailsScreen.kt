@@ -3,6 +3,7 @@ package pl.dziennikpodrozy.mobile.ui.trips
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -10,9 +11,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.Button
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -65,7 +66,7 @@ fun TripDetailsScreen(
             )
         },
         floatingActionButton = {
-            if (trip != null && state.deletingPlaceId == null) {
+            if (trip != null && !state.isChangingPlaces) {
                 ExtendedFloatingActionButton(
                     onClick = onAddPlace,
                     containerColor = MaterialTheme.colorScheme.primary,
@@ -93,7 +94,15 @@ fun TripDetailsScreen(
                         }
                     }
                     item {
-                        Text("Miejsca", style = MaterialTheme.typography.titleLarge)
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text("Miejsca", style = MaterialTheme.typography.titleLarge)
+                            if (state.isReordering) {
+                                CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp)
+                            }
+                        }
                     }
                     if (state.places.isEmpty()) {
                         item {
@@ -105,7 +114,7 @@ fun TripDetailsScreen(
                             }
                         }
                     }
-                    items(state.places, key = { it.id }) { place ->
+                    itemsIndexed(state.places, key = { _, place -> place.id }) { index, place ->
                         DetailsCard {
                             Text(place.name, style = MaterialTheme.typography.titleMedium)
                             Text(
@@ -114,19 +123,33 @@ fun TripDetailsScreen(
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
-                            Row(
+                            FlowRow(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.End
                             ) {
+                                if (state.places.size > 1) {
+                                    TextButton(
+                                        onClick = { viewModel.movePlaceUp(place.id) },
+                                        enabled = !state.isChangingPlaces && index > 0
+                                    ) {
+                                        Text("W górę")
+                                    }
+                                    TextButton(
+                                        onClick = { viewModel.movePlaceDown(place.id) },
+                                        enabled = !state.isChangingPlaces && index < state.places.lastIndex
+                                    ) {
+                                        Text("W dół")
+                                    }
+                                }
                                 TextButton(
                                     onClick = { onEditPlace(place.id) },
-                                    enabled = state.deletingPlaceId == null
+                                    enabled = !state.isChangingPlaces
                                 ) {
                                     Text("Edytuj")
                                 }
                                 TextButton(
                                     onClick = { pendingDeleteId = place.id },
-                                    enabled = state.deletingPlaceId == null
+                                    enabled = !state.isChangingPlaces
                                 ) {
                                     if (state.deletingPlaceId == place.id) {
                                         CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp)
@@ -168,6 +191,17 @@ fun TripDetailsScreen(
             text = { Text(message) },
             confirmButton = {
                 TextButton(onClick = viewModel::clearDeleteError) { Text("OK") }
+            }
+        )
+    }
+
+    state.reorderError?.let { message ->
+        AlertDialog(
+            onDismissRequest = viewModel::clearReorderError,
+            title = { Text("Błąd zmiany kolejności") },
+            text = { Text(message) },
+            confirmButton = {
+                TextButton(onClick = viewModel::clearReorderError) { Text("OK") }
             }
         )
     }

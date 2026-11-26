@@ -20,8 +20,12 @@ data class TripDetailsUiState(
     val places: List<PlaceDto> = emptyList(),
     val errorMessage: String? = null,
     val deletingPlaceId: Int? = null,
-    val deleteError: String? = null
-)
+    val deleteError: String? = null,
+    val isReordering: Boolean = false,
+    val reorderError: String? = null
+) {
+    val isChangingPlaces: Boolean get() = deletingPlaceId != null || isReordering
+}
 
 class TripDetailsViewModel(
     private val tripId: Int,
@@ -37,7 +41,7 @@ class TripDetailsViewModel(
     }
 
     fun loadDetails() {
-        if (_uiState.value.deletingPlaceId != null) return
+        if (_uiState.value.isChangingPlaces) return
         loadJob?.cancel()
         _uiState.value = TripDetailsUiState()
         loadJob = viewModelScope.launch {
@@ -62,7 +66,7 @@ class TripDetailsViewModel(
 
     fun deletePlace(placeId: Int) {
         val state = _uiState.value
-        if (state.isLoading || state.deletingPlaceId != null || state.places.none { it.id == placeId }) return
+        if (state.isLoading || state.isChangingPlaces || state.places.none { it.id == placeId }) return
 
         _uiState.update { it.copy(deletingPlaceId = placeId, deleteError = null) }
         viewModelScope.launch {
@@ -83,6 +87,43 @@ class TripDetailsViewModel(
 
     fun clearDeleteError() {
         _uiState.update { it.copy(deleteError = null) }
+    }
+
+    fun movePlaceUp(placeId: Int) = movePlace(placeId, offset = -1)
+
+    fun movePlaceDown(placeId: Int) = movePlace(placeId, offset = 1)
+
+    private fun movePlace(placeId: Int, offset: Int) {
+        val state = _uiState.value
+        if (state.isLoading || state.isChangingPlaces) return
+
+        val index = state.places.indexOfFirst { it.id == placeId }
+        val targetIndex = index + offset
+        if (index < 0 || targetIndex !in state.places.indices) return
+
+        val orderedIds = state.places.map { it.id }.toMutableList().apply {
+            add(targetIndex, removeAt(index))
+        }
+        _uiState.update { it.copy(isReordering = true, reorderError = null) }
+        viewModelScope.launch {
+            try {
+                val places = placeRepository.reorderPlaces(tripId, orderedIds)
+                _uiState.update { it.copy(isReordering = false, places = places.sortedBy { place -> place.position }) }
+            } catch (exception: CancellationException) {
+                throw exception
+            } catch (exception: Exception) {
+                _uiState.update {
+                    it.copy(
+                        isReordering = false,
+                        reorderError = placeError(exception, "Nie udało się zapisać kolejności miejsc.")
+                    )
+                }
+            }
+        }
+    }
+
+    fun clearReorderError() {
+        _uiState.update { it.copy(reorderError = null) }
     }
 
     companion object {
