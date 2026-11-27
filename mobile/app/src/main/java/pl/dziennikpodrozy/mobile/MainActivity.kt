@@ -17,6 +17,7 @@ class MainActivity : ComponentActivity() {
                 AppNavGraph(
                     authRepository = appContainer.authRepository,
                     tripRepository = appContainer.tripRepository,
+                    placeRepository = appContainer.placeRepository,
                     apiConfig = appContainer.apiConfig
                 )
             }
